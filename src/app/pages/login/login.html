@@ -1,0 +1,99 @@
+<main class="flex min-h-screen items-center justify-center p-4">
+  <div class="w-full max-w-[380px] rounded-2xl bg-card p-8 shadow-sm">
+    <span class="mb-5 block h-1 w-10 rounded-full bg-accent"></span>
+
+    <h1 class="text-2xl font-bold text-ink">ParkEase</h1>
+    <p class="mt-1 text-sm text-muted">
+      Log in to find, book, and manage your spot.
+    </p>
+
+    <form [formRoot]="loginForm" class="mt-6">
+      <div>
+        <label
+          for="email"
+          class="block text-xs font-semibold tracking-wide text-muted"
+          >EMAIL</label
+        >
+        <input
+          id="email"
+          type="email"
+          placeholder="you@example.com"
+          [formField]="loginForm.email"
+          class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+        />
+        @if (loginForm.email().touched() && loginForm.email().invalid()) {
+          <p class="mt-1 text-xs text-red-600">
+            {{ loginForm.email().errors()[0]?.message ?? 'Enter a valid email address.' }}
+          </p>
+        }
+      </div>
+
+      <div class="mt-5">
+        <label
+          for="password"
+          class="block text-xs font-semibold tracking-wide text-muted"
+          >PASSWORD</label
+        >
+        <input
+          id="password"
+          type="password"
+          placeholder="••••••••"
+          [formField]="loginForm.password"
+          class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+        />
+        @if (loginForm.password().touched() && loginForm.password().invalid()) {
+          <p class="mt-1 text-xs text-red-600">
+            {{ loginForm.password().errors()[0]?.message ?? 'Password is required.' }}
+          </p>
+        }
+      </div>
+
+      <a
+        href="#"
+        class="mt-4 inline-block text-sm text-link hover:underline"
+        (click)="$event.preventDefault()"
+        title="Coming soon"
+        >Forgot password?</a
+      >
+
+      @if (serverError()) {
+        <p class="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+          {{ serverError() }}
+        </p>
+      }
+
+      @if (adminNotice()) {
+        <p class="mt-4 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">
+          Admin accounts aren't supported in this app yet.
+        </p>
+      }
+
+      <button
+        type="submit"
+        [disabled]="loginForm().submitting()"
+        class="mt-4 w-full rounded-lg bg-accent py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {{ loginForm().submitting() ? 'Logging in…' : 'Log in' }}
+      </button>
+    </form>
+
+    <div class="my-5 flex items-center gap-3">
+      <span class="h-px flex-1 bg-border"></span>
+      <span class="text-xs font-medium text-muted">OR</span>
+      <span class="h-px flex-1 bg-border"></span>
+    </div>
+
+    <button
+      type="button"
+      title="Coming soon"
+      class="w-full rounded-lg border border-border py-2.5 text-sm font-semibold text-ink hover:bg-surface/60"
+    >
+      Continue with Google
+    </button>
+
+    <p class="mt-5 text-center text-sm text-muted">
+      Don't have an account?
+      <a href="#" class="text-link hover:underline">Sign up</a>
+    </p>
+  </div>
+</main>
