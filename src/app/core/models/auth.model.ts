@@ -5,6 +5,13 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface RegisterDriverRequest {
+  fullName: string;
+  email: string;
+  password: string;
+  phone?: string;
+}
+
 export interface AuthUser {
   userId: string;
   fullName: string;

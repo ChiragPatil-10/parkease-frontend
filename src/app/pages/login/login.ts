@@ -6,7 +6,6 @@ import { FormField, FormRoot, email, form, required } from '@angular/forms/signa
 import { AuthService } from '../../core/services/auth.service';
 import { ApiResponse } from '../../core/models/api-response.model';
 import { AuthResponse } from '../../core/models/auth.model';
-import { UserRole } from '../../core/enums/user-role.enum';
 
 @Component({
   selector: 'app-login',
@@ -56,16 +55,11 @@ export class Login {
   private handleSuccess(auth: AuthResponse): void {
     this.authService.saveSession(auth);
 
-    switch (auth.user.role) {
-      case UserRole.Driver:
-        this.router.navigateByUrl('/lots');
-        break;
-      case UserRole.Manager:
-        this.router.navigateByUrl('/manager/lots');
-        break;
-      case UserRole.Admin:
-        this.adminNotice.set(true);
-        break;
+    const route = this.authService.resolvePostAuthRoute(auth.user.role);
+    if (route) {
+      this.router.navigateByUrl(route);
+    } else {
+      this.adminNotice.set(true);
     }
   }
 
