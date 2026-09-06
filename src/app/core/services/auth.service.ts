@@ -3,7 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { AUTH_API } from '../constants/api.constants';
 import { ApiResponse } from '../models/api-response.model';
-import { AuthResponse, AuthUser, LoginRequest } from '../models/auth.model';
+import { AuthResponse, AuthUser, LoginRequest, RegisterDriverRequest } from '../models/auth.model';
+import { UserRole } from '../enums/user-role.enum';
 
 const SESSION_STORAGE_KEY = 'parkease.session';
 
@@ -13,6 +14,22 @@ export class AuthService {
 
   login(request: LoginRequest): Observable<ApiResponse<AuthResponse>> {
     return this.http.post<ApiResponse<AuthResponse>>(AUTH_API.login, request);
+  }
+
+  registerDriver(request: RegisterDriverRequest): Observable<ApiResponse<AuthResponse>> {
+    return this.http.post<ApiResponse<AuthResponse>>(AUTH_API.registerDriver, request);
+  }
+
+  /** Route to land on after a successful login/registration; null means "no redirect" (e.g. Admin, handled by the caller). */
+  resolvePostAuthRoute(role: UserRole): string | null {
+    switch (role) {
+      case UserRole.Driver:
+        return '/lots';
+      case UserRole.Manager:
+        return '/manager/lots';
+      default:
+        return null;
+    }
   }
 
   saveSession(auth: AuthResponse): void {
