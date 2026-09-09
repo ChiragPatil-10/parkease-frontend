@@ -1,0 +1,141 @@
+<main class="flex min-h-screen items-center justify-center p-4">
+  <div class="w-full max-w-[380px] rounded-2xl bg-card p-8 shadow-sm">
+    <span class="mb-5 block h-1 w-10 rounded-full bg-accent"></span>
+
+    <h1 class="text-2xl font-bold text-ink">ParkEase</h1>
+    <h2 class="mt-1 text-base font-semibold text-ink">Register your parking business</h2>
+    <p class="mt-1 text-sm text-muted">List your lot and start accepting bookings.</p>
+
+    <form [formRoot]="registerForm" class="mt-6">
+      <div>
+        <label for="fullName" class="block text-xs font-semibold tracking-wide text-muted"
+          >FULL NAME</label
+        >
+        <input
+          id="fullName"
+          type="text"
+          placeholder="Priya Shah"
+          [formField]="registerForm.fullName"
+          class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+        />
+        @if (registerForm.fullName().touched() && registerForm.fullName().invalid()) {
+          <p class="mt-1 text-xs text-red-600">
+            {{ registerForm.fullName().errors()[0]?.message ?? 'Full name is required.' }}
+          </p>
+        }
+      </div>
+
+      <div class="mt-5">
+        <label for="email" class="block text-xs font-semibold tracking-wide text-muted"
+          >EMAIL</label
+        >
+        <input
+          id="email"
+          type="email"
+          placeholder="you@business.com"
+          [formField]="registerForm.email"
+          class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+        />
+        @if (registerForm.email().touched() && registerForm.email().invalid()) {
+          <p class="mt-1 text-xs text-red-600">
+            {{ registerForm.email().errors()[0]?.message ?? 'Enter a valid email address.' }}
+          </p>
+        }
+      </div>
+
+      <div class="mt-5">
+        <label for="password" class="block text-xs font-semibold tracking-wide text-muted"
+          >PASSWORD</label
+        >
+        <input
+          id="password"
+          type="password"
+          [formField]="registerForm.password"
+          class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+        />
+        @if (registerForm.password().touched() && registerForm.password().invalid()) {
+          <p class="mt-1 text-xs text-red-600">
+            {{ registerForm.password().errors()[0]?.message ?? 'Password is required.' }}
+          </p>
+        } @else {
+          <p class="mt-1 text-xs text-muted">
+            8+ characters, with uppercase, lowercase, and a number.
+          </p>
+        }
+      </div>
+
+      <div class="mt-5">
+        <label for="phone" class="block text-xs font-semibold tracking-wide text-muted"
+          >PHONE</label
+        >
+        <input
+          id="phone"
+          type="tel"
+          placeholder="+91 98765 43210"
+          [formField]="registerForm.phone"
+          class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+        />
+        @if (registerForm.phone().touched() && registerForm.phone().invalid()) {
+          <p class="mt-1 text-xs text-red-600">
+            {{ registerForm.phone().errors()[0]?.message ?? 'Phone is required.' }}
+          </p>
+        }
+      </div>
+
+      <div class="mt-5">
+        <label for="businessName" class="block text-xs font-semibold tracking-wide text-muted"
+          >BUSINESS NAME</label
+        >
+        <input
+          id="businessName"
+          type="text"
+          placeholder="Shah Parking Services"
+          [formField]="registerForm.businessName"
+          class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+        />
+        @if (registerForm.businessName().touched() && registerForm.businessName().invalid()) {
+          <p class="mt-1 text-xs text-red-600">
+            {{ registerForm.businessName().errors()[0]?.message ?? 'Business name is required.' }}
+          </p>
+        }
+      </div>
+
+      <div class="mt-5">
+        <label for="parkingAddress" class="block text-xs font-semibold tracking-wide text-muted"
+          >PARKING ADDRESS</label
+        >
+        <input
+          id="parkingAddress"
+          type="text"
+          placeholder="4th Block, Koramangala"
+          [formField]="registerForm.parkingAddress"
+          class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+        />
+        @if (registerForm.parkingAddress().touched() && registerForm.parkingAddress().invalid()) {
+          <p class="mt-1 text-xs text-red-600">
+            {{ registerForm.parkingAddress().errors()[0]?.message ?? 'Parking address is required.' }}
+          </p>
+        }
+      </div>
+
+      @if (serverError()) {
+        <p class="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+          {{ serverError() }}
+        </p>
+      }
+
+      <button
+        type="submit"
+        [disabled]="registerForm().submitting()"
+        class="mt-6 w-full rounded-lg bg-accent py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {{ registerForm().submitting() ? 'Submitting…' : 'Submit application' }}
+      </button>
+    </form>
+
+    <p class="mt-5 text-center text-sm text-muted">
+      Already registered?
+      <a routerLink="/" class="text-link hover:underline">Log in</a>
+    </p>
+  </div>
+</main>
