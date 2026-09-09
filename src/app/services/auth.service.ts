@@ -3,7 +3,13 @@ import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 import { AUTH_API } from '../constants/auth.constants';
 import { ApiResponse } from '../models/api-response.model';
-import { AuthResponse, LoginRequest, RegisterDriverRequest } from '../models/auth/auth.model';
+import {
+  AuthResponse,
+  LoginRequest,
+  ManagerApplicationDto,
+  RegisterDriverRequest,
+  RegisterManagerRequest,
+} from '../models/auth/auth.model';
 import { AuthUser } from '../models/auth/user.model';
 import { UserRole } from '../models/auth/user-role.enum';
 
@@ -19,6 +25,10 @@ export class AuthService {
 
   registerDriver(request: RegisterDriverRequest): Observable<ApiResponse<AuthResponse>> {
     return this.api.post<AuthResponse>(AUTH_API.registerDriver, request);
+  }
+
+  registerManager(request: RegisterManagerRequest): Observable<ApiResponse<ManagerApplicationDto>> {
+    return this.api.post<ManagerApplicationDto>(AUTH_API.registerManager, request);
   }
 
   /** Route to land on after a successful login/registration; null means "no redirect" (e.g. Admin, handled by the caller). */

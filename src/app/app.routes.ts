@@ -9,6 +9,7 @@ import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   { path: '', component: Login },
+  { path: 'login', component: Login },
   { path: 'register', component: RegisterDriver },
   { path: 'register-manager', component: RegisterManager },
   { path: 'register-manager/submitted', component: ManagerApplicationSubmitted },
