@@ -28,8 +28,10 @@ For each page, I will provide:
   design system broadly (e.g. a color that looks like it's a reused token).
   Minor per-page guesses are fine.
 - Use static/mock/hardcoded data only — no HTTP calls, no services wired up.
-- Use standalone Angular components matching whatever convention the project
-  already uses.
+- Use standalone Angular components. Create the page under `pages/<page-name>/`
+  in kebab-case, with the component class as the PascalCase of that name (no
+  `Component` suffix) — see "Current Project Structure" below for the exact
+  file layout (full 4-file page vs. inline-template stub).
 - Reuse the existing design tokens/theme already established in the project
   (check first) rather than inventing new ones. Only introduce new tokens if
   the screenshot clearly needs something not yet defined, and flag it as new.
@@ -84,20 +86,10 @@ Only start when explicitly told to proceed, and only once told which
 
 - Wire the static page from Phase 1 to the real backend using the relevant
   file(s) in `docs/api/`.
-- Follow this folder structure. Check the existing repo first and reuse what's
-  already there — don't create a parallel structure for a page that already
-  has shared infra from an earlier page.
-
-```
-/core or /shared
-  /enums         → typed enums matching backend contracts
-  /constants     → route constants, config constants
-  /models        → request/response DTOs typed from the JSON
-  /services      → Angular services per domain/feature, using HttpClient
-  /interceptors  → only if this page/feature needs one not already present
-  /mappers       → API DTO <-> UI view-model mapping, if shapes differ
-```
-
+- Follow the structure below (see "Current Project Structure"). Check the
+  existing repo first and reuse what's already there — don't create a
+  parallel structure for a page that already has shared infra from an
+  earlier page.
 - Handle loading, error, and empty states based on the actual API responses.
 - Write Jasmine + Karma unit tests for the individual components touched in
   this phase only — not the whole app.
@@ -111,6 +103,94 @@ Only start when explicitly told to proceed, and only once told which
    `feat(booking-page): integrate booking API with services, models, tests`
 
 **Then stop.** Wait for the next instruction before moving to the next page.
+
+---
+
+## Current Project Structure
+
+This is the actual structure as of the auth/register-driver pages (Phase 2
+complete for both). Treat this as the canonical layout — extend it, don't
+reinvent it, for every new page.
+
+```
+src/
+├── environments/
+│   ├── environment.ts                    # dev config (apiBaseUrl, production flag)
+│   └── environment.production.ts
+│
+└── app/
+    ├── app.config.ts                     # providers: router, HttpClient + interceptors
+    ├── app.routes.ts                     # flat route list, canActivate: [authGuard] on protected routes
+    │
+    ├── core/                             # cross-cutting infra (not feature-specific)
+    │   ├── guards/
+    │   │   └── auth.guard.ts
+    │   └── interceptors/
+    │       └── auth.interceptor.ts       # attaches Bearer token from session
+    │
+    ├── constants/                        # flat, one file per domain
+    │   └── auth.constants.ts             # e.g. AUTH_API route paths
+    │
+    ├── models/                           # flat top-level + per-domain subfolders
+    │   ├── api-response.model.ts         # shared envelope: { success, message, data, errors }
+    │   └── auth/                         # domain subfolder once a domain has >1 model
+    │       ├── auth.model.ts             # request/response DTOs (LoginRequest, AuthResponse...)
+    │       ├── user.model.ts             # AuthUser
+    │       └── user-role.enum.ts         # UserRole enum
+    │
+    ├── services/                         # flat, one Angular service per domain
+    │   ├── api.service.ts                # generic HttpClient wrapper (get/post/put/patch/delete), used by all other services
+    │   └── auth.service.ts               # domain service, built on ApiService
+    │
+    └── pages/                            # one folder per page/screen
+        ├── login/
+        │   ├── login.ts
+        │   ├── login.html
+        │   ├── login.css
+        │   └── login.spec.ts
+        ├── register-driver/
+        │   ├── register-driver.ts
+        │   ├── register-driver.html
+        │   ├── register-driver.css
+        │   └── register-driver.spec.ts
+        ├── driver-lots/                  # Phase-1-only stub so far (inline template, no .html/.css)
+        │   └── driver-lots.ts
+        └── manager-lots/                 # same, stub
+            └── manager-lots.ts
+```
+
+**Conventions to follow for every new page:**
+
+- **`ApiService`** (`services/api.service.ts`) is the single generic HTTP
+  wrapper. Every domain service injects it rather than `HttpClient` directly,
+  and every response is typed `ApiResponse<T>`. Do not create a second
+  wrapper.
+- **`environment.apiBaseUrl`** holds the base URL; `ApiService` prefixes all
+  paths with it. Never hardcode a host in a service.
+- **Route path constants** live in `constants/<domain>.constants.ts` (e.g.
+  `AUTH_API.login`), not hardcoded strings inside services.
+- **Models**: a shared `ApiResponse<T>` envelope stays at the top level of
+  `models/`. Domain-specific DTOs/enums get their own subfolder under
+  `models/<domain>/` once there's more than one file for that domain
+  (singular filenames: `*.model.ts`, `*.enum.ts`). A domain with only one
+  model file can stay flat at `models/` until it grows.
+- **`core/`** is reserved for app-wide, feature-agnostic infra (guards,
+  interceptors) — never per-page logic.
+- **`mappers/`** — add only when a page's Phase 2 API shape genuinely
+  diverges from its UI view-model. None exist yet; don't add one
+  preemptively.
+- **Session/auth state** lives in `AuthService` via `localStorage` — don't
+  introduce a separate state service for this unless asked.
+- **Pages**: standalone components, one folder per page under `pages/`,
+  folder name in kebab-case, component class the PascalCase of that same
+  name with no `Component` suffix (e.g. `pages/register-driver/` →
+  `export class RegisterDriver`). A fully built page has 4 files: `.ts`,
+  `.html`, `.css`, `.spec.ts`.
+- **Stub pages** (routed to but not yet given a screenshot/Phase 1) are a
+  single `.ts` file with the template written inline via the `template:`
+  property — no `.html`/`.css`/`.spec.ts` until the page actually goes
+  through Phase 1. When Phase 1 happens for a stub, split the inline
+  template out into the standard 4-file layout.
 
 ---
 
