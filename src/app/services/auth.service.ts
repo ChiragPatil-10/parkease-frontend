@@ -1,23 +1,24 @@
-import { Service, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { AUTH_API } from '../constants/api.constants';
+import { ApiService } from './api.service';
+import { AUTH_API } from '../constants/auth.constants';
 import { ApiResponse } from '../models/api-response.model';
-import { AuthResponse, AuthUser, LoginRequest, RegisterDriverRequest } from '../models/auth.model';
-import { UserRole } from '../enums/user-role.enum';
+import { AuthResponse, LoginRequest, RegisterDriverRequest } from '../models/auth/auth.model';
+import { AuthUser } from '../models/auth/user.model';
+import { UserRole } from '../models/auth/user-role.enum';
 
 const SESSION_STORAGE_KEY = 'parkease.session';
 
-@Service()
+@Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly http = inject(HttpClient);
+  private readonly api = inject(ApiService);
 
   login(request: LoginRequest): Observable<ApiResponse<AuthResponse>> {
-    return this.http.post<ApiResponse<AuthResponse>>(AUTH_API.login, request);
+    return this.api.post<AuthResponse>(AUTH_API.login, request);
   }
 
   registerDriver(request: RegisterDriverRequest): Observable<ApiResponse<AuthResponse>> {
-    return this.http.post<ApiResponse<AuthResponse>>(AUTH_API.registerDriver, request);
+    return this.api.post<AuthResponse>(AUTH_API.registerDriver, request);
   }
 
   /** Route to land on after a successful login/registration; null means "no redirect" (e.g. Admin, handled by the caller). */

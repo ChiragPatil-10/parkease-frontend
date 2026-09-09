@@ -3,9 +3,9 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { FormField, FormRoot, email, form, minLength, pattern, required } from '@angular/forms/signals';
-import { AuthService } from '../../core/services/auth.service';
-import { ApiResponse } from '../../core/models/api-response.model';
-import { AuthResponse, RegisterDriverRequest } from '../../core/models/auth.model';
+import { AuthService } from '../../services/auth.service';
+import { ApiResponse } from '../../models/api-response.model';
+import { AuthResponse, RegisterDriverRequest } from '../../models/auth/auth.model';
 
 const PASSWORD_COMPLEXITY_PATTERN = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).+$/;
 const PHONE_PATTERN = /^[0-9+\-\s]{5,20}$/;

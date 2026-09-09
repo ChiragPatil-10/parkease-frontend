@@ -8,8 +8,11 @@ import { Router, provideRouter } from '@angular/router';
 import { submit } from '@angular/forms/signals';
 import { vi } from 'vitest';
 import { RegisterDriver } from './register-driver';
-import { AUTH_API } from '../../core/constants/api.constants';
-import { UserRole } from '../../core/enums/user-role.enum';
+import { AUTH_API } from '../../constants/auth.constants';
+import { UserRole } from '../../models/auth/user-role.enum';
+import { environment } from '../../../environments/environment';
+
+const REGISTER_DRIVER_URL = `${environment.apiBaseUrl}${AUTH_API.registerDriver}`;
 
 describe('RegisterDriver', () => {
   let httpMock: HttpTestingController;
@@ -58,7 +61,7 @@ describe('RegisterDriver', () => {
     const component = createFixture('Alice Sharma', 'alice@example.com', 'Secret1!', '9876543210');
     const submission = submit(component.registerForm);
 
-    const req = httpMock.expectOne(AUTH_API.registerDriver);
+    const req = httpMock.expectOne(REGISTER_DRIVER_URL);
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({
       fullName: 'Alice Sharma',
@@ -94,7 +97,7 @@ describe('RegisterDriver', () => {
     const component = createFixture('Alice Sharma', 'alice@example.com', 'Secret1!');
     const submission = submit(component.registerForm);
 
-    const req = httpMock.expectOne(AUTH_API.registerDriver);
+    const req = httpMock.expectOne(REGISTER_DRIVER_URL);
     expect(req.request.body).toEqual({
       fullName: 'Alice Sharma',
       email: 'alice@example.com',
@@ -125,7 +128,7 @@ describe('RegisterDriver', () => {
     const component = createFixture('Alice Sharma', 'alice@example.com', 'Secret1!');
     const submission = submit(component.registerForm);
 
-    const req = httpMock.expectOne(AUTH_API.registerDriver);
+    const req = httpMock.expectOne(REGISTER_DRIVER_URL);
     req.flush(
       {
         success: false,
@@ -146,7 +149,7 @@ describe('RegisterDriver', () => {
     const component = createFixture('Alice Sharma', 'alice@example.com', 'Secret1!');
     const submission = submit(component.registerForm);
 
-    const req = httpMock.expectOne(AUTH_API.registerDriver);
+    const req = httpMock.expectOne(REGISTER_DRIVER_URL);
     req.flush(
       {
         success: false,
@@ -166,7 +169,7 @@ describe('RegisterDriver', () => {
     const component = createFixture('Alice Sharma', 'alice@example.com', 'Secret1!');
     const submission = submit(component.registerForm);
 
-    const req = httpMock.expectOne(AUTH_API.registerDriver);
+    const req = httpMock.expectOne(REGISTER_DRIVER_URL);
     req.flush(null, { status: 429, statusText: 'Too Many Requests' });
 
     await submission;

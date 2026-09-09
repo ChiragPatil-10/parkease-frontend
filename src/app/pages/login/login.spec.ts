@@ -8,8 +8,11 @@ import { Router, provideRouter } from '@angular/router';
 import { submit } from '@angular/forms/signals';
 import { vi } from 'vitest';
 import { Login } from './login';
-import { AUTH_API } from '../../core/constants/api.constants';
-import { UserRole } from '../../core/enums/user-role.enum';
+import { AUTH_API } from '../../constants/auth.constants';
+import { UserRole } from '../../models/auth/user-role.enum';
+import { environment } from '../../../environments/environment';
+
+const LOGIN_URL = `${environment.apiBaseUrl}${AUTH_API.login}`;
 
 describe('Login', () => {
   let httpMock: HttpTestingController;
@@ -57,7 +60,7 @@ describe('Login', () => {
     const component = createLoggedInFixture('alice@example.com', 'Secret1!');
     const submission = submit(component.loginForm);
 
-    const req = httpMock.expectOne(AUTH_API.login);
+    const req = httpMock.expectOne(LOGIN_URL);
     expect(req.request.method).toBe('POST');
     req.flush({
       success: true,
@@ -87,7 +90,7 @@ describe('Login', () => {
     const component = createLoggedInFixture('bob@example.com', 'Secret1!');
     const submission = submit(component.loginForm);
 
-    const req = httpMock.expectOne(AUTH_API.login);
+    const req = httpMock.expectOne(LOGIN_URL);
     req.flush({
       success: true,
       message: null,
@@ -115,7 +118,7 @@ describe('Login', () => {
     const component = createLoggedInFixture('admin@example.com', 'Secret1!');
     const submission = submit(component.loginForm);
 
-    const req = httpMock.expectOne(AUTH_API.login);
+    const req = httpMock.expectOne(LOGIN_URL);
     req.flush({
       success: true,
       message: null,
@@ -144,7 +147,7 @@ describe('Login', () => {
     const component = createLoggedInFixture('alice@example.com', 'WrongPass1');
     const submission = submit(component.loginForm);
 
-    const req = httpMock.expectOne(AUTH_API.login);
+    const req = httpMock.expectOne(LOGIN_URL);
     req.flush(
       { success: false, message: 'Invalid email or password.', data: null, errors: null },
       { status: 401, statusText: 'Unauthorized' },
@@ -159,7 +162,7 @@ describe('Login', () => {
     const component = createLoggedInFixture('alice@example.com', 'Secret1!');
     const submission = submit(component.loginForm);
 
-    const req = httpMock.expectOne(AUTH_API.login);
+    const req = httpMock.expectOne(LOGIN_URL);
     req.flush(null, { status: 429, statusText: 'Too Many Requests' });
 
     await submission;

@@ -3,9 +3,9 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { FormField, FormRoot, email, form, required } from '@angular/forms/signals';
-import { AuthService } from '../../core/services/auth.service';
-import { ApiResponse } from '../../core/models/api-response.model';
-import { AuthResponse } from '../../core/models/auth.model';
+import { AuthService } from '../../services/auth.service';
+import { ApiResponse } from '../../models/api-response.model';
+import { AuthResponse } from '../../models/auth/auth.model';
 
 @Component({
   selector: 'app-login',

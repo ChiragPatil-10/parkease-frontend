@@ -1,4 +1,4 @@
-import { UserRole } from '../enums/user-role.enum';
+import { AuthUser } from './user.model';
 
 export interface LoginRequest {
   email: string;
@@ -10,14 +10,6 @@ export interface RegisterDriverRequest {
   email: string;
   password: string;
   phone?: string;
-}
-
-export interface AuthUser {
-  userId: string;
-  fullName: string;
-  email: string;
-  role: UserRole;
-  profilePicUrl: string | null;
 }
 
 export interface AuthResponse {
