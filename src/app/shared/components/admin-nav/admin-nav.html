@@ -1,0 +1,16 @@
+<header class="flex items-center justify-between border-b border-border bg-card px-8 py-5">
+  <span class="text-xl font-bold text-ink">ParkEase</span>
+
+  <nav class="flex items-center gap-8 text-sm">
+    @for (item of navItems; track item.tab) {
+      <span
+        class="cursor-pointer"
+        [class.font-semibold]="item.tab === activeTab()"
+        [class.text-ink]="item.tab === activeTab()"
+        [class.text-muted]="item.tab !== activeTab()"
+      >
+        {{ item.label }}
+      </span>
+    }
+  </nav>
+</header>
