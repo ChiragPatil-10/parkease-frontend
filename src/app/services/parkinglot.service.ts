@@ -13,6 +13,10 @@ export class ParkingLotService {
     return this.api.get<LotResponse[]>(PARKINGLOT_API.pending);
   }
 
+  getLotsByManager(managerId: string): Observable<ApiResponse<LotResponse[]>> {
+    return this.api.get<LotResponse[]>(PARKINGLOT_API.byManager(managerId));
+  }
+
   approveLot(lotId: string, feedback?: string): Observable<ApiResponse<LotResponse>> {
     const body: ApproveLotRequest = feedback?.trim() ? { feedback: feedback.trim() } : {};
     return this.api.put<LotResponse>(PARKINGLOT_API.approve(lotId), body);
