@@ -41,7 +41,18 @@
       @if (applicationsLoading()) {
         <p class="mt-6 text-center text-sm text-muted">Loading applications…</p>
       } @else if (applications().length === 0) {
-        <p class="mt-6 text-center text-sm text-muted">No pending manager applications right now.</p>
+        <div class="flex flex-col items-center gap-4 py-16 text-center">
+          <div class="flex h-16 w-16 items-center justify-center rounded-full border border-border">
+            <span class="text-3xl" aria-hidden="true">✅</span>
+          </div>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-muted">Manager applications</p>
+            <h2 class="mt-2 text-xl font-bold text-ink">You're all caught up</h2>
+            <p class="mt-2 text-sm text-muted">
+              There are no pending manager applications waiting on review right now.
+            </p>
+          </div>
+        </div>
       } @else {
         <div class="mt-6 flex flex-col gap-5">
           @for (application of applications(); track application.applicationId) {
