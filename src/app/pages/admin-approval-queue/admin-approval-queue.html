@@ -25,82 +25,136 @@
       </button>
     </div>
 
+    @if (successMessage(); as message) {
+      <div class="mt-4 rounded-lg border border-green-300 bg-green-50 px-4 py-2 text-sm text-green-700">
+        {{ message }}
+      </div>
+    }
+
     @if (subTab() === 'manager-applications') {
-      <div class="mt-6 flex flex-col gap-5">
-        @for (application of applications; track application.id) {
-          <article class="rounded-xl border border-border bg-card p-5">
-            <div class="flex items-start justify-between gap-6">
-              <div class="min-w-0 flex-1">
-                <h2 class="text-base font-semibold text-ink">
-                  {{ application.fullName }} — {{ application.businessName }}
-                </h2>
-                <p class="mt-1 text-sm text-muted">
-                  {{ application.address }} · {{ application.appliedText }} · {{ application.email }}
-                </p>
+      @if (applicationsError(); as error) {
+        <div class="mt-4 rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-600">
+          {{ error }}
+        </div>
+      }
 
-                <textarea
-                  rows="1"
-                  placeholder="Optional feedback for the applicant (shown if rejected)…"
-                  class="mt-4 w-full resize-none rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
-                ></textarea>
-              </div>
+      @if (applicationsLoading()) {
+        <p class="mt-6 text-center text-sm text-muted">Loading applications…</p>
+      } @else if (applications().length === 0) {
+        <p class="mt-6 text-center text-sm text-muted">No pending manager applications right now.</p>
+      } @else {
+        <div class="mt-6 flex flex-col gap-5">
+          @for (application of applications(); track application.applicationId) {
+            <article class="rounded-xl border border-border bg-card p-5">
+              <div class="flex items-start justify-between gap-6">
+                <div class="min-w-0 flex-1">
+                  <h2 class="text-base font-semibold text-ink">
+                    {{ application.fullName }} — {{ application.businessName }}
+                  </h2>
+                  <p class="mt-1 text-sm text-muted">
+                    {{ application.parkingAddress }} · {{ appliedTextFor(application) }} · {{ application.email }}
+                  </p>
 
-              <div class="flex shrink-0 flex-col gap-2">
-                <button
-                  type="button"
-                  class="rounded-lg bg-accent px-5 py-2 text-sm font-semibold text-ink transition-colors hover:bg-accent-hover"
-                >
-                  Approve
-                </button>
-                <button
-                  type="button"
-                  class="rounded-lg border border-red-300 px-5 py-2 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50"
-                >
-                  Reject
-                </button>
+                  <textarea
+                    rows="1"
+                    placeholder="Optional feedback for the applicant (shown if rejected)…"
+                    class="mt-4 w-full resize-none rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
+                  ></textarea>
+                </div>
+
+                <div class="flex shrink-0 flex-col gap-2">
+                  <button
+                    type="button"
+                    (click)="approveApplication(application.applicationId)"
+                    [disabled]="actingApplicationId() === application.applicationId"
+                    class="rounded-lg bg-accent px-5 py-2 text-sm font-semibold text-ink transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    (click)="rejectApplication(application.applicationId)"
+                    [disabled]="actingApplicationId() === application.applicationId"
+                    class="rounded-lg border border-red-300 px-5 py-2 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Reject
+                  </button>
+                </div>
               </div>
-            </div>
-          </article>
-        }
-      </div>
+            </article>
+          }
+        </div>
+
+        <app-pagination-controls
+          [page]="applicationsPage()"
+          [totalPages]="applicationsTotalPages()"
+          (pageChange)="changeApplicationsPage($event)"
+        />
+      }
     } @else {
-      <div class="mt-6 flex flex-col gap-5">
-        @for (lot of lots; track lot.id) {
-          <article class="rounded-xl border border-border bg-card p-5">
-            <div class="flex items-start justify-between gap-6">
-              <div class="min-w-0 flex-1">
-                <h2 class="text-base font-semibold text-ink">
-                  {{ lot.lotName }} — {{ lot.managerName }}
-                </h2>
-                <p class="mt-1 text-sm text-muted">
-                  {{ lot.address }} · {{ lot.spotCount }} spots · {{ lot.priceRangeText }} · {{ lot.submittedText }}
-                </p>
+      @if (lotsError(); as error) {
+        <div class="mt-4 rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-600">
+          {{ error }}
+        </div>
+      }
 
-                <textarea
-                  rows="1"
-                  placeholder="Optional feedback for the manager (shown if rejected)…"
-                  class="mt-4 w-full resize-none rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
-                ></textarea>
-              </div>
+      @if (lotsLoading()) {
+        <p class="mt-6 text-center text-sm text-muted">Loading lots…</p>
+      } @else if (lots().length === 0) {
+        <p class="mt-6 text-center text-sm text-muted">
+          No lots waiting for approval — lots are currently auto-approved when a manager creates them.
+        </p>
+      } @else {
+        <div class="mt-6 flex flex-col gap-5">
+          @for (lot of lots() | paginate: lotPage() : lotsPageSize; track lot.lotId) {
+            <article class="rounded-xl border border-border bg-card p-5">
+              <div class="flex items-start justify-between gap-6">
+                <div class="min-w-0 flex-1">
+                  <h2 class="text-base font-semibold text-ink">
+                    {{ lot.name }} — {{ managerNameFor(lot) }}
+                  </h2>
+                  <p class="mt-1 text-sm text-muted">
+                    {{ lot.address }} · {{ lot.totalSpots }} spots · ₹{{ lot.minPricePerHour }}–₹{{ lot.maxPricePerHour }}/hr · {{ submittedTextFor(lot) }}
+                  </p>
 
-              <div class="flex shrink-0 flex-col gap-2">
-                <button
-                  type="button"
-                  class="rounded-lg bg-accent px-5 py-2 text-sm font-semibold text-ink transition-colors hover:bg-accent-hover"
-                >
-                  Approve
-                </button>
-                <button
-                  type="button"
-                  class="rounded-lg border border-red-300 px-5 py-2 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50"
-                >
-                  Reject
-                </button>
+                  <textarea
+                    rows="1"
+                    placeholder="Optional feedback for the manager (shown if rejected)…"
+                    [value]="lotFeedbackDrafts()[lot.lotId] ?? ''"
+                    (input)="updateLotFeedback(lot.lotId, $any($event.target).value)"
+                    class="mt-4 w-full resize-none rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
+                  ></textarea>
+                </div>
+
+                <div class="flex shrink-0 flex-col gap-2">
+                  <button
+                    type="button"
+                    (click)="approveLot(lot.lotId)"
+                    [disabled]="actingLotId() === lot.lotId"
+                    class="rounded-lg bg-accent px-5 py-2 text-sm font-semibold text-ink transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    disabled
+                    title="Rejecting lots isn't supported yet"
+                    class="rounded-lg border border-red-300 px-5 py-2 text-sm font-semibold text-red-600 opacity-60 disabled:cursor-not-allowed"
+                  >
+                    Reject
+                  </button>
+                </div>
               </div>
-            </div>
-          </article>
-        }
-      </div>
+            </article>
+          }
+        </div>
+
+        <app-pagination-controls
+          [page]="lotPage()"
+          [totalPages]="lotTotalPages()"
+          (pageChange)="changeLotPage($event)"
+        />
+      }
     }
   </main>
 </div>
