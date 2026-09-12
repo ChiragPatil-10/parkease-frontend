@@ -1,0 +1,61 @@
+<div class="min-h-screen bg-surface">
+  <app-manager-nav activeTab="my-lots" />
+
+  <main class="mx-auto max-w-5xl px-8 py-6">
+    <div class="flex items-center justify-between">
+      <h1 class="text-2xl font-bold text-ink">My Lots</h1>
+      <a
+        routerLink="/manager/lots/new"
+        class="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-accent-hover"
+      >
+        + Add new lot
+      </a>
+    </div>
+
+    @if (error(); as message) {
+      <div class="mt-4 rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-600">
+        {{ message }}
+      </div>
+    }
+
+    @if (loading()) {
+      <p class="mt-6 text-center text-sm text-muted">Loading your lots…</p>
+    } @else if (lots().length === 0 && !error()) {
+      <p class="mt-6 text-center text-sm text-muted">You haven't added any lots yet.</p>
+    } @else {
+      <div class="mt-6 flex flex-col gap-4">
+        @for (lot of lots(); track lot.lotId) {
+          <article class="flex items-center justify-between gap-6 rounded-xl border border-border bg-card p-5">
+            <div class="min-w-0 flex-1">
+              <h2 class="text-base font-semibold text-ink">{{ lot.name }}</h2>
+              <p class="mt-1 text-sm text-muted">
+                @if (statusFor(lot) === 'awaiting-approval') {
+                  Pending admin approval · {{ submittedTextFor(lot) }}
+                } @else {
+                  {{ lot.address }} · {{ lot.totalSpots }} spots · ₹{{ lot.minPricePerHour }}–₹{{ lot.maxPricePerHour }}/hr
+                }
+              </p>
+            </div>
+
+            <div class="flex shrink-0 items-center gap-3">
+              <span
+                class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium"
+                [class]="statusMeta[statusFor(lot)].pillClass"
+              >
+                <span class="h-1.5 w-1.5 rounded-full" [class]="statusMeta[statusFor(lot)].dotClass"></span>
+                {{ statusMeta[statusFor(lot)].label }}
+              </span>
+
+              <a
+                [routerLink]="['/manager/lots', lot.lotId, 'edit']"
+                class="rounded-lg border border-border px-4 py-1.5 text-sm font-medium text-ink transition-colors hover:bg-surface"
+              >
+                Edit
+              </a>
+            </div>
+          </article>
+        }
+      </div>
+    }
+  </main>
+</div>
