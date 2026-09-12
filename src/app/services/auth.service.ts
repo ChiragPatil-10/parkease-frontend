@@ -3,6 +3,7 @@ import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 import { AUTH_API } from '../constants/auth.constants';
 import { ApiResponse } from '../models/api-response.model';
+import { PagedResponse } from '../models/paged-response.model';
 import {
   AuthResponse,
   LoginRequest,
@@ -10,8 +11,10 @@ import {
   RegisterDriverRequest,
   RegisterManagerRequest,
 } from '../models/auth/auth.model';
+import { ApplicationStatus } from '../models/auth/application-status.enum';
 import { AuthUser } from '../models/auth/user.model';
 import { UserRole } from '../models/auth/user-role.enum';
+import { UserSummaryDto } from '../models/auth/user-summary.model';
 
 const SESSION_STORAGE_KEY = 'parkease.session';
 
@@ -29,6 +32,30 @@ export class AuthService {
 
   registerManager(request: RegisterManagerRequest): Observable<ApiResponse<ManagerApplicationDto>> {
     return this.api.post<ManagerApplicationDto>(AUTH_API.registerManager, request);
+  }
+
+  getUserById(userId: string): Observable<ApiResponse<UserSummaryDto>> {
+    return this.api.get<UserSummaryDto>(AUTH_API.userById(userId));
+  }
+
+  getManagerApplications(
+    page: number,
+    pageSize: number,
+    status?: ApplicationStatus,
+  ): Observable<ApiResponse<PagedResponse<ManagerApplicationDto>>> {
+    const params: Record<string, string | number> = { page, pageSize };
+    if (status) {
+      params['status'] = status;
+    }
+    return this.api.get<PagedResponse<ManagerApplicationDto>>(AUTH_API.managerApplications, params);
+  }
+
+  approveManagerApplication(applicationId: string): Observable<ApiResponse<unknown>> {
+    return this.api.put(AUTH_API.approveManager(applicationId), {});
+  }
+
+  rejectManagerApplication(applicationId: string): Observable<ApiResponse<unknown>> {
+    return this.api.put(AUTH_API.rejectManager(applicationId), {});
   }
 
   /** Route to land on after a successful login/registration; null means "no redirect" (e.g. Admin, handled by the caller). */
