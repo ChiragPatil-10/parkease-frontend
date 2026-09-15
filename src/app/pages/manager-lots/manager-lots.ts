@@ -40,8 +40,13 @@ export class ManagerLots implements OnInit {
   protected readonly lots = signal<LotResponse[]>([]);
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
+  protected readonly redirectError = signal<string | null>(null);
 
   ngOnInit(): void {
+    const incomingError = (history.state as { errorMessage?: unknown } | null)?.errorMessage;
+    if (typeof incomingError === 'string' && incomingError) {
+      this.redirectError.set(incomingError);
+    }
     void this.loadLots();
   }
 

@@ -7,158 +7,221 @@
 
   <main class="flex justify-center px-4 py-10">
     <div class="w-full max-w-xl rounded-2xl bg-card p-8 shadow-sm">
-      <h1 class="text-xl font-bold text-ink">{{ heading }}</h1>
-      <p class="mt-1 text-sm text-muted">
-        We'll geocode the address automatically — no need to enter coordinates.
-      </p>
+      @if (loading()) {
+        <p class="text-center text-sm text-muted">Loading lot details…</p>
+      } @else if (loadError()) {
+        <p class="text-center text-sm text-red-600">{{ loadError() }}</p>
+      } @else {
+        <h1 class="text-xl font-bold text-ink">{{ heading }}</h1>
+        <p class="mt-1 text-sm text-muted">
+          We'll geocode the address automatically — no need to enter coordinates.
+        </p>
 
-      <form class="mt-6" (ngSubmit)="onSave()">
-        <div>
-          <label for="lotName" class="block text-xs font-semibold tracking-wide text-muted"
-            >LOT NAME</label
-          >
-          <input
-            id="lotName"
-            type="text"
-            name="lotName"
-            placeholder="e.g. Whitefield Central Lot"
-            [(ngModel)]="lot.lotName"
-            class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
-          />
-        </div>
-
-        <div class="mt-5">
-          <label for="address" class="block text-xs font-semibold tracking-wide text-muted"
-            >ADDRESS</label
-          >
-          <input
-            id="address"
-            type="text"
-            name="address"
-            placeholder="e.g. 2nd Cross, ITPL Main Rd"
-            [(ngModel)]="lot.address"
-            class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
-          />
-        </div>
-
-        <div class="mt-5 grid grid-cols-2 gap-4">
+        <form [formRoot]="lotForm" class="mt-6">
           <div>
-            <label for="city" class="block text-xs font-semibold tracking-wide text-muted"
-              >CITY</label
+            <label for="lotName" class="block text-xs font-semibold tracking-wide text-muted"
+              >LOT NAME</label
             >
             <input
-              id="city"
+              id="lotName"
               type="text"
-              name="city"
-              placeholder="e.g. Bengaluru"
-              [(ngModel)]="lot.city"
+              placeholder="e.g. Whitefield Central Lot"
+              [formField]="lotForm.name"
               class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
             />
+            @if (lotForm.name().touched() && lotForm.name().invalid()) {
+              <p class="mt-1 text-xs text-red-600">
+                {{ lotForm.name().errors()[0]?.message ?? 'Lot name is required.' }}
+              </p>
+            }
           </div>
-          <div>
-            <label for="totalSpots" class="block text-xs font-semibold tracking-wide text-muted"
-              >TOTAL SPOTS</label
+
+          <div class="mt-5">
+            <label for="address" class="block text-xs font-semibold tracking-wide text-muted"
+              >ADDRESS</label
             >
             <input
-              id="totalSpots"
-              type="number"
-              name="totalSpots"
-              placeholder="e.g. 40"
-              [(ngModel)]="lot.totalSpots"
+              id="address"
+              type="text"
+              placeholder="e.g. 2nd Cross, ITPL Main Rd"
+              [formField]="lotForm.address"
               class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
             />
+            @if (lotForm.address().touched() && lotForm.address().invalid()) {
+              <p class="mt-1 text-xs text-red-600">
+                {{ lotForm.address().errors()[0]?.message ?? 'Address is required.' }}
+              </p>
+            }
           </div>
-        </div>
 
-        <div class="mt-5 grid grid-cols-2 gap-4">
-          <div>
-            <label for="minPrice" class="block text-xs font-semibold tracking-wide text-muted"
-              >MIN PRICE / HOUR</label
+          <div class="mt-5 grid grid-cols-2 gap-4">
+            <div>
+              <label for="city" class="block text-xs font-semibold tracking-wide text-muted"
+                >CITY</label
+              >
+              <input
+                id="city"
+                type="text"
+                placeholder="e.g. Bengaluru"
+                [formField]="lotForm.city"
+                class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+              />
+              @if (lotForm.city().touched() && lotForm.city().invalid()) {
+                <p class="mt-1 text-xs text-red-600">
+                  {{ lotForm.city().errors()[0]?.message ?? 'City is required.' }}
+                </p>
+              }
+            </div>
+            <div>
+              <label for="totalSpots" class="block text-xs font-semibold tracking-wide text-muted"
+                >TOTAL SPOTS</label
+              >
+              <input
+                id="totalSpots"
+                type="number"
+                step="1"
+                placeholder="e.g. 40"
+                [formField]="lotForm.totalSpots"
+                class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+              />
+              @if (lotForm.totalSpots().touched() && lotForm.totalSpots().invalid()) {
+                <p class="mt-1 text-xs text-red-600">
+                  {{ lotForm.totalSpots().errors()[0]?.message ?? 'Total spots must be greater than 0.' }}
+                </p>
+              }
+            </div>
+          </div>
+
+          <div class="mt-5 grid grid-cols-2 gap-4">
+            <div>
+              <label for="minPrice" class="block text-xs font-semibold tracking-wide text-muted"
+                >MIN PRICE / HOUR</label
+              >
+              <div class="relative mt-2">
+                <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted"
+                  >₹</span
+                >
+                <input
+                  id="minPrice"
+                  type="number"
+                  step="0.01"
+                  placeholder="30"
+                  [formField]="lotForm.minPricePerHour"
+                  class="w-full rounded-lg border border-border py-2.5 pl-7 pr-3 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+                />
+              </div>
+              @if (lotForm.minPricePerHour().touched() && lotForm.minPricePerHour().invalid()) {
+                <p class="mt-1 text-xs text-red-600">
+                  {{ lotForm.minPricePerHour().errors()[0]?.message ?? 'Min price per hour is required.' }}
+                </p>
+              }
+            </div>
+            <div>
+              <label for="maxPrice" class="block text-xs font-semibold tracking-wide text-muted"
+                >MAX PRICE / HOUR</label
+              >
+              <div class="relative mt-2">
+                <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted"
+                  >₹</span
+                >
+                <input
+                  id="maxPrice"
+                  type="number"
+                  step="0.01"
+                  placeholder="60"
+                  [formField]="lotForm.maxPricePerHour"
+                  [class]="
+                    lotForm.maxPricePerHour().touched() && lotForm.maxPricePerHour().invalid()
+                      ? 'w-full rounded-lg border border-red-300 bg-red-50 py-2.5 pl-7 pr-3 text-sm text-ink placeholder:text-muted/70 focus:outline-none'
+                      : 'w-full rounded-lg border border-border py-2.5 pl-7 pr-3 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none'
+                  "
+                />
+              </div>
+              @if (lotForm.maxPricePerHour().touched() && lotForm.maxPricePerHour().invalid()) {
+                <p class="mt-1 text-xs text-red-600">
+                  {{ lotForm.maxPricePerHour().errors()[0]?.message ?? 'Max price per hour is required.' }}
+                </p>
+              }
+            </div>
+          </div>
+
+          <div class="mt-5 grid grid-cols-2 gap-4">
+            <div>
+              <label for="openTime" class="block text-xs font-semibold tracking-wide text-muted"
+                >OPEN TIME</label
+              >
+              <input
+                id="openTime"
+                type="time"
+                [formField]="lotForm.openTime"
+                class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none"
+              />
+              @if (lotForm.openTime().touched() && lotForm.openTime().invalid()) {
+                <p class="mt-1 text-xs text-red-600">
+                  {{ lotForm.openTime().errors()[0]?.message ?? 'Open time is required.' }}
+                </p>
+              }
+            </div>
+            <div>
+              <label for="closeTime" class="block text-xs font-semibold tracking-wide text-muted"
+                >CLOSE TIME</label
+              >
+              <input
+                id="closeTime"
+                type="time"
+                [formField]="lotForm.closeTime"
+                class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none"
+              />
+              @if (lotForm.closeTime().touched() && lotForm.closeTime().invalid()) {
+                <p class="mt-1 text-xs text-red-600">
+                  {{ lotForm.closeTime().errors()[0]?.message ?? 'Close time is required.' }}
+                </p>
+              }
+            </div>
+          </div>
+
+          <div class="mt-5">
+            <label for="description" class="block text-xs font-semibold tracking-wide text-muted"
+              >DESCRIPTION (OPTIONAL)</label
             >
-            <input
-              id="minPrice"
-              type="text"
-              name="minPrice"
-              placeholder="e.g. ₹30"
-              [(ngModel)]="lot.minPricePerHour"
-              class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
-            />
+            <textarea
+              id="description"
+              rows="3"
+              placeholder="Any details drivers should know before booking…"
+              [formField]="lotForm.description"
+              class="mt-2 w-full resize-none rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+            ></textarea>
+            @if (lotForm.description().touched() && lotForm.description().invalid()) {
+              <p class="mt-1 text-xs text-red-600">
+                {{ lotForm.description().errors()[0]?.message ?? 'Description is too long.' }}
+              </p>
+            }
           </div>
-          <div>
-            <label for="maxPrice" class="block text-xs font-semibold tracking-wide text-muted"
-              >MAX PRICE / HOUR</label
+
+          @if (serverError()) {
+            <p class="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+              {{ serverError() }}
+            </p>
+          }
+
+          <div class="mt-6 flex justify-end gap-3">
+            <button
+              type="button"
+              (click)="onCancel()"
+              class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-surface"
             >
-            <input
-              id="maxPrice"
-              type="text"
-              name="maxPrice"
-              placeholder="e.g. ₹60"
-              [(ngModel)]="lot.maxPricePerHour"
-              class="mt-2 w-full rounded-lg border border-red-300 bg-red-50 px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
-            />
-          </div>
-        </div>
-
-        <div class="mt-5 grid grid-cols-2 gap-4">
-          <div>
-            <label for="openTime" class="block text-xs font-semibold tracking-wide text-muted"
-              >OPEN TIME</label
+              Cancel
+            </button>
+            <button
+              type="submit"
+              [disabled]="lotForm().submitting()"
+              class="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
             >
-            <input
-              id="openTime"
-              type="text"
-              name="openTime"
-              placeholder="e.g. 06:00 AM"
-              [(ngModel)]="lot.openTime"
-              class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
-            />
+              {{ lotForm().submitting() ? 'Saving…' : 'Save lot' }}
+            </button>
           </div>
-          <div>
-            <label for="closeTime" class="block text-xs font-semibold tracking-wide text-muted"
-              >CLOSE TIME</label
-            >
-            <input
-              id="closeTime"
-              type="text"
-              name="closeTime"
-              placeholder="e.g. 11:00 PM"
-              [(ngModel)]="lot.closeTime"
-              class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
-            />
-          </div>
-        </div>
-
-        <p class="mt-2 text-xs text-red-600">Max price must be greater than or equal to min price</p>
-
-        <div class="mt-5">
-          <label for="description" class="block text-xs font-semibold tracking-wide text-muted"
-            >DESCRIPTION (OPTIONAL)</label
-          >
-          <textarea
-            id="description"
-            name="description"
-            rows="3"
-            placeholder="Any details drivers should know before booking…"
-            [(ngModel)]="lot.description"
-            class="mt-2 w-full resize-none rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
-          ></textarea>
-        </div>
-
-        <div class="mt-6 flex justify-end gap-3">
-          <a
-            routerLink="/manager/lots"
-            class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-surface"
-          >
-            Cancel
-          </a>
-          <button
-            type="submit"
-            class="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-accent-hover"
-          >
-            Save lot
-          </button>
-        </div>
-      </form>
+        </form>
+      }
     </div>
   </main>
 </div>

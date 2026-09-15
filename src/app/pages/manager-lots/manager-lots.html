@@ -12,6 +12,12 @@
       </a>
     </div>
 
+    @if (redirectError(); as redirectMessage) {
+      <div class="mt-4 rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-600">
+        {{ redirectMessage }}
+      </div>
+    }
+
     @if (error(); as message) {
       <div class="mt-4 rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-600">
         {{ message }}

@@ -24,3 +24,15 @@ export interface LotResponse {
 export interface ApproveLotRequest {
   feedback?: string;
 }
+
+export interface LotRequest {
+  name: string;
+  address: string;
+  city: string;
+  totalSpots: number;
+  minPricePerHour: number;
+  maxPricePerHour: number;
+  openTime: string;
+  closeTime: string;
+  description?: string;
+}
