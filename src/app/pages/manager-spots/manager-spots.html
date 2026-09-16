@@ -1,0 +1,173 @@
+<div class="min-h-screen bg-surface">
+  <app-manager-nav activeTab="spots" />
+
+  <main class="mx-auto max-w-5xl px-8 py-6">
+    <p class="text-xs font-semibold tracking-wide text-muted">SPOT GRID</p>
+
+    @if (error(); as message) {
+      <div class="mt-4 rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-600">
+        {{ message }}
+      </div>
+    }
+
+    @if (lotsLoading()) {
+      <p class="mt-6 text-center text-sm text-muted">Loading your lots…</p>
+    } @else if (lots().length === 0) {
+      @if (!error()) {
+        <p class="mt-6 text-center text-sm text-muted">You don't have any lots yet.</p>
+      }
+    } @else if (selectedLot(); as lot) {
+      <div class="mt-2 flex flex-wrap items-start justify-between gap-4">
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="relative">
+            <button
+              type="button"
+              (click)="toggleLotMenu()"
+              class="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-lg font-bold text-ink shadow-sm"
+            >
+              {{ lot.name }}
+              <svg class="h-4 w-4 text-muted" viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  fill-rule="evenodd"
+                  d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </button>
+
+            @if (lotMenuOpen()) {
+              <div class="fixed inset-0 z-10" (click)="closeMenus()"></div>
+              <div class="absolute left-0 z-20 mt-1 w-72 rounded-lg border border-border bg-card py-1 shadow-lg">
+                @for (l of lots(); track l.lotId) {
+                  <button
+                    type="button"
+                    (click)="selectLot(l.lotId)"
+                    class="block w-full px-4 py-2 text-left text-sm text-ink hover:bg-surface"
+                  >
+                    {{ l.name }}
+                    @if (!l.isApproved) {
+                      <span class="text-muted">(pending approval)</span>
+                    }
+                  </button>
+                }
+              </div>
+            }
+          </div>
+
+          <div class="flex items-center gap-1 rounded-lg border border-border bg-card p-1">
+            @for (floor of floors(); track floor) {
+              <button
+                type="button"
+                (click)="selectFloor(floor)"
+                class="rounded-md px-4 py-1.5 text-sm"
+                [class.bg-surface]="floor === selectedFloor()"
+                [class.font-semibold]="floor === selectedFloor()"
+                [class.text-ink]="floor === selectedFloor()"
+                [class.text-muted]="floor !== selectedFloor()"
+              >
+                Floor {{ floor }}
+              </button>
+            }
+            <button type="button" class="rounded-md px-3 py-1.5 text-sm font-medium text-link">
+              + Add floor
+            </button>
+          </div>
+        </div>
+
+        @if (!spotsLoading() && filteredSpots().length > 0) {
+          <div class="flex flex-wrap items-center gap-3">
+            <span
+              class="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-sm text-ink"
+            >
+              <span class="h-2 w-2 rounded-full bg-green-500"></span>
+              Available
+            </span>
+            <span
+              class="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-sm text-ink"
+            >
+              <span class="h-2 w-2 rounded-full bg-accent"></span>
+              Reserved
+            </span>
+            <span
+              class="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-sm text-ink"
+            >
+              <span class="h-2 w-2 rounded-full bg-red-500"></span>
+              Occupied
+            </span>
+
+            <ng-container
+              [ngTemplateOutlet]="addSpotsButton"
+              [ngTemplateOutletContext]="{ label: '+ Add spots' }"
+            />
+          </div>
+        }
+      </div>
+
+      @if (spotsLoading()) {
+        <p class="mt-6 text-center text-sm text-muted">Loading spots…</p>
+      } @else if (filteredSpots().length > 0) {
+        <div class="mt-6 grid grid-cols-8 gap-3">
+          @for (spot of filteredSpots(); track spot.spotId) {
+            <div
+              class="flex h-24 items-center justify-center rounded-xl text-sm font-semibold text-white"
+              [class]="statusMeta[spot.status].cardClass"
+            >
+              {{ spot.spotNumber }}
+            </div>
+          }
+        </div>
+      } @else if (selectedFloor() !== null) {
+        <div
+          class="mt-6 flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-border py-24"
+        >
+          <p class="text-sm text-muted">Floor {{ selectedFloor() }} has no spots yet.</p>
+          <ng-container
+            [ngTemplateOutlet]="addSpotsButton"
+            [ngTemplateOutletContext]="{ label: '+ Add spots to this floor' }"
+          />
+        </div>
+      }
+    }
+  </main>
+</div>
+
+<ng-template #addSpotsButton let-label="label">
+  <div class="relative">
+    <button
+      type="button"
+      (click)="toggleAddSpotsMenu()"
+      class="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-accent-hover"
+    >
+      {{ label }}
+      <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+        <path
+          fill-rule="evenodd"
+          d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
+          clip-rule="evenodd"
+        />
+      </svg>
+    </button>
+
+    @if (addSpotsMenuOpen()) {
+      <div class="fixed inset-0 z-10" (click)="closeMenus()"></div>
+      <div class="absolute right-0 z-20 mt-1 w-64 rounded-lg border border-border bg-card py-1 shadow-lg">
+        <button
+          type="button"
+          (click)="closeMenus()"
+          class="block w-full px-4 py-2.5 text-left hover:bg-surface"
+        >
+          <span class="block text-sm font-semibold text-ink">Add single spot</span>
+          <span class="block text-xs text-muted">Quick add — one spot at a time</span>
+        </button>
+        <button
+          type="button"
+          (click)="closeMenus()"
+          class="block w-full px-4 py-2.5 text-left hover:bg-surface"
+        >
+          <span class="block text-sm font-semibold text-ink">Bulk create spots</span>
+          <span class="block text-xs text-muted">Add many spots at once via a table</span>
+        </button>
+      </div>
+    }
+  </div>
+</ng-template>
