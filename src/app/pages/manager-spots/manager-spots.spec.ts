@@ -208,6 +208,34 @@ describe('ManagerSpots', () => {
     expect(fixture.nativeElement.querySelectorAll('.grid').length).toBe(0);
   });
 
+  it('shows the whole-lot-empty state (no floor tabs) when the lot has zero spots on any floor, and routes to bulk-create', async () => {
+    const { fixture, component } = createFixture();
+    fixture.detectChanges();
+
+    httpMock.expectOne(LOTS_URL).flush({ success: true, message: null, data: [LOT_1], errors: null });
+    await Promise.resolve();
+
+    httpMock.expectOne(spotsUrl(LOT_1.lotId)).flush({ success: true, message: null, data: [], errors: null });
+    await flushAsync();
+    fixture.detectChanges();
+
+    expect(component.floors()).toEqual([]);
+    expect(component.selectedFloor()).toBeNull();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('This lot has no spots yet');
+    expect(text).toContain('+ Add single spot');
+    expect(text).toContain('+ Bulk create spots');
+    expect(text).not.toContain('Floor 1');
+
+    const bulkCreateButton = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('button'),
+    ).find((btn) => btn.textContent?.includes('Bulk create spots'));
+    bulkCreateButton?.dispatchEvent(new Event('click'));
+
+    expect(router.navigateByUrl).toHaveBeenCalledWith(`/manager/spots/${LOT_1.lotId}/bulk-create`);
+  });
+
   it('clears the session and redirects to /login on a 401 while loading lots', async () => {
     const { fixture, component } = createFixture();
     fixture.detectChanges();
