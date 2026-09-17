@@ -19,3 +19,18 @@ export interface SpotResponse {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface SpotCreateItem {
+  spotNumber: string;
+  floor: number;
+  spotType: SpotType;
+  vehicleType: VehicleType;
+  isEvCharging: boolean;
+  isHandicapped: boolean;
+  pricePerHour: number;
+}
+
+export interface BulkCreateSpotsRequest {
+  lotId: string;
+  spots: SpotCreateItem[];
+}

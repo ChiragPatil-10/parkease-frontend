@@ -119,6 +119,10 @@ export class ManagerSpots implements OnInit {
     }
   }
 
+  protected goToBulkCreate(lotId: string): void {
+    void this.router.navigateByUrl(`/manager/spots/${lotId}/bulk-create`);
+  }
+
   protected toggleLotMenu(): void {
     this.addSpotsMenuOpen.set(false);
     this.lotMenuOpen.update((open) => !open);

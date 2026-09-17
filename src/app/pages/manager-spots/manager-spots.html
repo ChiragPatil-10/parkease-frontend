@@ -54,27 +54,29 @@
             }
           </div>
 
-          <div class="flex items-center gap-1 rounded-lg border border-border bg-card p-1">
-            @for (floor of floors(); track floor) {
-              <button
-                type="button"
-                (click)="selectFloor(floor)"
-                class="rounded-md px-4 py-1.5 text-sm"
-                [class.bg-surface]="floor === selectedFloor()"
-                [class.font-semibold]="floor === selectedFloor()"
-                [class.text-ink]="floor === selectedFloor()"
-                [class.text-muted]="floor !== selectedFloor()"
-              >
-                Floor {{ floor }}
+          @if (floors().length > 0) {
+            <div class="flex items-center gap-1 rounded-lg border border-border bg-card p-1">
+              @for (floor of floors(); track floor) {
+                <button
+                  type="button"
+                  (click)="selectFloor(floor)"
+                  class="rounded-md px-4 py-1.5 text-sm"
+                  [class.bg-surface]="floor === selectedFloor()"
+                  [class.font-semibold]="floor === selectedFloor()"
+                  [class.text-ink]="floor === selectedFloor()"
+                  [class.text-muted]="floor !== selectedFloor()"
+                >
+                  Floor {{ floor }}
+                </button>
+              }
+              <button type="button" class="rounded-md px-3 py-1.5 text-sm font-medium text-link">
+                + Add floor
               </button>
-            }
-            <button type="button" class="rounded-md px-3 py-1.5 text-sm font-medium text-link">
-              + Add floor
-            </button>
-          </div>
+            </div>
+          }
         </div>
 
-        @if (!spotsLoading() && filteredSpots().length > 0) {
+        @if (floors().length > 0 && !spotsLoading() && filteredSpots().length > 0) {
           <div class="flex flex-wrap items-center gap-3">
             <span
               class="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-sm text-ink"
@@ -105,6 +107,28 @@
 
       @if (spotsLoading()) {
         <p class="mt-6 text-center text-sm text-muted">Loading spots…</p>
+      } @else if (floors().length === 0) {
+        <div
+          class="mt-6 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border py-24"
+        >
+          <p class="text-sm font-semibold text-ink">This lot has no spots yet</p>
+          <p class="text-sm text-muted">Add spots one at a time, or set up several at once with bulk create.</p>
+          <div class="mt-4 flex items-center gap-3">
+            <button
+              type="button"
+              class="rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-surface"
+            >
+              + Add single spot
+            </button>
+            <button
+              type="button"
+              (click)="goToBulkCreate(lot.lotId)"
+              class="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-accent-hover"
+            >
+              + Bulk create spots
+            </button>
+          </div>
+        </div>
       } @else if (filteredSpots().length > 0) {
         <div class="mt-6 grid grid-cols-8 gap-3">
           @for (spot of filteredSpots(); track spot.spotId) {
