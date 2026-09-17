@@ -1,0 +1,136 @@
+<div class="flex min-h-screen flex-col bg-surface">
+  <app-driver-nav activeTab="search-lots" />
+
+  @if (locationGranted()) {
+    <!-- STATE A — location granted: map + results split pane -->
+    <div class="flex flex-1">
+      <div class="relative flex-1 overflow-hidden bg-[#ddd8cd]">
+        <div
+          class="absolute h-[380px] w-[380px] -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-dashed border-accent"
+          style="top: 52%; left: 49%"
+        ></div>
+
+        <div
+          class="absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-link"
+          style="top: 52%; left: 49%"
+        ></div>
+
+        @for (marker of mapMarkers; track marker.top + marker.left) {
+          <div
+            class="absolute flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-lg bg-ink"
+            [style.top]="marker.top"
+            [style.left]="marker.left"
+          >
+            <span class="h-2 w-2 rounded-full bg-accent"></span>
+          </div>
+        }
+      </div>
+
+      <aside class="w-[420px] shrink-0 overflow-y-auto border-l border-border bg-card px-8 py-6">
+        <p class="text-xs font-semibold tracking-wide text-muted">
+          NEAR YOU · WITHIN {{ selectedRadius() }}KM
+        </p>
+        <h1 class="mt-1 text-2xl font-bold text-ink">{{ nearbyLots().length }} open lots nearby</h1>
+
+        <div class="mt-4 flex items-center gap-2 border-b border-border pb-4">
+          @for (radius of radiusOptions; track radius) {
+            <button
+              type="button"
+              (click)="selectRadius(radius)"
+              class="rounded-full px-4 py-1.5 text-sm"
+              [class.bg-accent]="radius === selectedRadius()"
+              [class.font-semibold]="radius === selectedRadius()"
+              [class.text-ink]="radius === selectedRadius()"
+              [class.bg-surface]="radius !== selectedRadius()"
+              [class.text-muted]="radius !== selectedRadius()"
+            >
+              {{ radius }}km
+            </button>
+          }
+        </div>
+
+        <div class="mt-4 flex flex-col gap-4">
+          @for (lot of nearbyLots(); track lot.id) {
+            <article class="flex items-center gap-4 rounded-xl border border-border bg-card p-5">
+              <div
+                class="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-accent text-lg font-bold text-ink"
+              >
+                {{ lot.availableSpots }}
+              </div>
+
+              <div class="min-w-0 flex-1">
+                <h2 class="text-base font-semibold text-ink">{{ lot.name }}</h2>
+                <p class="mt-1 text-sm text-muted">{{ lot.address }}</p>
+                <p class="mt-1 text-sm text-muted">{{ lot.distanceKm }} km away</p>
+              </div>
+
+              <div class="shrink-0 text-right">
+                <p class="text-sm font-semibold text-ink">₹{{ lot.pricePerHour }}/hr</p>
+                <p class="mt-1 text-sm text-green-600">Open now</p>
+              </div>
+            </article>
+          }
+        </div>
+      </aside>
+    </div>
+  } @else {
+    <!-- STATE B — location denied: banner + city search + full-width grid -->
+    <main class="mx-auto w-full max-w-6xl px-8 py-6">
+      <div
+        class="flex items-start justify-between gap-6 rounded-xl border border-accent bg-card px-6 py-5"
+      >
+        <div>
+          <p class="font-semibold text-ink">Enable location to see lots near you</p>
+          <p class="mt-1 text-sm text-muted">
+            We couldn't access your location. Search by city instead, or try enabling it again.
+          </p>
+        </div>
+
+        <div class="flex shrink-0 items-center gap-3">
+          <button
+            type="button"
+            class="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-accent-hover"
+          >
+            Enable location
+          </button>
+          <button
+            type="button"
+            class="rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-surface"
+          >
+            Dismiss
+          </button>
+        </div>
+      </div>
+
+      <div class="mt-4 flex items-center gap-3">
+        <input
+          type="text"
+          placeholder="Search by city — e.g. Bengaluru"
+          class="flex-1 rounded-lg border border-border bg-card px-4 py-2.5 text-sm text-ink placeholder:text-muted focus:outline-none"
+        />
+        <button
+          type="button"
+          class="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-accent-hover"
+        >
+          Search
+        </button>
+      </div>
+
+      <p class="mt-6 text-xs font-semibold tracking-wide text-muted">
+        {{ cityLotsCount() }} LOTS IN {{ city().toUpperCase() }}
+      </p>
+
+      <div class="mt-4 grid grid-cols-3 gap-4">
+        @for (lot of cityLots(); track lot.id) {
+          <article class="rounded-xl border border-border bg-card p-5">
+            <h2 class="text-base font-semibold text-ink">{{ lot.name }}</h2>
+            <div class="mt-2 flex items-center gap-2 text-sm">
+              <span class="text-muted">₹{{ lot.pricePerHour }}/hr</span>
+              <span class="text-green-600">{{ lot.available }} available</span>
+            </div>
+          </article>
+        }
+      </div>
+    </main>
+  }
+</div>
