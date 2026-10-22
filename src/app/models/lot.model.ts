@@ -21,6 +21,21 @@ export interface LotResponse {
   updatedAt: string;
 }
 
+/** Item returned by GET /lots/nearby: a trimmed lot summary plus distance from the driver. */
+export interface NearbyLot {
+  lotId: string;
+  name: string;
+  address: string;
+  city: string;
+  latitude: number;
+  longitude: number;
+  availableSpots: number;
+  minPricePerHour: number;
+  maxPricePerHour: number;
+  isOpen: boolean;
+  distanceKm: number;
+}
+
 export interface ApproveLotRequest {
   feedback?: string;
 }
