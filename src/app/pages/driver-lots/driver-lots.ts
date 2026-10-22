@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { DriverNav } from '../../shared/components/driver-nav/driver-nav';
 import { AuthService } from '../../services/auth.service';
@@ -36,7 +36,7 @@ const MAP_MARKERS: MapMarkerPosition[] = [
 
 @Component({
   selector: 'app-driver-lots',
-  imports: [DriverNav],
+  imports: [DriverNav, RouterLink],
   templateUrl: './driver-lots.html',
   styleUrl: './driver-lots.css',
 })

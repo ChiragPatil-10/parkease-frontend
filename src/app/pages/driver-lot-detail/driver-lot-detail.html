@@ -1,0 +1,223 @@
+<div class="min-h-screen bg-surface">
+  <app-driver-nav activeTab="search-lots" />
+
+  @if (lotLoading()) {
+    <p class="px-8 py-8 text-sm text-muted">Loading lot…</p>
+  } @else if (lotFailure() === 'not-found') {
+    <main class="mx-auto max-w-6xl px-8 py-8">
+      <h1 class="text-2xl font-bold text-ink">Lot not found</h1>
+      <p class="mt-2 text-sm text-muted">We couldn't find the lot you're looking for.</p>
+      <a routerLink="/lots" class="mt-4 inline-block text-sm font-semibold text-link">
+        Back to lots
+      </a>
+    </main>
+  } @else if (lotFailure() === 'error') {
+    <main class="mx-auto max-w-6xl px-8 py-8">
+      <p
+        role="alert"
+        class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+      >
+        {{ lotError() }}
+      </p>
+      <a routerLink="/lots" class="mt-4 inline-block text-sm font-semibold text-link">
+        Back to lots
+      </a>
+    </main>
+  } @else if (lot(); as lot) {
+    <main class="mx-auto flex max-w-6xl flex-wrap items-start gap-12 px-8 py-8">
+      <section class="min-w-0 flex-1">
+        <p class="text-xs font-semibold uppercase tracking-wide text-muted">
+          {{ cityLabel() }}
+          @if (distanceKm() !== null) {
+            · {{ distanceKm()!.toFixed(1) }} km away
+          }
+        </p>
+        <h1 class="mt-1 text-2xl font-bold text-ink">{{ lot.name }}</h1>
+        <p class="mt-1 text-base text-muted">{{ lot.address }} · {{ hoursLabel() }}</p>
+
+        @if (lotClosed()) {
+          <p
+            role="alert"
+            class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          >
+            This lot is closed right now
+          </p>
+        }
+
+        <p class="mt-6 text-xs font-semibold tracking-wide text-muted">FILTER BY VEHICLE TYPE</p>
+        <div class="mt-3 flex flex-wrap items-center gap-2">
+          @for (option of vehicleTypeOptions; track option.value) {
+            <button
+              type="button"
+              (click)="selectVehicleType(option.value)"
+              [attr.aria-pressed]="option.value === selectedType()"
+              class="rounded-full border px-4 py-1.5 text-sm"
+              [class.border-accent]="option.value === selectedType()"
+              [class.bg-accent]="option.value === selectedType()"
+              [class.text-ink]="option.value === selectedType()"
+              [class.border-border]="option.value !== selectedType()"
+              [class.bg-card]="option.value !== selectedType()"
+              [class.text-muted]="option.value !== selectedType()"
+            >
+              {{ option.label }}
+            </button>
+          }
+        </div>
+
+        @if (floors().length > 1) {
+          <p class="mt-6 text-xs font-semibold tracking-wide text-muted">PICK A SPOT</p>
+          <div class="mt-3 flex w-fit items-center gap-1 rounded-lg border border-border bg-card p-1">
+            @for (floor of floors(); track floor) {
+              <button
+                type="button"
+                (click)="selectFloor(floor)"
+                [attr.aria-pressed]="floor === selectedFloor()"
+                class="rounded-md px-4 py-1.5 text-sm"
+                [class.bg-surface]="floor === selectedFloor()"
+                [class.font-semibold]="floor === selectedFloor()"
+                [class.text-ink]="floor === selectedFloor()"
+                [class.text-muted]="floor !== selectedFloor()"
+              >
+                Floor {{ floor }}
+              </button>
+            }
+          </div>
+        } @else if (floors().length === 1) {
+          <p class="mt-6 text-xs font-semibold tracking-wide text-muted">
+            PICK A SPOT — FLOOR {{ floors()[0] }}
+          </p>
+        } @else {
+          <p class="mt-6 text-xs font-semibold tracking-wide text-muted">PICK A SPOT</p>
+        }
+
+        @if (spotsError(); as message) {
+          <p
+            role="alert"
+            class="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          >
+            {{ message }}
+          </p>
+        }
+
+        @if (spotsLoading()) {
+          <p class="mt-3 text-sm text-muted">Loading spots…</p>
+        } @else if (!spotsError() && spots().length === 0) {
+          <p class="mt-3 text-sm text-muted">This lot has no spots yet.</p>
+        } @else if (spots().length > 0 && visibleSpots().length === 0) {
+          <p class="mt-3 text-sm text-muted">
+            No spots for this vehicle type{{ floors().length > 1 ? ' on this floor' : '' }}.
+          </p>
+        } @else {
+          <div class="mt-3 grid grid-cols-6 gap-2.5">
+            @for (spot of visibleSpots(); track spot.spotId) {
+              <button
+                type="button"
+                (click)="selectSpot(spot)"
+                [disabled]="blockedReason(spot) !== null"
+                [attr.aria-pressed]="blockedReason(spot) === null ? spot.spotId === selectedSpot()?.spotId : null"
+                [attr.aria-label]="spotAriaLabel(spot)"
+                [attr.title]="blockedReason(spot)"
+                class="h-20 rounded-lg border-2 font-mono text-sm font-semibold text-white disabled:cursor-not-allowed"
+                [class]="statusClass[spot.status]"
+                [class.opacity-50]="spot.status === 'Available' && blockedReason(spot) !== null"
+                [class.border-ink]="spot.spotId === selectedSpot()?.spotId"
+                [class.border-transparent]="spot.spotId !== selectedSpot()?.spotId"
+              >
+                {{ spot.spotNumber }}
+              </button>
+            }
+          </div>
+        }
+      </section>
+
+      <aside class="w-full shrink-0 rounded-2xl border border-border bg-card p-6 lg:w-[360px]">
+        <h2 class="text-lg font-semibold text-ink">Booking summary</h2>
+
+        <dl class="mt-4 flex flex-col gap-4 text-sm">
+          <div class="flex items-center justify-between">
+            <dt class="text-muted">Spot</dt>
+            <dd class="font-mono text-ink">
+              @if (selectedSpot(); as spot) {
+                {{ spot.spotNumber }} · {{ spot.spotType }}
+              } @else {
+                <span class="font-sans text-muted">Select a spot</span>
+              }
+            </dd>
+          </div>
+          <div class="flex items-start justify-between gap-4">
+            <dt class="text-muted">Vehicle</dt>
+            <dd class="text-right text-base text-ink">
+              @if (vehiclesLoading()) {
+                <span class="text-sm text-muted">Loading…</span>
+              } @else if (vehiclesError(); as message) {
+                <span role="alert" class="text-sm text-red-700">{{ message }}</span>
+              } @else if (selectedVehicle(); as vehicle) {
+                {{ vehicle.plateNumber }}
+              } @else {
+                <span class="text-sm text-muted">No vehicle for this type</span>
+                <span class="mt-1 block text-sm font-semibold text-link">Add a vehicle</span>
+              }
+            </dd>
+          </div>
+          <div class="flex items-center justify-between">
+            <dt class="text-muted">Start time</dt>
+            <dd class="text-base text-ink">{{ startTimeLabel() }}</dd>
+          </div>
+          <div class="flex items-center justify-between">
+            <dt class="text-muted">Duration</dt>
+            <dd class="flex items-center gap-3">
+              <button
+                type="button"
+                (click)="changeHours(-1)"
+                [disabled]="hours() <= minHours"
+                aria-label="Decrease hours"
+                class="h-7 w-7 rounded-full border border-border text-ink disabled:opacity-40"
+              >
+                −
+              </button>
+              <span class="min-w-12 text-center text-base text-ink">{{ hours() }} hr</span>
+              <button
+                type="button"
+                (click)="changeHours(1)"
+                [disabled]="hours() >= maxHours"
+                aria-label="Increase hours"
+                class="h-7 w-7 rounded-full border border-border text-ink disabled:opacity-40"
+              >
+                +
+              </button>
+            </dd>
+          </div>
+          <div class="flex items-center justify-between">
+            <dt class="text-muted">Rate</dt>
+            <dd class="font-mono text-ink">
+              @if (selectedSpot(); as spot) {
+                ₹{{ spot.pricePerHour }}/hr
+              } @else {
+                —
+              }
+            </dd>
+          </div>
+        </dl>
+
+        <div class="mt-4 flex items-center justify-between border-t border-border pt-4">
+          <span class="text-base text-ink">Estimated total ({{ hours() }} hrs)</span>
+          <span class="text-2xl font-bold text-ink">
+            @if (estimatedTotal() !== null) {
+              ₹{{ estimatedTotal() }}
+            } @else {
+              —
+            }
+          </span>
+        </div>
+
+        <button
+          type="button"
+          [disabled]="!canContinue()"
+          class="mt-4 w-full rounded-lg bg-accent px-4 py-3 text-sm font-semibold text-ink transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Continue to review
+        </button>
+      </aside>
+    </main>
+  }
+</div>
