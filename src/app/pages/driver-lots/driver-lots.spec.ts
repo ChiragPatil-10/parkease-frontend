@@ -375,4 +375,33 @@ describe('DriverLots', () => {
       expect(c.searchError()).toContain('retry');
     });
   });
+
+  describe('lot card links', () => {
+    it('State A cards link to /lots/:lotId', async () => {
+      const { fixture } = await startGranted();
+      (await nearbyRequest()).flush(envelope([NEARBY_LOT]));
+      await settle();
+      fixture.detectChanges();
+
+      const link = (fixture.nativeElement as HTMLElement).querySelector(
+        `a[href="/lots/${NEARBY_LOT.lotId}"]`,
+      );
+      expect(link).toBeTruthy();
+      expect(link?.textContent).toContain('Whitefield Central Lot');
+    });
+
+    it('State B cards link to /lots/:lotId', async () => {
+      const { fixture, c } = await startDenied();
+      c.cityInput.set('Bengaluru');
+
+      const done = c.search();
+      httpMock.expectOne((r) => r.url === SEARCH_URL).flush(paged([CITY_LOT]));
+      await done;
+      fixture.detectChanges();
+
+      expect(
+        (fixture.nativeElement as HTMLElement).querySelector(`a[href="/lots/${CITY_LOT.lotId}"]`),
+      ).toBeTruthy();
+    });
+  });
 });

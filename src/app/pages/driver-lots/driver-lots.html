@@ -71,7 +71,11 @@
 
           @if (!nearbyLoading()) {
             @for (lot of nearbyLots(); track lot.lotId) {
-              <article class="flex items-center gap-4 rounded-xl border border-border bg-card p-5">
+              <a
+                [routerLink]="['/lots', lot.lotId]"
+                [state]="{ distanceKm: lot.distanceKm }"
+                class="flex items-center gap-4 rounded-xl border border-border bg-card p-5"
+              >
                 <div
                   class="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-accent text-lg font-bold text-ink"
                 >
@@ -90,7 +94,7 @@
                     <p class="mt-1 text-sm text-green-600">Open now</p>
                   }
                 </div>
-              </article>
+              </a>
             }
           }
         </div>
@@ -175,13 +179,16 @@
         } @else {
           <div class="mt-4 grid grid-cols-3 gap-4">
             @for (lot of cityLots(); track lot.lotId) {
-              <article class="rounded-xl border border-border bg-card p-5">
+              <a
+                [routerLink]="['/lots', lot.lotId]"
+                class="block rounded-xl border border-border bg-card p-5"
+              >
                 <h2 class="text-base font-semibold text-ink">{{ lot.name }}</h2>
                 <div class="mt-2 flex items-center gap-2 text-sm">
                   <span class="text-muted">₹{{ lot.minPricePerHour }}/hr</span>
                   <span class="text-green-600">{{ lot.availableSpots }} available</span>
                 </div>
-              </article>
+              </a>
             }
           </div>
         }
