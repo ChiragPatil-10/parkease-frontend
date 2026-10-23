@@ -1,0 +1,50 @@
+<div class="min-h-screen bg-surface">
+  <app-driver-nav activeTab="my-vehicles" />
+
+  <main class="px-8 py-8">
+    <div class="flex items-center justify-between">
+      <h1 class="text-2xl font-bold text-ink">My Vehicles</h1>
+      <button
+        type="button"
+        (click)="addOpen.set(true)"
+        class="rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-accent-hover"
+      >
+        + Add vehicle
+      </button>
+    </div>
+
+    <ul class="mt-6 flex flex-col gap-4">
+      @for (vehicle of vehicles; track vehicle.id) {
+        <li class="flex items-center gap-5 rounded-xl border border-border bg-card px-5 py-4">
+          <span class="rounded-md bg-surface px-3.5 py-2 font-mono text-sm font-semibold text-ink">
+            {{ vehicle.plate }}
+          </span>
+          <div class="min-w-0 flex-1">
+            <p class="text-base text-ink">{{ vehicle.name }}</p>
+            <p class="text-sm text-muted">{{ vehicle.detail }}</p>
+          </div>
+          <button
+            type="button"
+            (click)="deleteTarget.set(vehicle)"
+            [attr.aria-label]="'Delete ' + vehicle.name + ', ' + vehicle.plate"
+            class="rounded-lg border border-red-600 bg-card px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+          >
+            Delete
+          </button>
+        </li>
+      }
+    </ul>
+  </main>
+
+  @if (addOpen()) {
+    <app-add-vehicle-modal (closed)="addOpen.set(false)" />
+  }
+
+  @if (deleteTarget(); as target) {
+    <app-delete-vehicle-dialog
+      [plate]="target.plate"
+      [name]="target.name"
+      (closed)="deleteTarget.set(null)"
+    />
+  }
+</div>
