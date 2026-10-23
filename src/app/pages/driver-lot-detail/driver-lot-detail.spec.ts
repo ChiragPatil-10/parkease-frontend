@@ -224,6 +224,20 @@ describe('DriverLotDetail', () => {
       expect(continueButton(el).disabled).toBe(true);
     });
 
+    it('renders "Add a vehicle" as a link to /vehicles that passes returnTo state', async () => {
+      const { el } = await open({ vehicles: [] });
+      const link = Array.from(el.querySelectorAll<HTMLAnchorElement>('a')).find(
+        (a) => a.textContent?.trim() === 'Add a vehicle',
+      )!;
+      expect(link.getAttribute('href')).toBe('/vehicles');
+
+      const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+      link.click();
+
+      expect(navigate).toHaveBeenCalledTimes(1);
+      expect(navigate.mock.calls[0][1]?.state).toEqual({ returnTo: '/lots/lot-1' });
+    });
+
     it('uses the first ACTIVE vehicle of the type', async () => {
       const { text } = await open({ vehicles: [OLD_CAR, CAR] });
 

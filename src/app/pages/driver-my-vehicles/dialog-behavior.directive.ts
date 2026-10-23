@@ -1,5 +1,5 @@
 import { DOCUMENT } from '@angular/common';
-import { Directive, ElementRef, OnDestroy, afterNextRender, inject, output } from '@angular/core';
+import { Directive, ElementRef, OnDestroy, afterNextRender, inject, input, output } from '@angular/core';
 
 const FOCUSABLE_SELECTOR =
   'button:not([disabled]), input:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
@@ -7,7 +7,7 @@ const FOCUSABLE_SELECTOR =
 /**
  * Modal behaviour for a dialog panel: moves focus in on open (to the element marked
  * `data-initial-focus`, else the first focusable), traps Tab inside, emits `dismiss`
- * on Escape, locks page scroll, and returns focus to the opener on destroy.
+ * on Escape, locks page scroll, and returns focus to the trigger on destroy.
  */
 @Directive({
   selector: '[appDialogBehavior]',
@@ -18,10 +18,12 @@ const FOCUSABLE_SELECTOR =
 })
 export class DialogBehavior implements OnDestroy {
   readonly dismiss = output<void>();
+  /** Element that triggered the overlay (from the click event); focus returns here on close. */
+  readonly returnFocusTo = input<HTMLElement | null>(null);
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly document = inject(DOCUMENT);
-  private readonly opener = this.document.activeElement as HTMLElement | null;
+  private readonly activeAtOpen = this.document.activeElement as HTMLElement | null;
   private readonly previousOverflow = this.document.body.style.overflow;
 
   constructor() {
@@ -35,7 +37,10 @@ export class DialogBehavior implements OnDestroy {
 
   ngOnDestroy(): void {
     this.document.body.style.overflow = this.previousOverflow;
-    this.opener?.focus?.();
+    const target = this.returnFocusTo() ?? this.activeAtOpen;
+    if (target?.isConnected) {
+      target.focus();
+    }
   }
 
   protected trapTab(event: KeyboardEvent): void {

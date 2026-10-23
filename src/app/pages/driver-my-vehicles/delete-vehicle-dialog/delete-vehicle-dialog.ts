@@ -1,11 +1,6 @@
 import { Component, input, output } from '@angular/core';
 import { DialogBehavior } from '../dialog-behavior.directive';
 
-export interface DeleteWarning {
-  lead: string;
-  detail: string;
-}
-
 @Component({
   selector: 'app-delete-vehicle-dialog',
   imports: [DialogBehavior],
@@ -16,6 +11,7 @@ export interface DeleteWarning {
     >
       <div
         appDialogBehavior
+        [returnFocusTo]="opener()"
         (dismiss)="closed.emit()"
         role="alertdialog"
         aria-modal="true"
@@ -40,10 +36,18 @@ export interface DeleteWarning {
           </p>
           @if (warning(); as warning) {
             <p
-              class="mt-4 rounded-lg border border-accent bg-amber-50 px-4 py-3 text-sm text-muted"
+              role="alert"
+              class="mt-4 rounded-lg border border-accent bg-amber-50 px-4 py-3 text-sm text-ink"
             >
-              <span class="font-medium text-ink">{{ warning.lead }}</span>
-              {{ warning.detail }}
+              {{ warning }}
+            </p>
+          }
+          @if (error(); as error) {
+            <p
+              role="alert"
+              class="mt-4 rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-600"
+            >
+              {{ error }}
             </p>
           }
         </div>
@@ -58,9 +62,11 @@ export interface DeleteWarning {
           </button>
           <button
             type="button"
-            class="rounded-lg bg-red-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
+            (click)="confirmed.emit()"
+            [disabled]="busy()"
+            class="rounded-lg bg-red-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {{ confirmLabel() }}
+            {{ busy() ? 'Deleting…' : confirmLabel() }}
           </button>
         </div>
       </div>
@@ -70,10 +76,14 @@ export interface DeleteWarning {
 export class DeleteVehicleDialog {
   readonly plate = input.required<string>();
   readonly name = input.required<string>();
-  readonly warning = input<DeleteWarning | null>(null);
+  readonly warning = input<string | null>(null);
   readonly confirmLabel = input('Delete');
+  readonly busy = input(false);
+  readonly error = input<string | null>(null);
+  readonly opener = input<HTMLElement | null>(null);
 
   readonly closed = output<void>();
+  readonly confirmed = output<void>();
 
   protected onBackdropClick(event: MouseEvent): void {
     if (event.target === event.currentTarget) {

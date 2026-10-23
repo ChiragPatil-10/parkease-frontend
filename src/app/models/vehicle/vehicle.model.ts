@@ -1,5 +1,13 @@
 import { VehicleType } from '../spot.model';
 
+export interface CreateVehicleRequest {
+  plateNumber: string;
+  vehicleType: VehicleType;
+  make: string;
+  model: string;
+  isElectric: boolean;
+}
+
 export interface VehicleResponse {
   vehicleId: string;
   driverId: string;
