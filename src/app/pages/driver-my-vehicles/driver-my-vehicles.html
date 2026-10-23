@@ -1,0 +1,101 @@
+<div class="min-h-screen bg-surface">
+  <app-driver-nav activeTab="my-vehicles" />
+
+  <main class="px-8 py-8">
+    @if (returnTo) {
+      <a [routerLink]="returnTo" class="mb-3 inline-block text-sm font-semibold text-link">
+        ← Back to lot
+      </a>
+    }
+
+    <div class="flex items-center justify-between">
+      <h1 class="text-2xl font-bold text-ink">My Vehicles</h1>
+      <button
+        #addButton
+        type="button"
+        (click)="openAdd($event)"
+        class="rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-accent-hover"
+      >
+        + Add vehicle
+      </button>
+    </div>
+
+    @if (returnTo && vehicleAdded()) {
+      <div
+        role="status"
+        class="mt-4 flex items-center justify-between gap-4 rounded-lg border border-green-300 bg-green-50 px-4 py-2 text-sm text-green-700"
+      >
+        <span>Vehicle added</span>
+        <a
+          [routerLink]="returnTo"
+          class="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-accent-hover"
+        >
+          Back to lot
+        </a>
+      </div>
+    }
+
+    @if (loadError(); as error) {
+      <div
+        role="alert"
+        class="mt-4 rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-600"
+      >
+        {{ error }}
+      </div>
+    }
+
+    @if (loading()) {
+      <p class="mt-6 text-sm text-muted">Loading your vehicles…</p>
+    } @else if (vehicles().length > 0) {
+      <ul class="mt-6 flex flex-col gap-4">
+        @for (vehicle of vehicles(); track vehicle.vehicleId) {
+          <li class="flex items-center gap-5 rounded-xl border border-border bg-card px-5 py-4">
+            <span
+              class="rounded-md bg-surface px-3.5 py-2 font-mono text-sm font-semibold text-ink"
+            >
+              {{ formatPlate(vehicle.plateNumber) }}
+            </span>
+            <div class="min-w-0 flex-1">
+              <p class="text-base text-ink">{{ vehicleName(vehicle) }}</p>
+              <p class="text-sm text-muted">{{ vehicleDetail(vehicle) }}</p>
+            </div>
+            <button
+              type="button"
+              (click)="openDelete($event, vehicle)"
+              [attr.aria-label]="
+                'Delete ' + vehicleName(vehicle) + ', ' + formatPlate(vehicle.plateNumber)
+              "
+              class="rounded-lg border border-red-600 bg-card px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+            >
+              Delete
+            </button>
+          </li>
+        }
+      </ul>
+    } @else if (!loadError()) {
+      <p class="mt-6 text-sm text-muted">You haven't added any vehicles yet.</p>
+    }
+  </main>
+
+  @if (addOpen()) {
+    <app-add-vehicle-modal
+      [opener]="addOpener()"
+      (closed)="addOpen.set(false)"
+      (added)="onVehicleAdded()"
+    />
+  }
+
+  @if (deleteTarget(); as target) {
+    <app-delete-vehicle-dialog
+      [plate]="formatPlate(target.plateNumber)"
+      [name]="vehicleName(target)"
+      [warning]="deleteWarning()"
+      [confirmLabel]="deleteWarning() ? 'Delete anyway' : 'Delete'"
+      [busy]="deleteBusy()"
+      [error]="deleteError()"
+      [opener]="deleteOpener()"
+      (closed)="closeDelete()"
+      (confirmed)="confirmDelete()"
+    />
+  }
+</div>

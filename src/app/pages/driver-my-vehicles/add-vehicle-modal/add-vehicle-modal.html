@@ -1,0 +1,191 @@
+<div
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+  (click)="onBackdropClick($event)"
+>
+  <div
+    appDialogBehavior
+    [returnFocusTo]="opener()"
+    (dismiss)="closed.emit()"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="add-vehicle-title"
+    tabindex="-1"
+    class="relative max-h-full w-full max-w-120 overflow-y-auto rounded-2xl bg-card p-7 shadow-2xl outline-none"
+  >
+    <button
+      type="button"
+      (click)="closed.emit()"
+      aria-label="Close"
+      class="absolute right-5 top-5 flex size-8 items-center justify-center rounded-full text-lg leading-none text-muted hover:text-ink"
+    >
+      <span aria-hidden="true">×</span>
+    </button>
+
+    <h2 id="add-vehicle-title" class="text-xl font-bold text-ink">Add a vehicle</h2>
+    <p class="mt-1 text-sm text-muted">Register a vehicle to use when you book a spot.</p>
+
+    <form [formRoot]="vehicleForm" (submit)="submitAttempted.set(true)">
+      @if (serverError(); as error) {
+        <p
+          role="alert"
+          class="mt-4 rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-600"
+        >
+          {{ error }}
+        </p>
+      }
+
+      <div class="mt-6">
+        <label for="plate" class="block text-xs font-semibold tracking-wide text-muted"
+          >PLATE NUMBER</label
+        >
+        <input
+          id="plate"
+          type="text"
+          placeholder="KA05MJ4471"
+          data-initial-focus
+          [formField]="vehicleForm.plate"
+          [attr.aria-invalid]="plateError() ? 'true' : null"
+          aria-describedby="plate-help"
+          class="mt-2 w-full rounded-lg border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:outline-none"
+          [class.border-border]="!plateError()"
+          [class.focus:border-accent]="!plateError()"
+          [class.border-red-600]="!!plateError()"
+          [class.bg-red-50]="!!plateError()"
+        />
+        <p
+          id="plate-help"
+          class="mt-1.5 text-xs"
+          [class.text-muted]="!plateError()"
+          [class.text-red-600]="!!plateError()"
+        >
+          @if (plateError(); as error) {
+            {{ error }}
+          } @else {
+            Spaces and dashes are removed
+          }
+        </p>
+      </div>
+
+      <div class="mt-5">
+        <span id="vehicle-type-label" class="block text-xs font-semibold tracking-wide text-muted"
+          >VEHICLE TYPE</span
+        >
+        <div
+          role="radiogroup"
+          aria-labelledby="vehicle-type-label"
+          [attr.aria-describedby]="typeError() ? 'vehicle-type-error' : null"
+          class="mt-2 flex flex-wrap items-center gap-2"
+        >
+          @for (option of vehicleTypeOptions; track option.value; let i = $index) {
+            <button
+              #typeOption
+              type="button"
+              role="radio"
+              [attr.aria-checked]="option.value === selectedType()"
+              [attr.tabindex]="isTabStop(i) ? 0 : -1"
+              (click)="selectType(option.value)"
+              (keydown)="onTypeKeydown($event, i)"
+              class="rounded-full border px-4 py-1.5 text-sm"
+              [class.border-accent]="option.value === selectedType()"
+              [class.bg-accent]="option.value === selectedType()"
+              [class.text-ink]="option.value === selectedType()"
+              [class.border-border]="option.value !== selectedType()"
+              [class.bg-card]="option.value !== selectedType()"
+              [class.text-muted]="option.value !== selectedType()"
+            >
+              {{ option.label }}
+            </button>
+          }
+        </div>
+        @if (typeError(); as error) {
+          <p id="vehicle-type-error" class="mt-1.5 text-xs text-red-600">{{ error }}</p>
+        }
+      </div>
+
+      <div class="mt-5 grid grid-cols-2 gap-3">
+        <div>
+          <label for="make" class="block text-xs font-semibold tracking-wide text-muted"
+            >MAKE</label
+          >
+          <input
+            id="make"
+            type="text"
+            placeholder="e.g. Honda"
+            [formField]="vehicleForm.make"
+            [attr.aria-invalid]="makeError() ? 'true' : null"
+            [attr.aria-describedby]="makeError() ? 'make-error' : null"
+            class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+          />
+          @if (makeError(); as error) {
+            <p id="make-error" class="mt-1.5 text-xs text-red-600">{{ error }}</p>
+          }
+        </div>
+        <div>
+          <label for="model" class="block text-xs font-semibold tracking-wide text-muted"
+            >MODEL</label
+          >
+          <input
+            id="model"
+            type="text"
+            placeholder="e.g. City"
+            [formField]="vehicleForm.model"
+            [attr.aria-invalid]="modelError() ? 'true' : null"
+            [attr.aria-describedby]="modelError() ? 'model-error' : null"
+            class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+          />
+          @if (modelError(); as error) {
+            <p id="model-error" class="mt-1.5 text-xs text-red-600">{{ error }}</p>
+          }
+        </div>
+      </div>
+
+      <div class="mt-5 flex items-center justify-between gap-4">
+        <div>
+          <span id="electric-label" class="block text-sm text-ink">Electric vehicle</span>
+          @if (isHeavy()) {
+            <span id="electric-note" class="block text-xs text-muted"
+              >Heavy vehicles can't be electric</span
+            >
+          }
+        </div>
+        <button
+          type="button"
+          role="switch"
+          [attr.aria-checked]="isElectric()"
+          aria-labelledby="electric-label"
+          [attr.aria-describedby]="isHeavy() ? 'electric-note' : null"
+          [disabled]="isHeavy()"
+          (click)="toggleElectric()"
+          class="relative h-6 w-11 shrink-0 rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+          [class.border-accent]="isElectric()"
+          [class.bg-accent]="isElectric()"
+          [class.border-muted]="!isElectric()"
+          [class.bg-border]="!isElectric()"
+        >
+          <span
+            aria-hidden="true"
+            class="absolute left-0.5 top-0.5 size-4.5 rounded-full bg-card shadow transition-transform"
+            [class.translate-x-5]="isElectric()"
+          ></span>
+        </button>
+      </div>
+
+      <div class="mt-6 flex justify-end gap-2.5">
+        <button
+          type="button"
+          (click)="closed.emit()"
+          class="rounded-lg border border-border bg-card px-5 py-2.5 text-sm text-ink"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          [disabled]="vehicleForm().submitting()"
+          class="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {{ vehicleForm().submitting() ? 'Adding…' : 'Add vehicle' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

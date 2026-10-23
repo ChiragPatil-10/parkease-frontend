@@ -155,7 +155,12 @@
                 {{ vehicle.plateNumber }}
               } @else {
                 <span class="text-sm text-muted">No vehicle for this type</span>
-                <span class="mt-1 block text-sm font-semibold text-link">Add a vehicle</span>
+                <a
+                  routerLink="/vehicles"
+                  [state]="{ returnTo: '/lots/' + lot.lotId }"
+                  class="mt-1 block text-sm font-semibold text-link"
+                  >Add a vehicle</a
+                >
               }
             </dd>
           </div>
