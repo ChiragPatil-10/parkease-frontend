@@ -1,52 +1,177 @@
 <div class="flex min-h-screen flex-col items-center justify-center bg-surface px-4 py-8">
   <div class="w-full max-w-120">
-    <button
-      type="button"
-      class="mb-3 rounded text-sm font-semibold text-ink underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-    >
-      ← Back to spot picker
-    </button>
+    @switch (view()) {
+      @case ('loading') {
+        <p class="text-sm text-muted">Loading booking…</p>
+      }
+      @case ('bad-link') {
+        <p
+          role="alert"
+          class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
+          This booking link is not valid.
+          <a
+            [routerLink]="['/lots', lotId()]"
+            class="mt-1 block font-semibold underline underline-offset-2"
+            >Back to spot picker</a
+          >
+        </p>
+      }
+      @case ('spot-taken') {
+        <p
+          role="alert"
+          class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
+          This spot is no longer available.
+          <a
+            [routerLink]="['/lots', lotId()]"
+            class="mt-1 block font-semibold underline underline-offset-2"
+            >Back to spot picker</a
+          >
+        </p>
+      }
+      @case ('load-error') {
+        <p
+          role="alert"
+          class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
+          Something went wrong. Please try again.
+          <button
+            type="button"
+            (click)="retryLoad()"
+            class="mt-1 block font-semibold underline underline-offset-2"
+          >
+            Try again
+          </button>
+        </p>
+      }
+      @case ('ready') {
+        <a
+          [routerLink]="['/lots', lotId()]"
+          class="mb-3 inline-block rounded text-sm font-semibold text-ink underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+        >
+          ← Back to spot picker
+        </a>
 
-    <main class="rounded-2xl border border-border bg-card p-8">
-      <div class="h-1 w-14 rounded-full bg-accent" aria-hidden="true"></div>
-      <h1 class="mt-5 text-lg font-bold text-ink">Review your booking</h1>
-      <p class="mt-1 text-base text-muted">
-        Confirm the details below, then complete payment to hold your spot.
-      </p>
+        <main class="rounded-2xl border border-border bg-card p-8">
+          <div class="h-1 w-14 rounded-full bg-accent" aria-hidden="true"></div>
+          <h1 class="mt-5 text-lg font-bold text-ink">Review your booking</h1>
+          <p class="mt-1 text-base text-muted">
+            Confirm the details below, then complete payment to hold your spot.
+          </p>
 
-      <dl class="mt-6">
-        @for (detail of details; track detail.label) {
-          <div class="flex items-baseline justify-between gap-4 border-b border-border py-3">
-            <dt class="text-xs text-muted">{{ detail.label }}</dt>
-            <dd
-              class="text-right text-base text-ink"
-              [class.font-mono]="detail.mono"
-              [class.font-semibold]="detail.mono"
-            >
-              {{ detail.value }}
-            </dd>
+          <dl class="mt-6">
+            @for (detail of details(); track detail.label) {
+              <div class="flex items-baseline justify-between gap-4 border-b border-border py-3">
+                <dt class="text-xs text-muted">{{ detail.label }}</dt>
+                <dd
+                  class="text-right text-base text-ink"
+                  [class.font-mono]="detail.mono"
+                  [class.font-semibold]="detail.mono"
+                >
+                  {{ detail.value }}
+                </dd>
+              </div>
+            }
+          </dl>
+
+          <div class="mt-4 flex items-baseline justify-between gap-4">
+            <span class="text-sm font-semibold text-ink">Amount due</span>
+            <span class="font-mono text-2xl font-bold text-ink">₹{{ amount() }}</span>
           </div>
-        }
-      </dl>
 
-      <div class="mt-4 flex items-baseline justify-between gap-4">
-        <span class="text-sm font-semibold text-ink">Amount due</span>
-        <span class="font-mono text-2xl font-bold text-ink">{{ amount }}</span>
-      </div>
+          @if (!paymentsConfigured) {
+            <p
+              role="alert"
+              class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+            >
+              Payments are not configured.
+            </p>
+          }
 
-      <!-- Razorpay navy (#06274f) is a one-off brand value, intentionally not a theme token. -->
-      <button
-        type="button"
-        class="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-[#06274f] px-4 py-4 text-white hover:bg-[#041b38] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#06274f]"
-      >
-        <span class="text-base font-semibold">Razorpay</span>
-        <span class="text-sm font-medium">— Pay {{ amount }}</span>
-      </button>
+          @switch (notice()) {
+            @case ('payment-failed') {
+              <p
+                role="alert"
+                class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+              >
+                The payment could not be completed.
+                @if (orderId() === null) {
+                  <a
+                    [routerLink]="['/lots', lotId()]"
+                    class="mt-1 block font-semibold underline underline-offset-2"
+                    >Back to spot picker</a
+                  >
+                }
+              </p>
+            }
+            @case ('dismissed') {
+              <p
+                role="alert"
+                class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+              >
+                Payment was not completed.
+              </p>
+            }
+            @case ('timeout') {
+              <p
+                role="alert"
+                class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+              >
+                This is taking longer than expected.
+                <button
+                  type="button"
+                  (click)="pay()"
+                  [disabled]="running()"
+                  class="mt-1 block font-semibold underline underline-offset-2"
+                >
+                  Try again
+                </button>
+              </p>
+            }
+            @case ('error') {
+              <p
+                role="alert"
+                class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+              >
+                Something went wrong. Please try again.
+                <button
+                  type="button"
+                  (click)="pay()"
+                  [disabled]="running()"
+                  class="mt-1 block font-semibold underline underline-offset-2"
+                >
+                  Try again
+                </button>
+              </p>
+            }
+          }
 
-      <p class="mt-4 text-center text-xs text-muted">
-        A secure Razorpay window will open. Your booking stays "Pending" until payment is
-        confirmed server-side.
-      </p>
-    </main>
+          <!-- Razorpay navy (#06274f) is a one-off brand value, intentionally not a theme token. -->
+          <button
+            #payButton
+            type="button"
+            (click)="pay()"
+            [disabled]="payDisabled()"
+            [attr.aria-busy]="running()"
+            class="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-[#06274f] px-4 py-4 text-white hover:bg-[#041b38] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#06274f] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            @if (running()) {
+              <span class="text-base font-semibold">Processing…</span>
+            } @else if (orderId() !== null) {
+              <span class="text-base font-semibold">Retry payment</span>
+            } @else {
+              <span class="text-base font-semibold">Razorpay</span>
+              <span class="text-sm font-medium">— Pay ₹{{ amount() }}</span>
+            }
+          </button>
+
+          <p class="mt-4 text-center text-xs text-muted">
+            A secure Razorpay window will open. Your booking stays "Pending" until payment is
+            confirmed server-side.
+          </p>
+        </main>
+      }
+    }
   </div>
 </div>

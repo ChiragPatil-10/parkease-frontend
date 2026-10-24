@@ -383,6 +383,21 @@ describe('DriverLotDetail', () => {
     });
   });
 
+  describe('continue to review', () => {
+    it('navigates to the booking page with spot, vehicle and hours as query params', async () => {
+      const { el } = await open();
+      const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
+      await click(el, spotButton(el, 'A-01'));
+      await click(el, el.querySelector<HTMLButtonElement>('[aria-label="Decrease hours"]')!);
+      await click(el, continueButton(el));
+
+      expect(navigate).toHaveBeenCalledWith(['/lots', 'lot-1', 'book'], {
+        queryParams: { spotId: 's1', vehicleId: 'v-car', hours: 2 },
+      });
+    });
+  });
+
   describe('distance from router state', () => {
     it('shows the distance when router state carries a valid number', async () => {
       const { text } = await open({}, { distanceKm: 0.84 });

@@ -9,6 +9,10 @@ import { BulkCreateSpotsRequest, SpotCreateItem, SpotResponse } from '../models/
 export class SpotService {
   private readonly api = inject(ApiService);
 
+  getSpotById(spotId: string): Observable<ApiResponse<SpotResponse>> {
+    return this.api.get<SpotResponse>(SPOT_API.byId(spotId));
+  }
+
   getSpotsByLot(lotId: string): Observable<ApiResponse<SpotResponse[]>> {
     return this.api.get<SpotResponse[]>(SPOT_API.byLot(lotId));
   }
