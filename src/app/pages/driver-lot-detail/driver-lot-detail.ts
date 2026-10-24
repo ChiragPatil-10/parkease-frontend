@@ -195,6 +195,18 @@ export class DriverLotDetail implements OnInit {
     this.hours.update((h) => Math.min(MAX_HOURS, Math.max(MIN_HOURS, h + delta)));
   }
 
+  protected continueToReview(): void {
+    const lot = this.lot();
+    const spot = this.selectedSpot();
+    const vehicle = this.selectedVehicle();
+    if (!this.canContinue() || !lot || !spot || !vehicle) {
+      return;
+    }
+    void this.router.navigate(['/lots', lot.lotId, 'book'], {
+      queryParams: { spotId: spot.spotId, vehicleId: vehicle.vehicleId, hours: this.hours() },
+    });
+  }
+
   /** Why a spot can't be picked right now, or null if it can. Used for title/aria-label. */
   protected blockedReason(spot: SpotResponse): string | null {
     if (this.lotClosed()) {

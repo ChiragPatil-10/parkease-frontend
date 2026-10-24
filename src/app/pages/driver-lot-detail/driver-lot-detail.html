@@ -217,6 +217,7 @@
 
         <button
           type="button"
+          (click)="continueToReview()"
           [disabled]="!canContinue()"
           class="mt-4 w-full rounded-lg bg-accent px-4 py-3 text-sm font-semibold text-ink transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
         >
