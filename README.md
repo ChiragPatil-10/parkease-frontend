@@ -57,3 +57,15 @@ Angular CLI does not come with an end-to-end testing framework by default. You c
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+
+## Razorpay key id
+
+The booking page needs the **public** Razorpay key id. Without it the page shows "Payments are not configured" and Pay stays disabled.
+
+1. Get the key id from the Razorpay Dashboard: **Account & Settings → API Keys**. Use a test key (`rzp_test_...`) while developing.
+2. Copy `.env.example` to `.env` and set `RAZORPAY_KEY_ID=rzp_test_xxxxxxxx`. On a build server, set `RAZORPAY_KEY_ID` as a real environment variable instead; it takes priority over `.env`.
+3. Run `npm start`, `npm run build` or `npm test`. Each first runs `scripts/generate-env.mjs`, which writes the git-ignored `src/environments/environment.generated.ts`. The script never prints the value.
+
+Only the public key id belongs here, never the key secret. The script refuses any value that is not shaped like `rzp_test_...` or `rzp_live_...`. The key id is embedded in the built JavaScript, so anyone who opens the app can read it; that is expected for a public key id.
+
+Run builds through the npm scripts. Calling `ng build` directly skips the generation step and fails if `environment.generated.ts` does not exist yet.

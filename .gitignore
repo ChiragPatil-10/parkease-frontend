@@ -42,3 +42,7 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Local environment (RAZORPAY_KEY_ID) and the file generated from it
+.env
+src/environments/environment.generated.ts
