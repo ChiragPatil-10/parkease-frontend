@@ -29,8 +29,8 @@
         <div class="mt-6 flex flex-col gap-3">
           @for (row of rows(); track $index) {
             <div>
-              <div class="flex items-start gap-3">
-                <span class="pt-2.5 text-sm text-muted">{{ pad($index) }}</span>
+              <div class="flex items-start gap-3 max-md:grid max-md:grid-cols-2">
+                <span class="pt-2.5 text-sm text-muted max-md:col-span-2 max-md:pt-0">{{ pad($index) }}</span>
 
                 <input
                   type="text"
@@ -39,15 +39,15 @@
                   (input)="updateRow($index, 'spotNumber', $any($event.target).value)"
                   [class]="
                     hasAttemptedSubmit() && rowErrorMessage($index)
-                      ? 'w-28 rounded-lg border border-red-300 bg-red-50 px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:outline-none'
-                      : 'w-28 rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none'
+                      ? 'w-28 max-md:w-full rounded-lg border border-red-300 bg-red-50 px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:outline-none'
+                      : 'w-28 max-md:w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none'
                   "
                 />
 
                 <select
                   [value]="row.floor"
                   (change)="updateRow($index, 'floor', $any($event.target).value)"
-                  class="w-28 rounded-lg border border-border px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none"
+                  class="w-28 max-md:w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none"
                 >
                   @for (floor of floorOptions; track floor) {
                     <option [value]="floor">{{ floor }}</option>
@@ -59,8 +59,8 @@
                   (change)="updateRow($index, 'spotType', $any($event.target).value)"
                   [class]="
                     hasAttemptedSubmit() && rowErrorMessage($index)
-                      ? 'w-32 rounded-lg border border-red-300 bg-red-50 px-3 py-2.5 text-sm text-ink focus:outline-none'
-                      : 'w-32 rounded-lg border border-border px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none'
+                      ? 'w-32 max-md:w-full rounded-lg border border-red-300 bg-red-50 px-3 py-2.5 text-sm text-ink focus:outline-none'
+                      : 'w-32 max-md:w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none'
                   "
                 >
                   @for (spotType of spotTypeOptions; track spotType) {
@@ -73,8 +73,8 @@
                   (change)="updateRow($index, 'vehicleType', $any($event.target).value)"
                   [class]="
                     hasAttemptedSubmit() && rowErrorMessage($index)
-                      ? 'w-32 rounded-lg border border-red-300 bg-red-50 px-3 py-2.5 text-sm text-ink focus:outline-none'
-                      : 'w-32 rounded-lg border border-border px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none'
+                      ? 'w-32 max-md:w-full rounded-lg border border-red-300 bg-red-50 px-3 py-2.5 text-sm text-ink focus:outline-none'
+                      : 'w-32 max-md:w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none'
                   "
                 >
                   @for (vehicleType of vehicleTypeOptions; track vehicleType) {
@@ -82,7 +82,7 @@
                   }
                 </select>
 
-                <div class="relative w-28">
+                <div class="relative w-28 max-md:w-full">
                   <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted"
                     >₹</span
                   >
@@ -105,7 +105,7 @@
               </div>
 
               @if (hasAttemptedSubmit() && rowErrorMessage($index); as message) {
-                <p class="mt-1 pl-9 text-xs text-red-600">{{ message }}</p>
+                <p class="mt-1 pl-9 text-xs text-red-600 max-md:pl-0">{{ message }}</p>
               }
             </div>
           }

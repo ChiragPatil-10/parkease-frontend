@@ -1,5 +1,6 @@
 import { Component, inject, input } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { NavShell } from '../nav-shell/nav-shell';
 import { AuthService } from '../../../services/auth.service';
 
 export type AdminNavTab = 'users' | 'manager-applications' | 'lot-approvals' | 'all-lots';
@@ -19,7 +20,7 @@ const NAV_ITEMS: AdminNavItem[] = [
 
 @Component({
   selector: 'app-admin-nav',
-  imports: [RouterLink],
+  imports: [RouterLink, NavShell],
   templateUrl: './admin-nav.html',
   styleUrl: './admin-nav.css',
 })
