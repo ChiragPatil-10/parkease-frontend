@@ -6,6 +6,7 @@ import { ManagerNav } from '../../shared/components/manager-nav/manager-nav';
 import { AuthService } from '../../services/auth.service';
 import { ParkingLotService } from '../../services/parkinglot.service';
 import { LotResponse } from '../../models/lot.model';
+import { NETWORK_ERROR_MESSAGE, isNetworkError } from '../../shared/network-error';
 
 type LotStatus = 'open' | 'closed' | 'awaiting-approval';
 
@@ -104,6 +105,9 @@ export class ManagerLots implements OnInit {
    * don't assume err.error.message exists before falling back to a generic message.
    */
   private resolveErrorMessage(err: unknown): string {
+    if (isNetworkError(err)) {
+      return NETWORK_ERROR_MESSAGE;
+    }
     if (err instanceof HttpErrorResponse) {
       if (err.status === 401) {
         this.authService.clearSession();

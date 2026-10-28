@@ -32,7 +32,7 @@
         <p class="text-xs font-semibold tracking-wide text-muted">
           NEAR YOU · WITHIN {{ selectedRadius() }}KM
         </p>
-        <h1 class="mt-1 text-2xl font-bold text-ink">{{ nearbyLots().length }} open lots nearby</h1>
+        <h1 class="mt-1 text-2xl font-bold text-ink">{{ nearbyLots().length }} open {{ nearbyLots().length === 1 ? 'lot' : 'lots' }} nearby</h1>
 
         <div class="mt-4 flex items-center gap-2 border-b border-border pb-4">
           @for (radius of radiusOptions; track radius) {
@@ -155,6 +155,10 @@
           Search
         </button>
       </div>
+
+      @if (emptySearch()) {
+        <p role="alert" class="mt-2 text-sm text-red-700">Enter a city to search.</p>
+      }
 
       @if (searchError(); as message) {
         <p

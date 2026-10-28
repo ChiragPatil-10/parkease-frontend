@@ -271,7 +271,7 @@ describe('DriverLots', () => {
       fixture.detectChanges();
 
       const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-      expect(text).toContain('1 open lots nearby');
+      expect(text).toContain('1 open lot nearby');
       expect(text).toContain('Whitefield Central Lot');
       expect(text).toContain('0.8 km away');
       expect(text).toContain('₹40/hr');
@@ -402,6 +402,43 @@ describe('DriverLots', () => {
       expect(
         (fixture.nativeElement as HTMLElement).querySelector(`a[href="/lots/${CITY_LOT.lotId}"]`),
       ).toBeTruthy();
+    });
+  });
+
+  describe('text fixes', () => {
+    it.each([
+      [1, '1 open lot nearby'],
+      [2, '2 open lots nearby'],
+    ])('pluralizes the nearby heading for %i lot(s)', async (count, expected) => {
+      stubPermission('granted');
+      stubGeolocation('success');
+      const { fixture } = createFixture();
+      fixture.detectChanges();
+
+      const req = await nearbyRequest();
+      req.flush(envelope(Array.from({ length: count }, (_, i) => ({ ...NEARBY_LOT, lotId: `lot-${i}` }))));
+      await settle();
+      fixture.detectChanges();
+
+      expect((fixture.nativeElement as HTMLElement).querySelector('h1')?.textContent?.trim()).toBe(
+        expected,
+      );
+    });
+
+    it('shows an inline message and keeps the old results on an empty city search', async () => {
+      const { fixture, c } = await startDenied();
+      c.cityInput.set('Bengaluru');
+      const searching = c.search();
+      httpMock.expectOne((r) => r.url === SEARCH_URL).flush(paged([CITY_LOT]));
+      await searching;
+
+      c.cityInput.set('   ');
+      await c.search();
+      fixture.detectChanges();
+
+      const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+      expect(text).toContain('Enter a city to search.');
+      httpMock.expectNone((r) => r.url === SEARCH_URL);
     });
   });
 });

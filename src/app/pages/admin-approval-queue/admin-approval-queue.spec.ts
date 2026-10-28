@@ -329,4 +329,18 @@ describe('AdminApprovalQueue', () => {
     httpMock.expectOne(PENDING_LOTS_URL).flush({ success: true, message: null, data: [], errors: null });
     expect(component.subTab()).toBe('lot-approvals');
   });
+
+  it('shows a friendly message instead of "Failed to fetch" when the network fails', async () => {
+    const { fixture, component } = createFixture();
+    fixture.detectChanges();
+
+    httpMock
+      .expectOne((r) => r.url === APPLICATIONS_URL)
+      .error(new TypeError('Failed to fetch') as unknown as ProgressEvent);
+    await Promise.resolve();
+
+    expect(component.applicationsError()).toBe(
+      "Couldn't reach the server. Check your connection and try again.",
+    );
+  });
 });

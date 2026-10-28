@@ -259,4 +259,121 @@ describe('ManagerSpots', () => {
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(text).toContain("You don't have any lots yet.");
   });
+
+  describe('menus', () => {
+    async function loadPage() {
+      const ctx = createFixture();
+      ctx.fixture.detectChanges();
+      httpMock.expectOne(LOTS_URL).flush({ success: true, message: null, data: [LOT_1, LOT_2], errors: null });
+      await Promise.resolve();
+      httpMock
+        .expectOne(spotsUrl(LOT_1.lotId))
+        .flush({ success: true, message: null, data: SPOTS_FLOOR_1_AND_2, errors: null });
+      await flushAsync();
+      ctx.fixture.detectChanges();
+      return ctx;
+    }
+
+    const root = (fixture: { nativeElement: unknown }) => fixture.nativeElement as HTMLElement;
+    const addTrigger = (el: HTMLElement) =>
+      Array.from(el.querySelectorAll('button[aria-haspopup]')).find((b) =>
+        b.textContent?.includes('Add spots'),
+      ) as HTMLButtonElement;
+    const lotTrigger = (el: HTMLElement) =>
+      Array.from(el.querySelectorAll('button[aria-haspopup]')).find((b) =>
+        b.textContent?.includes('Whitefield'),
+      ) as HTMLButtonElement;
+    const item = (el: HTMLElement, text: string) =>
+      Array.from(el.querySelectorAll('[role="menuitem"]')).find((b) =>
+        b.textContent?.includes(text),
+      ) as HTMLButtonElement;
+
+    it('exposes menu semantics on the triggers and menus', async () => {
+      const { fixture } = await loadPage();
+      const el = root(fixture);
+
+      expect(addTrigger(el).getAttribute('aria-expanded')).toBe('false');
+      addTrigger(el).click();
+      fixture.detectChanges();
+
+      expect(addTrigger(el).getAttribute('aria-expanded')).toBe('true');
+      expect(el.querySelector('[role="menu"]')).toBeTruthy();
+      expect(el.querySelectorAll('[role="menuitem"]').length).toBe(2);
+    });
+
+    it('navigates to bulk create for the selected lot from the menu', async () => {
+      const { fixture } = await loadPage();
+      const el = root(fixture);
+
+      addTrigger(el).click();
+      fixture.detectChanges();
+      item(el, 'Bulk create spots').click();
+      fixture.detectChanges();
+
+      expect(router.navigateByUrl).toHaveBeenCalledWith(
+        `/manager/spots/${LOT_1.lotId}/bulk-create`,
+      );
+      expect(el.querySelector('[role="menu"]')).toBeNull();
+    });
+
+    it('marks the single-spot and add-floor controls as not available yet', async () => {
+      const { fixture } = await loadPage();
+      const el = root(fixture);
+
+      addTrigger(el).click();
+      fixture.detectChanges();
+      const single = item(el, 'Add single spot');
+      single.click();
+      fixture.detectChanges();
+
+      expect(single.getAttribute('aria-disabled')).toBe('true');
+      expect(single.title).toContain('Coming soon');
+      expect(router.navigateByUrl).not.toHaveBeenCalled();
+      const floor = Array.from(el.querySelectorAll('button')).find((b) =>
+        b.textContent?.includes('+ Add floor'),
+      )!;
+      expect(floor.getAttribute('aria-disabled')).toBe('true');
+      expect(floor.title).toContain('Coming soon');
+    });
+
+    it('closes on Escape and returns focus to the trigger', async () => {
+      const { fixture } = await loadPage();
+      const el = root(fixture);
+
+      addTrigger(el).click();
+      fixture.detectChanges();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+      fixture.detectChanges();
+
+      expect(el.querySelector('[role="menu"]')).toBeNull();
+      expect(addTrigger(el).getAttribute('aria-expanded')).toBe('false');
+      expect(document.activeElement).toBe(addTrigger(el));
+    });
+
+    it('closes the lot menu on an outside click and returns focus to its trigger', async () => {
+      const { fixture } = await loadPage();
+      const el = root(fixture);
+
+      lotTrigger(el).click();
+      fixture.detectChanges();
+      expect(el.querySelector('[role="menu"]')).toBeTruthy();
+      el.querySelector<HTMLElement>('.fixed.inset-0')!.click();
+      fixture.detectChanges();
+
+      expect(el.querySelector('[role="menu"]')).toBeNull();
+      expect(document.activeElement).toBe(lotTrigger(el));
+    });
+
+    it('shows a friendly message when the network fails', async () => {
+      const { fixture, component } = createFixture();
+      fixture.detectChanges();
+
+      httpMock.expectOne(LOTS_URL).error(new TypeError('Failed to fetch') as unknown as ProgressEvent);
+      await Promise.resolve();
+
+      expect(component.error()).toBe(
+        "Couldn't reach the server. Check your connection and try again.",
+      );
+    });
+  });
 });

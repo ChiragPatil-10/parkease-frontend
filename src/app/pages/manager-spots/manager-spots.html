@@ -21,7 +21,10 @@
         <div class="flex flex-wrap items-center gap-3">
           <div class="relative">
             <button
+              #lotTrigger
               type="button"
+              aria-haspopup="menu"
+              [attr.aria-expanded]="lotMenuOpen()"
               (click)="toggleLotMenu()"
               class="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-lg font-bold text-ink shadow-sm"
             >
@@ -37,10 +40,11 @@
 
             @if (lotMenuOpen()) {
               <div class="fixed inset-0 z-10" (click)="closeMenus()"></div>
-              <div class="absolute left-0 z-20 mt-1 w-72 rounded-lg border border-border bg-card py-1 shadow-lg">
+              <div role="menu" aria-label="Choose lot" role="menu" aria-label="Choose lot" class="absolute left-0 z-20 mt-1 w-72 rounded-lg border border-border bg-card py-1 shadow-lg">
                 @for (l of lots(); track l.lotId) {
                   <button
                     type="button"
+                    role="menuitem"
                     (click)="selectLot(l.lotId)"
                     class="block w-full px-4 py-2 text-left text-sm text-ink hover:bg-surface"
                   >
@@ -69,7 +73,12 @@
                   Floor {{ floor }}
                 </button>
               }
-              <button type="button" class="rounded-md px-3 py-1.5 text-sm font-medium text-link">
+              <button
+                type="button"
+                aria-disabled="true"
+                title="Coming soon — needs a page that hasn't been built yet"
+                class="rounded-md px-3 py-1.5 text-sm font-medium text-link"
+              >
                 + Add floor
               </button>
             </div>
@@ -116,6 +125,8 @@
           <div class="mt-4 flex items-center gap-3">
             <button
               type="button"
+              aria-disabled="true"
+              title="Coming soon — needs a page that hasn't been built yet"
               class="rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-surface"
             >
               + Add single spot
@@ -158,7 +169,10 @@
 <ng-template #addSpotsButton let-label="label">
   <div class="relative">
     <button
+      #addSpotsTrigger
       type="button"
+      aria-haspopup="menu"
+      [attr.aria-expanded]="addSpotsMenuOpen()"
       (click)="toggleAddSpotsMenu()"
       class="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-accent-hover"
     >
@@ -174,10 +188,12 @@
 
     @if (addSpotsMenuOpen()) {
       <div class="fixed inset-0 z-10" (click)="closeMenus()"></div>
-      <div class="absolute right-0 z-20 mt-1 w-64 rounded-lg border border-border bg-card py-1 shadow-lg">
+      <div role="menu" aria-label="Add spots" class="absolute right-0 z-20 mt-1 w-64 rounded-lg border border-border bg-card py-1 shadow-lg">
         <button
           type="button"
-          (click)="closeMenus()"
+          role="menuitem"
+          aria-disabled="true"
+          title="Coming soon — needs a page that hasn't been built yet"
           class="block w-full px-4 py-2.5 text-left hover:bg-surface"
         >
           <span class="block text-sm font-semibold text-ink">Add single spot</span>
@@ -185,7 +201,8 @@
         </button>
         <button
           type="button"
-          (click)="closeMenus()"
+          role="menuitem"
+          (click)="goToBulkCreateForSelectedLot()"
           class="block w-full px-4 py-2.5 text-left hover:bg-surface"
         >
           <span class="block text-sm font-semibold text-ink">Bulk create spots</span>

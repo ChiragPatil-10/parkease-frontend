@@ -193,4 +193,14 @@ describe('ManagerLots', () => {
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(text).toContain("You haven't added any lots yet.");
   });
+
+  it('shows a friendly message instead of "Failed to fetch" when the network fails', async () => {
+    const { fixture, component } = createFixture();
+    fixture.detectChanges();
+
+    httpMock.expectOne(LOTS_URL).error(new TypeError('Failed to fetch') as unknown as ProgressEvent);
+    await Promise.resolve();
+
+    expect(component.error()).toBe("Couldn't reach the server. Check your connection and try again.");
+  });
 });
