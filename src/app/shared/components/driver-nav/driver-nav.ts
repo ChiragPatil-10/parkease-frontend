@@ -1,5 +1,6 @@
 import { Component, inject, input } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { NavShell } from '../nav-shell/nav-shell';
 import { AuthService } from '../../../services/auth.service';
 
 export type DriverNavTab = 'search-lots' | 'my-vehicles' | 'my-bookings' | 'notifications';
@@ -19,7 +20,7 @@ const NAV_ITEMS: DriverNavItem[] = [
 
 @Component({
   selector: 'app-driver-nav',
-  imports: [RouterLink],
+  imports: [RouterLink, NavShell],
   templateUrl: './driver-nav.html',
   styleUrl: './driver-nav.css',
 })
