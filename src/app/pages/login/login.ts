@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { FormField, FormRoot, email, form, required } from '@angular/forms/signals';
 import { AuthService } from '../../services/auth.service';
@@ -9,7 +9,7 @@ import { AuthResponse } from '../../models/auth/auth.model';
 
 @Component({
   selector: 'app-login',
-  imports: [FormField, FormRoot],
+  imports: [FormField, FormRoot, RouterLink],
   templateUrl: './login.html',
   styleUrl: './login.css',
 })
@@ -18,7 +18,6 @@ export class Login {
   private readonly router = inject(Router);
 
   protected readonly serverError = signal<string | null>(null);
-  protected readonly adminNotice = signal(false);
 
   private readonly credentials = signal({ email: '', password: '' });
 
@@ -33,7 +32,6 @@ export class Login {
       submission: {
         action: async () => {
           this.serverError.set(null);
-          this.adminNotice.set(false);
 
           try {
             const response = await firstValueFrom(
@@ -55,12 +53,7 @@ export class Login {
   private handleSuccess(auth: AuthResponse): void {
     this.authService.saveSession(auth);
 
-    const route = this.authService.resolvePostAuthRoute(auth.user.role);
-    if (route) {
-      this.router.navigateByUrl(route);
-    } else {
-      this.adminNotice.set(true);
-    }
+    this.router.navigateByUrl(this.authService.resolvePostAuthRoute(auth.user.role));
   }
 
   private resolveErrorMessage(err: unknown): string {

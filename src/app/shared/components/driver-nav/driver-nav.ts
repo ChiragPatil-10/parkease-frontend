@@ -1,5 +1,6 @@
-import { Component, input } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, inject, input } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../../services/auth.service';
 
 export type DriverNavTab = 'search-lots' | 'my-vehicles' | 'my-bookings' | 'notifications';
 
@@ -25,5 +26,13 @@ const NAV_ITEMS: DriverNavItem[] = [
 export class DriverNav {
   readonly activeTab = input.required<DriverNavTab>();
 
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+
   protected readonly navItems = NAV_ITEMS;
+
+  protected logOut(): void {
+    this.authService.logout();
+    void this.router.navigateByUrl('/login');
+  }
 }

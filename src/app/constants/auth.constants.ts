@@ -1,5 +1,6 @@
 export const AUTH_API = {
   login: '/api/v1/auth/login',
+  logout: '/api/v1/auth/logout',
   registerDriver: '/api/v1/auth/register/driver',
   registerManager: '/api/v1/auth/register/manager',
   userById: (id: string) => `/api/v1/auth/users/${id}`,

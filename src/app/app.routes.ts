@@ -16,17 +16,22 @@ import { ManagerApplications } from './pages/manager-applications/manager-applic
 import { AdminApprovalQueue } from './pages/admin-approval-queue/admin-approval-queue';
 import { Forbidden } from './pages/forbidden/forbidden';
 import { authGuard } from './core/guards/auth.guard';
+import { guestGuard } from './core/guards/guest.guard';
 import { roleGuard } from './core/guards/role.guard';
 import { UserRole } from './models/auth/user-role.enum';
 
 export const routes: Routes = [
-  { path: '', component: Login },
-  { path: 'login', component: Login },
-  { path: 'register', component: RegisterDriver },
-  { path: 'register-manager', component: RegisterManager },
+  { path: '', component: Login, canActivate: [guestGuard] },
+  { path: 'login', component: Login, canActivate: [guestGuard] },
+  { path: 'register', component: RegisterDriver, canActivate: [guestGuard] },
+  { path: 'register-manager', component: RegisterManager, canActivate: [guestGuard] },
   { path: 'register-manager/submitted', component: ManagerApplicationSubmitted },
-  { path: 'lots', component: DriverLots, canActivate: [authGuard] },
-  { path: 'lots/:lotId', component: DriverLotDetail, canActivate: [authGuard] },
+  { path: 'lots', component: DriverLots, canActivate: [authGuard, roleGuard(UserRole.Driver)] },
+  {
+    path: 'lots/:lotId',
+    component: DriverLotDetail,
+    canActivate: [authGuard, roleGuard(UserRole.Driver)],
+  },
   {
     path: 'lots/:lotId/book',
     component: DriverBookingReview,
