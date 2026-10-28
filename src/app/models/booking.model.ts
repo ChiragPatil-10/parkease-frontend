@@ -26,6 +26,8 @@ export interface BookingResponse {
   endTime: string | null;
   totalAmount: number;
   status: BookingStatus;
+  /** UTC with Z; present only while Pending. */
+  paymentDueAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }

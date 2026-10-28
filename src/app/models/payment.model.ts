@@ -1,4 +1,11 @@
-export type PaymentStatus = 'Held' | 'Captured' | 'Voided' | 'Refunded' | 'Failed';
+export type PaymentStatus =
+  | 'Created'
+  | 'Captured'
+  | 'Refunded'
+  | 'RefundFailed'
+  | 'Voided'
+  | 'Failed'
+  | 'Held';
 
 export interface PaymentResponse {
   paymentId: string;
@@ -10,4 +17,16 @@ export interface PaymentResponse {
   failureReason: string | null;
   createdAt: string;
   updatedAt: string;
+  razorpayKeyId?: string | null;
+  amountInPaise?: number;
+  currency?: string;
+  razorpayPaymentId?: string | null;
+  paidAt?: string | null;
+}
+
+export interface VerifyPaymentRequest {
+  bookingId: string;
+  razorpayPaymentId: string;
+  razorpayOrderId: string;
+  razorpaySignature: string;
 }
