@@ -1,6 +1,7 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Observable, firstValueFrom } from 'rxjs';
 import { AdminNav } from '../../shared/components/admin-nav/admin-nav';
 import { PaginationControls } from '../../shared/components/pagination-controls/pagination-controls';
@@ -27,6 +28,8 @@ export class AdminApprovalQueue implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly lotService = inject(ParkingLotService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly subTab = signal<ApprovalSubTab>('manager-applications');
   protected readonly successMessage = signal<string | null>(null);
@@ -55,9 +58,26 @@ export class AdminApprovalQueue implements OnInit {
 
   ngOnInit(): void {
     void this.loadApplications(1);
+
+    // The admin nav links here with ?tab=..., so the URL decides which sub-tab shows.
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const tab = params.get('tab');
+      if ((tab === 'manager-applications' || tab === 'lot-approvals') && tab !== this.subTab()) {
+        this.showSubTab(tab);
+      }
+    });
   }
 
   protected selectSubTab(tab: ApprovalSubTab): void {
+    this.showSubTab(tab);
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { tab },
+      replaceUrl: true,
+    });
+  }
+
+  private showSubTab(tab: ApprovalSubTab): void {
     this.subTab.set(tab);
     this.successMessage.set(null);
 

@@ -79,7 +79,7 @@ export class RegisterDriver {
 
   private handleSuccess(auth: AuthResponse): void {
     this.authService.saveSession(auth);
-    this.router.navigateByUrl(this.authService.resolvePostAuthRoute(auth.user.role) ?? '/lots');
+    this.router.navigateByUrl(this.authService.resolvePostAuthRoute(auth.user.role));
   }
 
   private resolveErrorMessage(err: unknown): string {

@@ -4,7 +4,8 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
-import { Router, provideRouter } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
+import { of } from 'rxjs';
 import { vi } from 'vitest';
 import { AdminApprovalQueue } from './admin-approval-queue';
 import { AUTH_API } from '../../constants/auth.constants';
@@ -314,5 +315,18 @@ describe('AdminApprovalQueue', () => {
     const rejectButton = buttons[1] as HTMLButtonElement;
     expect(rejectButton.textContent?.trim()).toBe('Reject');
     expect(rejectButton.disabled).toBe(true);
+  });
+
+  it('switches to the Lot approvals tab when the URL carries ?tab=lot-approvals', async () => {
+    Object.defineProperty(TestBed.inject(ActivatedRoute), 'queryParamMap', {
+      value: of(convertToParamMap({ tab: 'lot-approvals' })),
+    });
+    const { fixture, component } = createFixture();
+    fixture.detectChanges();
+    flushInitialApplications();
+    await Promise.resolve();
+
+    httpMock.expectOne(PENDING_LOTS_URL).flush({ success: true, message: null, data: [], errors: null });
+    expect(component.subTab()).toBe('lot-approvals');
   });
 });

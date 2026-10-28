@@ -44,7 +44,6 @@ describe('Login', () => {
     const component = fixture.componentInstance as unknown as {
       loginForm: Login['loginForm'];
       serverError: Login['serverError'];
-      adminNotice: Login['adminNotice'];
     };
     component.loginForm.email().value.set(email);
     component.loginForm.password().value.set(password);
@@ -114,7 +113,7 @@ describe('Login', () => {
     expect(router.navigateByUrl).toHaveBeenCalledWith('/manager/lots');
   });
 
-  it('shows an admin notice without redirecting for Admin accounts', async () => {
+  it('logs an Admin in and redirects to /admin/approvals', async () => {
     const component = createLoggedInFixture('admin@example.com', 'Secret1!');
     const submission = submit(component.loginForm);
 
@@ -139,8 +138,7 @@ describe('Login', () => {
 
     await submission;
 
-    expect(component.adminNotice()).toBe(true);
-    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/admin/approvals');
   });
 
   it('surfaces the API message on invalid credentials', async () => {
@@ -170,5 +168,24 @@ describe('Login', () => {
     expect(component.serverError()).toBe(
       'Too many login attempts. Please wait a minute and try again.',
     );
+  });
+});
+
+describe('Login sign-up link', () => {
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [Login],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+    }).compileComponents();
+  });
+
+  it('points Sign up at /register', () => {
+    const fixture = TestBed.createComponent(Login);
+    fixture.detectChanges();
+    const link = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('a'),
+    ).find((a) => a.textContent?.trim() === 'Sign up');
+
+    expect(link?.getAttribute('href')).toBe('/register');
   });
 });

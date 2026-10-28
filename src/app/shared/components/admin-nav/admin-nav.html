@@ -3,14 +3,28 @@
 
   <nav class="flex items-center gap-8 text-sm">
     @for (item of navItems; track item.tab) {
-      <span
-        class="cursor-pointer"
-        [class.font-semibold]="item.tab === activeTab()"
-        [class.text-ink]="item.tab === activeTab()"
-        [class.text-muted]="item.tab !== activeTab()"
-      >
-        {{ item.label }}
-      </span>
+      @if (item.route) {
+        <a
+          [routerLink]="item.route"
+          [queryParams]="{ tab: item.tab }"
+          class="cursor-pointer"
+          [class.font-semibold]="item.tab === activeTab()"
+          [class.text-ink]="item.tab === activeTab()"
+          [class.text-muted]="item.tab !== activeTab()"
+        >
+          {{ item.label }}
+        </a>
+      } @else {
+        <span
+          class="cursor-default"
+          [class.font-semibold]="item.tab === activeTab()"
+          [class.text-ink]="item.tab === activeTab()"
+          [class.text-muted]="item.tab !== activeTab()"
+        >
+          {{ item.label }}
+        </span>
+      }
     }
+    <button type="button" class="cursor-pointer text-muted" (click)="logOut()">Log out</button>
   </nav>
 </header>

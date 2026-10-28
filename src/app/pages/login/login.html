@@ -62,12 +62,6 @@
         </p>
       }
 
-      @if (adminNotice()) {
-        <p class="mt-4 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">
-          Admin accounts aren't supported in this app yet.
-        </p>
-      }
-
       <button
         type="submit"
         [disabled]="loginForm().submitting()"
@@ -93,7 +87,7 @@
 
     <p class="mt-5 text-center text-sm text-muted">
       Don't have an account?
-      <a href="#" class="text-link hover:underline">Sign up</a>
+      <a routerLink="/register" class="text-link hover:underline">Sign up</a>
     </p>
   </div>
 </main>
