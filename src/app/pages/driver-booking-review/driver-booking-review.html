@@ -80,7 +80,7 @@
             <span class="font-mono text-2xl font-bold text-ink">₹{{ amount() }}</span>
           </div>
 
-          @if (!paymentsConfigured) {
+          @if (keyMissing()) {
             <p
               role="alert"
               class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
@@ -129,6 +129,51 @@
                 </button>
               </p>
             }
+            @case ('verify-unconfirmed') {
+              <p
+                role="alert"
+                class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+              >
+                We could not confirm your payment yet. Please try again.
+                <button
+                  type="button"
+                  (click)="verify()"
+                  [disabled]="running()"
+                  class="mt-1 block font-semibold underline underline-offset-2"
+                >
+                  Try again
+                </button>
+              </p>
+            }
+            @case ('verify-rejected') {
+              <p
+                role="alert"
+                class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+              >
+                We could not verify your payment.
+              </p>
+            }
+            @case ('verify-cancelled') {
+              <p
+                role="alert"
+                class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+              >
+                This booking was cancelled. Your payment will be refunded.
+                <a
+                  [routerLink]="['/lots', lotId()]"
+                  class="mt-1 block font-semibold underline underline-offset-2"
+                  >Back to spot picker</a
+                >
+              </p>
+            }
+            @case ('verify-conflict') {
+              <p
+                role="alert"
+                class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+              >
+                {{ noticeMessage() }}
+              </p>
+            }
             @case ('error') {
               <p
                 role="alert"
@@ -156,8 +201,12 @@
             [attr.aria-busy]="running()"
             class="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-[#06274f] px-4 py-4 text-white hover:bg-[#041b38] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#06274f] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            @if (running()) {
+            @if (confirming()) {
+              <span class="text-base font-semibold" role="status">Confirming your payment…</span>
+            } @else if (running()) {
               <span class="text-base font-semibold">Processing…</span>
+            } @else if (paid() !== null) {
+              <span class="text-base font-semibold">Payment received</span>
             } @else if (orderId() !== null) {
               <span class="text-base font-semibold">Retry payment</span>
             } @else {

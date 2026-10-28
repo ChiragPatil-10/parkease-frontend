@@ -34,8 +34,19 @@ const BOOKING = { bookingId: 'bk-1', status: 'Pending' };
 const PAYMENT = {
   paymentId: 'pay-1',
   bookingId: 'bk-1',
-  status: 'Held',
+  status: 'Created',
   gatewayOrderId: 'order_123',
+};
+const SUCCESS = {
+  razorpay_payment_id: 'pay_abc',
+  razorpay_order_id: 'order_123',
+  razorpay_signature: 'sig_xyz',
+};
+const VERIFY_BODY = {
+  bookingId: 'bk-1',
+  razorpayPaymentId: 'pay_abc',
+  razorpayOrderId: 'order_123',
+  razorpaySignature: 'sig_xyz',
 };
 
 function envelope<T>(data: T) {
@@ -74,6 +85,7 @@ describe('DriverBookingReview', () => {
   let paymentResponse: () => Observable<unknown>;
   let bookingResponse: () => Observable<unknown>;
   let createResponse: () => Observable<unknown>;
+  let verifyResponse: () => Observable<unknown>;
   let api: { get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
@@ -89,6 +101,7 @@ describe('DriverBookingReview', () => {
     paymentResponse = () => of(envelope(PAYMENT));
     bookingResponse = () => of(envelope(BOOKING));
     createResponse = () => of(envelope(BOOKING));
+    verifyResponse = () => of(envelope({ ...PAYMENT, status: 'Captured' }));
 
     api = {
       get: vi.fn((path: string) => {
@@ -99,7 +112,9 @@ describe('DriverBookingReview', () => {
         if (path === '/api/bookings/bk-1') return bookingResponse();
         return httpError(404);
       }),
-      post: vi.fn(() => createResponse()),
+      post: vi.fn((path: string) =>
+        path === '/api/payments/verify' ? verifyResponse() : createResponse(),
+      ),
     };
     loader = {
       get keyId() {
@@ -162,7 +177,9 @@ describe('DriverBookingReview', () => {
   const text = () => el.textContent ?? '';
   const paymentCalls = () =>
     api.get.mock.calls.filter(([path]) => String(path).startsWith('/api/payments/')).length;
-  const createBodies = () => api.post.mock.calls.map(([, body]) => body);
+  const createBodies = () =>
+    api.post.mock.calls.filter(([path]) => path === '/api/bookings').map(([, body]) => body);
+  const verifyCalls = () => api.post.mock.calls.filter(([path]) => path === '/api/payments/verify');
 
   function notFound(): Observable<never> {
     return httpError(404);
@@ -267,16 +284,40 @@ describe('DriverBookingReview', () => {
     });
   });
 
-  describe('payments not configured', () => {
-    it('shows a banner and keeps Pay disabled', async () => {
+  describe('checkout key', () => {
+    it('prefers the key from the payment response over the environment', async () => {
+      paymentResponse = () => of(envelope({ ...PAYMENT, razorpayKeyId: 'rzp_from_api' }));
+      await create();
+      await clickPay();
+
+      expect(FakeCheckout.instances[0].options.key).toBe('rzp_from_api');
+    });
+
+    it('falls back to the environment key when the response has none', async () => {
+      await create();
+      await clickPay();
+
+      expect(FakeCheckout.instances[0].options.key).toBe('rzp_test_key');
+    });
+
+    it('works with no environment key when the API supplies one', async () => {
+      razorpayKey = '';
+      paymentResponse = () => of(envelope({ ...PAYMENT, razorpayKeyId: 'rzp_from_api' }));
+      await create();
+      expect(text()).not.toContain('Payments are not configured.');
+      await clickPay();
+
+      expect(FakeCheckout.instances[0].options.key).toBe('rzp_from_api');
+    });
+
+    it('shows the not-configured banner and no checkout when neither key exists', async () => {
       razorpayKey = '';
       await create();
+      await clickPay();
 
       expect(text()).toContain('Payments are not configured.');
       expect(payButton().disabled).toBe(true);
-      payButton().click();
-      await flush();
-      expect(api.post).not.toHaveBeenCalled();
+      expect(FakeCheckout.instances.length).toBe(0);
     });
   });
 
@@ -347,6 +388,26 @@ describe('DriverBookingReview', () => {
       expect(second.idempotencyKey).toBe(first.idempotencyKey);
     });
 
+    it('maps a 409 "This spot is not available." to the spot-taken state', async () => {
+      createResponse = () => httpError(409, 'This spot is not available.');
+      await create();
+
+      await clickPay();
+
+      expect(text()).toContain('This spot is no longer available.');
+      expect(el.querySelector('a')?.getAttribute('href')).toBe('/lots/lot-1');
+      expect(api.post).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([400, 422])('shows the generic error for a %s on create', async (status) => {
+      createResponse = () => httpError(status, 'Start time is invalid.');
+      await create();
+
+      await clickPay();
+
+      expect(text()).toContain('Something went wrong. Please try again.');
+    });
+
     it('retries a still-processing 409 after 1s with the same key, up to 3 times, then fails', async () => {
       createResponse = () => httpError(409, 'A booking request with this idempotency key is already being processed.');
       await create();
@@ -414,13 +475,30 @@ describe('DriverBookingReview', () => {
       expect(checkout.open).toHaveBeenCalledTimes(1);
     });
 
-    it('accepts any non-Failed status when an order id exists', async () => {
-      paymentResponse = () => of(envelope({ ...PAYMENT, status: 'SomethingNew' }));
+    it.each(['Voided', 'Refunded', 'RefundFailed', 'Held'])(
+      'does not open Razorpay when the payment status is %s',
+      async (status) => {
+        paymentResponse = () => of(envelope({ ...PAYMENT, status }));
+        await create();
+
+        await clickPay();
+
+        expect(text()).toContain('The payment could not be completed.');
+        expect(FakeCheckout.instances.length).toBe(0);
+      },
+    );
+
+    it('redirects to the payment page instead of opening Razorpay when already Captured', async () => {
+      paymentResponse = () => of(envelope({ ...PAYMENT, status: 'Captured' }));
       await create();
 
       await clickPay();
 
-      expect(FakeCheckout.instances.length).toBe(1);
+      expect(router.navigate).toHaveBeenCalledWith(['/bookings', 'bk-1', 'payment'], {
+        replaceUrl: true,
+      });
+      expect(FakeCheckout.instances.length).toBe(0);
+      expect(verifyCalls().length).toBe(0);
     });
 
     it('shows payment failed with a link back when the status is Failed', async () => {
@@ -553,14 +631,143 @@ describe('DriverBookingReview', () => {
       return FakeCheckout.instances[0];
     }
 
-    it('navigates to the payment pending page with replaceUrl on success', async () => {
+    const noSecondBooking = () => expect(createBodies().length).toBe(1);
+
+    it('calls verify with the handler values, then navigates with replaceUrl', async () => {
       const checkout = await openCheckout();
 
-      checkout.options.handler();
+      checkout.options.handler(SUCCESS);
+      expect(router.navigate).not.toHaveBeenCalled();
+      await flush();
 
+      expect(verifyCalls().length).toBe(1);
+      expect(verifyCalls()[0]).toEqual(['/api/payments/verify', VERIFY_BODY]);
       expect(router.navigate).toHaveBeenCalledWith(['/bookings', 'bk-1', 'payment'], {
         replaceUrl: true,
       });
+      noSecondBooking();
+    });
+
+    it('shows the busy state with Pay disabled while verifying', async () => {
+      const pending = new Subject<unknown>();
+      verifyResponse = () => pending;
+      const checkout = await openCheckout();
+
+      checkout.options.handler(SUCCESS);
+      await flush();
+
+      expect(text()).toContain('Confirming your payment');
+      expect(payButton().disabled).toBe(true);
+      expect(router.navigate).not.toHaveBeenCalled();
+    });
+
+    it('retries a 502 up to 3 times with the same values, then offers Try again', async () => {
+      verifyResponse = () => httpError(502);
+      const checkout = await openCheckout();
+
+      checkout.options.handler(SUCCESS);
+      await flush();
+      expect(verifyCalls().length).toBe(1);
+      await flush(3000);
+
+      expect(verifyCalls().length).toBe(4);
+      expect(verifyCalls().every(([, body]) => JSON.stringify(body) === JSON.stringify(VERIFY_BODY))).toBe(true);
+      expect(text()).toContain('We could not confirm your payment yet. Please try again.');
+      expect(router.navigate).not.toHaveBeenCalled();
+      expect(payButton().disabled).toBe(true);
+      expect(FakeCheckout.instances.length).toBe(1);
+      noSecondBooking();
+    });
+
+    it('retries a network error and recovers when a retry succeeds', async () => {
+      let calls = 0;
+      verifyResponse = () =>
+        ++calls < 3 ? httpError(0) : of(envelope({ ...PAYMENT, status: 'Captured' }));
+      const checkout = await openCheckout();
+
+      checkout.options.handler(SUCCESS);
+      await flush(2000);
+
+      expect(verifyCalls().length).toBe(3);
+      expect(router.navigate).toHaveBeenCalledTimes(1);
+      noSecondBooking();
+    });
+
+    it('Try again repeats only the verify call', async () => {
+      verifyResponse = () => httpError(502);
+      const checkout = await openCheckout();
+      checkout.options.handler(SUCCESS);
+      await flush(3000);
+      const getsBefore = api.get.mock.calls.length;
+
+      verifyResponse = () => of(envelope({ ...PAYMENT, status: 'Captured' }));
+      buttonByText('Try again')!.click();
+      await flush();
+
+      expect(verifyCalls().length).toBe(5);
+      expect(verifyCalls()[4]).toEqual(['/api/payments/verify', VERIFY_BODY]);
+      expect(router.navigate).toHaveBeenCalledWith(['/bookings', 'bk-1', 'payment'], {
+        replaceUrl: true,
+      });
+      expect(FakeCheckout.instances.length).toBe(1);
+      expect(api.get.mock.calls.length).toBe(getsBefore);
+      noSecondBooking();
+    });
+
+    it('shows the refund message with a link back on a 409 about a cancelled booking', async () => {
+      verifyResponse = () =>
+        httpError(409, 'Booking was cancelled. The payment will be refunded.');
+      const checkout = await openCheckout();
+
+      checkout.options.handler(SUCCESS);
+      await flush();
+
+      expect(text()).toContain('This booking was cancelled. Your payment will be refunded.');
+      expect(el.querySelector('main a')?.getAttribute('href')).toBe('/lots/lot-1');
+      expect(verifyCalls().length).toBe(1);
+      expect(buttonByText('Try again')).toBeUndefined();
+      noSecondBooking();
+    });
+
+    it('shows the server message for other 409s without retrying', async () => {
+      verifyResponse = () => httpError(409, 'Payment amount does not match.');
+      const checkout = await openCheckout();
+
+      checkout.options.handler(SUCCESS);
+      await flush(5000);
+
+      expect(text()).toContain('Payment amount does not match.');
+      expect(verifyCalls().length).toBe(1);
+      noSecondBooking();
+    });
+
+    it.each([400, 403])('shows "could not verify" for %s without retrying', async (status) => {
+      verifyResponse = () => httpError(status, 'nope');
+      const checkout = await openCheckout();
+
+      checkout.options.handler(SUCCESS);
+      await flush(5000);
+
+      expect(text()).toContain('We could not verify your payment.');
+      expect(verifyCalls().length).toBe(1);
+      expect(router.navigate).not.toHaveBeenCalled();
+      expect(payButton().disabled).toBe(true);
+      expect(FakeCheckout.instances.length).toBe(1);
+      noSecondBooking();
+    });
+
+    it('ignores a dismiss or payment.failed event after success', async () => {
+      verifyResponse = () => httpError(400);
+      const checkout = await openCheckout();
+
+      checkout.options.handler(SUCCESS);
+      await flush();
+      checkout.options.modal.ondismiss();
+      checkout.handlers['payment.failed']();
+      await flush();
+
+      expect(text()).toContain('We could not verify your payment.');
+      expect(text()).not.toContain('Payment was not completed.');
     });
 
     it('shows Retry payment when the window is dismissed and reopens the same order', async () => {

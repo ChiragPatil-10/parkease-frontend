@@ -23,6 +23,7 @@ import { VehicleService } from '../../services/vehicle.service';
 import { BookingResponse } from '../../models/booking.model';
 import { LotResponse } from '../../models/lot.model';
 import { SpotResponse } from '../../models/spot.model';
+import { VerifyPaymentRequest } from '../../models/payment.model';
 import { VehicleResponse } from '../../models/vehicle/vehicle.model';
 import { formatStartTime } from '../driver-lot-detail/driver-lot-detail';
 import { formatPlate } from '../driver-my-vehicles/vehicle-format';
@@ -34,7 +35,15 @@ import {
 } from './booking-review-format';
 
 type View = 'loading' | 'bad-link' | 'spot-taken' | 'load-error' | 'ready';
-type Notice = 'payment-failed' | 'dismissed' | 'error' | 'timeout';
+type Notice =
+  | 'payment-failed'
+  | 'dismissed'
+  | 'error'
+  | 'timeout'
+  | 'verify-unconfirmed'
+  | 'verify-rejected'
+  | 'verify-cancelled'
+  | 'verify-conflict';
 
 interface BookingDetail {
   label: string;
@@ -47,11 +56,24 @@ const PAYMENT_POLL_WINDOW_SECONDS = 15;
 const BOOKING_POLL_INTERVAL_MS = 2000;
 const CREATE_RETRY_DELAY_MS = 1000;
 const CREATE_MAX_RETRIES = 3;
+const VERIFY_RETRY_DELAY_MS = 1000;
+const VERIFY_MAX_RETRIES = 3;
 
 const PROCESSING_MESSAGE = /already being processed/i;
+const SPOT_UNAVAILABLE_MESSAGE = /spot is not available/i;
+const CANCELLED_MESSAGE = /cancel/i;
 
 function isHttpStatus(err: unknown, ...statuses: number[]): boolean {
   return err instanceof HttpErrorResponse && statuses.includes(err.status);
+}
+
+/** 502 means Razorpay was unreachable and nothing changed; status 0 is a network error. Both are safe to repeat. */
+function isRetryableVerifyError(err: unknown): boolean {
+  return isHttpStatus(err, 0, 502);
+}
+
+function serverMessage(err: unknown): string {
+  return err instanceof HttpErrorResponse ? (err.error?.message ?? '') : '';
 }
 
 function isStillProcessing(err: unknown): boolean {
@@ -98,7 +120,15 @@ export class DriverBookingReview implements OnInit, OnDestroy {
   protected readonly running = signal(false);
   protected readonly notice = signal<Notice | null>(null);
 
-  protected readonly paymentsConfigured = this.razorpay.keyId !== '';
+  /** Key from the payment response; preferred over the environment value. */
+  private readonly apiKeyId = signal<string | null>(null);
+  /** Set once the order is known and neither the API nor the environment supplied a key. */
+  protected readonly keyMissing = signal(false);
+
+  /** Set once Razorpay reports success; from then on Pay must never reopen checkout. */
+  protected readonly paid = signal<VerifyPaymentRequest | null>(null);
+  protected readonly confirming = signal(false);
+  protected readonly noticeMessage = signal('');
 
   protected readonly amount = computed(() => {
     const spot = this.spot();
@@ -125,7 +155,8 @@ export class DriverBookingReview implements OnInit, OnDestroy {
   protected readonly payDisabled = computed(
     () =>
       this.running() ||
-      !this.paymentsConfigured ||
+      this.paid() !== null ||
+      this.keyMissing() ||
       (this.notice() === 'payment-failed' && this.orderId() === null),
   );
 
@@ -162,7 +193,7 @@ export class DriverBookingReview implements OnInit, OnDestroy {
 
   /** Continues the pay flow from wherever it stopped: create, wait for the order, then open Razorpay. */
   protected async pay(): Promise<void> {
-    if (this.running() || this.view() !== 'ready' || !this.paymentsConfigured) {
+    if (this.running() || this.view() !== 'ready' || this.paid() !== null || this.keyMissing()) {
       return;
     }
     const spot = this.spot();
@@ -275,15 +306,31 @@ export class DriverBookingReview implements OnInit, OnDestroy {
         if (!alive()) {
           return false;
         }
-        if (payment?.status === 'Failed') {
+        if (payment?.status === 'Captured') {
+          // Already paid (for example after a refresh): never reopen Razorpay.
+          this.pollSession++;
+          this.running.set(false);
+          this.router
+            .navigate(['/bookings', bookingId, 'payment'], { replaceUrl: true })
+            .catch(() => undefined);
+          return false;
+        }
+        if (payment && payment.status !== 'Created') {
+          // Failed, Voided, Refunded, RefundFailed or legacy Held: there is nothing to pay.
           this.pollSession++;
           this.finish('payment-failed');
           return false;
         }
-        // A non-Failed payment without an order id is still being set up: keep polling like a 404.
+        // A Created payment without an order id is still being set up: keep polling like a 404.
         if (payment?.gatewayOrderId) {
           this.pollSession++;
           this.orderId.set(payment.gatewayOrderId);
+          this.apiKeyId.set(payment.razorpayKeyId || null);
+          if (!this.checkoutKey()) {
+            this.keyMissing.set(true);
+            this.running.set(false);
+            return false;
+          }
           return true;
         }
       } catch (err) {
@@ -334,18 +381,21 @@ export class DriverBookingReview implements OnInit, OnDestroy {
     }
     let completed = false;
     const checkout = new Razorpay({
-      key: this.razorpay.keyId,
+      key: this.checkoutKey(),
       order_id: orderId,
       name: 'ParkEase',
       notes: { bookingId },
       prefill: {},
-      // Page 16 reads the booking id from the URL and refetches. The signature is not checked on the client.
-      handler: () => {
+      // The signature is checked by the backend; navigation waits for that to succeed.
+      handler: (response) => {
         completed = true;
-        this.running.set(false);
-        this.router
-          .navigate(['/bookings', bookingId, 'payment'], { replaceUrl: true })
-          .catch(() => undefined);
+        this.paid.set({
+          bookingId,
+          razorpayPaymentId: response.razorpay_payment_id,
+          razorpayOrderId: response.razorpay_order_id,
+          razorpaySignature: response.razorpay_signature,
+        });
+        void this.verify();
       },
       modal: {
         ondismiss: () => {
@@ -363,6 +413,66 @@ export class DriverBookingReview implements OnInit, OnDestroy {
     checkout.open();
   }
 
+  private checkoutKey(): string {
+    return this.apiKeyId() || this.razorpay.keyId;
+  }
+
+  /** Confirms the payment with the backend. Repeats only this call, never booking creation or checkout. */
+  protected async verify(): Promise<void> {
+    const request = this.paid();
+    if (!request || this.confirming()) {
+      return;
+    }
+    this.running.set(true);
+    this.confirming.set(true);
+    this.notice.set(null);
+
+    try {
+      for (let attempt = 0; ; attempt++) {
+        try {
+          await firstValueFrom(this.paymentService.verifyPayment(request));
+          if (this.destroyed) {
+            return;
+          }
+          this.running.set(false);
+          this.confirming.set(false);
+          this.router
+            .navigate(['/bookings', request.bookingId, 'payment'], { replaceUrl: true })
+            .catch(() => undefined);
+          return;
+        } catch (err) {
+          if (!isRetryableVerifyError(err) || attempt >= VERIFY_MAX_RETRIES) {
+            throw err;
+          }
+          await this.sleep(VERIFY_RETRY_DELAY_MS);
+          if (this.destroyed) {
+            return;
+          }
+        }
+      }
+    } catch (err) {
+      this.confirming.set(false);
+      this.handleVerifyError(err);
+    }
+  }
+
+  private handleVerifyError(err: unknown): void {
+    this.expireSessionIfUnauthorised(err);
+    const message = serverMessage(err);
+    if (isHttpStatus(err, 409)) {
+      if (CANCELLED_MESSAGE.test(message)) {
+        this.finish('verify-cancelled');
+      } else {
+        this.noticeMessage.set(message);
+        this.finish('verify-conflict');
+      }
+    } else if (isHttpStatus(err, 400, 403, 422)) {
+      this.finish('verify-rejected');
+    } else {
+      this.finish('verify-unconfirmed');
+    }
+  }
+
   private finish(notice: Notice): void {
     this.running.set(false);
     this.notice.set(notice);
@@ -373,6 +483,11 @@ export class DriverBookingReview implements OnInit, OnDestroy {
 
   private handleError(err: unknown): void {
     this.expireSessionIfUnauthorised(err);
+    if (isHttpStatus(err, 409) && SPOT_UNAVAILABLE_MESSAGE.test(serverMessage(err))) {
+      this.running.set(false);
+      this.view.set('spot-taken');
+      return;
+    }
     this.finish('error');
   }
 
