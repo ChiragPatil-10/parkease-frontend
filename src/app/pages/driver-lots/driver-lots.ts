@@ -63,6 +63,7 @@ export class DriverLots implements OnInit {
   protected readonly cityLotsCount = signal(0);
   protected readonly searchLoading = signal(false);
   protected readonly searchError = signal<string | null>(null);
+  protected readonly emptySearch = signal(false);
 
   protected readonly mapMarkers = MAP_MARKERS;
 
@@ -117,13 +118,16 @@ export class DriverLots implements OnInit {
 
   protected onCityInput(event: Event): void {
     this.cityInput.set((event.target as HTMLInputElement).value);
+    this.emptySearch.set(false);
   }
 
   protected async search(): Promise<void> {
     const city = this.cityInput().trim();
     if (!city) {
+      this.emptySearch.set(true);
       return;
     }
+    this.emptySearch.set(false);
 
     const requestId = ++this.searchRequestId;
     this.searchLoading.set(true);

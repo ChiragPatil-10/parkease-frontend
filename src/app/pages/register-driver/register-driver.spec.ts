@@ -178,4 +178,13 @@ describe('RegisterDriver', () => {
       'Too many registration attempts. Please wait a minute and try again.',
     );
   });
+
+  it('links to the manager application page', () => {
+    const fixture = TestBed.createComponent(RegisterDriver);
+    fixture.detectChanges();
+
+    const link = (fixture.nativeElement as HTMLElement).querySelector('a[href="/register-manager"]');
+    expect(link?.textContent?.trim()).toBe('Apply as a manager');
+    expect(link?.parentElement?.textContent).toContain('Own a parking lot?');
+  });
 });

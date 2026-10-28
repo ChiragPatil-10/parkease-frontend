@@ -12,6 +12,7 @@ import { ApiResponse } from '../../models/api-response.model';
 import { ManagerApplicationDto } from '../../models/auth/auth.model';
 import { ApplicationStatus } from '../../models/auth/application-status.enum';
 import { LotResponse } from '../../models/lot.model';
+import { NETWORK_ERROR_MESSAGE, isNetworkError } from '../../shared/network-error';
 
 type ApprovalSubTab = 'manager-applications' | 'lot-approvals';
 
@@ -258,6 +259,9 @@ export class AdminApprovalQueue implements OnInit {
    * JSON body is present.
    */
   private resolveErrorMessage(err: unknown): string {
+    if (isNetworkError(err)) {
+      return NETWORK_ERROR_MESSAGE;
+    }
     if (err instanceof HttpErrorResponse) {
       if (err.status === 401) {
         this.authService.clearSession();

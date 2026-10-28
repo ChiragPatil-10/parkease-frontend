@@ -148,7 +148,7 @@ describe('ManagerLotForm', () => {
 
     expect(component.lotForm.maxPricePerHour().valid()).toBe(false);
     expect(component.lotForm.maxPricePerHour().errors()[0]?.message).toBe(
-      'Max price must be greater than or equal to min price',
+      'Max price must be greater than or equal to min price.',
     );
   });
 
@@ -296,4 +296,31 @@ describe('ManagerLotForm', () => {
 
     expect(router.navigateByUrl).toHaveBeenCalledWith('/manager/lots');
   });
+
+  it('clears the session and redirects to /login on a 401 while saving', async () => {
+    localStorage.setItem('parkease.session', 'stale');
+    const { component } = createFixture();
+    fillValidForm(component);
+
+    const submission = submit(component.lotForm);
+    httpMock.expectOne(CREATE_URL).flush(null, { status: 401, statusText: 'Unauthorized' });
+    await submission;
+
+    expect(localStorage.getItem('parkease.session')).toBeNull();
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/login');
+  });
+
+  it('shows a friendly message when saving fails without a network', async () => {
+    const { component } = createFixture();
+    fillValidForm(component);
+
+    const submission = submit(component.lotForm);
+    httpMock.expectOne(CREATE_URL).error(new TypeError('Failed to fetch') as unknown as ProgressEvent);
+    await submission;
+
+    expect(component.serverError()).toBe(
+      "Couldn't reach the server. Check your connection and try again.",
+    );
+  });
+
 });

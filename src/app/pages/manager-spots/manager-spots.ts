@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { NgTemplateOutlet } from '@angular/common';
 import { Router } from '@angular/router';
@@ -9,6 +9,7 @@ import { ParkingLotService } from '../../services/parkinglot.service';
 import { SpotService } from '../../services/spot.service';
 import { LotResponse } from '../../models/lot.model';
 import { SpotResponse, SpotStatus } from '../../models/spot.model';
+import { NETWORK_ERROR_MESSAGE, isNetworkError } from '../../shared/network-error';
 
 interface SpotStatusMeta {
   label: string;
@@ -27,6 +28,7 @@ const SPOT_STATUS_META: Record<SpotStatus, SpotStatusMeta> = {
   imports: [ManagerNav, NgTemplateOutlet],
   templateUrl: './manager-spots.html',
   styleUrl: './manager-spots.css',
+  host: { '(document:keydown.escape)': 'onEscape()' },
 })
 export class ManagerSpots implements OnInit {
   private readonly authService = inject(AuthService);
@@ -57,6 +59,9 @@ export class ManagerSpots implements OnInit {
 
   protected readonly lotMenuOpen = signal(false);
   protected readonly addSpotsMenuOpen = signal(false);
+
+  private readonly lotTrigger = viewChild<ElementRef<HTMLButtonElement>>('lotTrigger');
+  private readonly addSpotsTrigger = viewChild<ElementRef<HTMLButtonElement>>('addSpotsTrigger');
 
   ngOnInit(): void {
     void this.loadLots();
@@ -89,7 +94,7 @@ export class ManagerSpots implements OnInit {
   protected async selectLot(lotId: string): Promise<void> {
     this.selectedLotId.set(lotId);
     this.selectedFloor.set(null);
-    this.lotMenuOpen.set(false);
+    this.closeMenus();
     await this.loadSpots(lotId, true);
   }
 
@@ -133,12 +138,36 @@ export class ManagerSpots implements OnInit {
     this.addSpotsMenuOpen.update((open) => !open);
   }
 
+  protected goToBulkCreateForSelectedLot(): void {
+    const lotId = this.selectedLotId();
+    this.closeMenus();
+    if (lotId) {
+      this.goToBulkCreate(lotId);
+    }
+  }
+
+  protected onEscape(): void {
+    if (this.lotMenuOpen() || this.addSpotsMenuOpen()) {
+      this.closeMenus();
+    }
+  }
+
+  /** Closes any open menu and returns focus to the button that opened it. */
   protected closeMenus(): void {
+    const trigger = this.lotMenuOpen()
+      ? this.lotTrigger()
+      : this.addSpotsMenuOpen()
+        ? this.addSpotsTrigger()
+        : undefined;
     this.lotMenuOpen.set(false);
     this.addSpotsMenuOpen.set(false);
+    trigger?.nativeElement.focus();
   }
 
   private resolveErrorMessage(err: unknown, fallback: string): string {
+    if (isNetworkError(err)) {
+      return NETWORK_ERROR_MESSAGE;
+    }
     if (err instanceof HttpErrorResponse) {
       if (err.status === 401) {
         this.authService.clearSession();

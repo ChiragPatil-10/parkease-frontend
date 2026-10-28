@@ -17,6 +17,8 @@ import { ManagerNav } from '../../shared/components/manager-nav/manager-nav';
 import { ParkingLotService } from '../../services/parkinglot.service';
 import { ApiResponse } from '../../models/api-response.model';
 import { LotRequest, LotResponse } from '../../models/lot.model';
+import { AuthService } from '../../services/auth.service';
+import { NETWORK_ERROR_MESSAGE, isNetworkError } from '../../shared/network-error';
 
 interface LotFormModel {
   name: string;
@@ -69,6 +71,7 @@ export class ManagerLotForm implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly lotService = inject(ParkingLotService);
+  private readonly authService = inject(AuthService);
 
   private readonly lotId = this.route.snapshot.paramMap.get('id');
   protected readonly isEditMode = this.lotId !== null;
@@ -105,7 +108,7 @@ export class ManagerLotForm implements OnInit {
         }
         return {
           kind: 'min-max',
-          message: 'Max price must be greater than or equal to min price',
+          message: 'Max price must be greater than or equal to min price.',
         };
       });
 
@@ -204,7 +207,17 @@ export class ManagerLotForm implements OnInit {
   }
 
   private handleSubmitError(err: unknown): ValidationError.WithOptionalFieldTree[] | undefined {
+    if (isNetworkError(err)) {
+      this.serverError.set(NETWORK_ERROR_MESSAGE);
+      return undefined;
+    }
     if (err instanceof HttpErrorResponse) {
+      if (err.status === 401) {
+        this.authService.clearSession();
+        void this.router.navigateByUrl('/login');
+        this.serverError.set('Your session has expired. Please log in again.');
+        return undefined;
+      }
       if (err.status === 422) {
         const body = err.error as ApiResponse<unknown> & { errors?: Record<string, string[]> } | null;
         const fieldErrors = body?.errors ? this.mapFieldErrors(body.errors) : [];

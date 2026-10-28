@@ -203,4 +203,13 @@ describe('RegisterManager', () => {
       'Too many registration attempts. Please wait a minute and try again.',
     );
   });
+
+  it('links to the driver registration page', () => {
+    const fixture = TestBed.createComponent(RegisterManager);
+    fixture.detectChanges();
+
+    const link = (fixture.nativeElement as HTMLElement).querySelector('a[href="/register"]');
+    expect(link?.textContent?.trim()).toBe('Create a driver account');
+    expect(link?.parentElement?.textContent).toContain('Looking to park?');
+  });
 });
