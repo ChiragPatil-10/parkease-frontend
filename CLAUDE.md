@@ -1,4 +1,4 @@
-# ParkEase Frontend — Working Rules
+# ParkEase Frontend - Working Rules
 
 This is the Angular frontend for **ParkEase**, a microservices-based parking
 management system. Read this file at the start of every session and follow it
@@ -9,17 +9,17 @@ skip ahead, combine phases, or start a new page without being told.
 
 For each page, I will provide:
 1. A **screenshot/exported image** of the Figma design for that page (attached
-   directly in the prompt — there is no Figma MCP connection, so never try to
+   directly in the prompt. There is no Figma MCP connection, so never try to
    fetch a Figma URL or call Figma tools; work only from the attached image).
 2. Sometimes accompanying text notes (exact hex values, spacing in px, font
    sizes) to remove ambiguity where the image alone isn't precise enough.
 3. An **API documentation excerpt** for that page's endpoints (request JSON
-   body, response JSON, status codes, auth requirements) — provided only when
+   body, response JSON, status codes, auth requirements), provided only when
    we reach Phase 2 for that page.
 
 ---
 
-## PHASE 1 — Static Page (UI only, no backend)
+## PHASE 1 - Static Page (UI only, no backend)
 
 - Build the page purely from the attached screenshot: layout, styling,
   responsive behavior, component structure.
@@ -27,16 +27,16 @@ For each page, I will provide:
   text notes were given, ask rather than guess on anything that affects the
   design system broadly (e.g. a color that looks like it's a reused token).
   Minor per-page guesses are fine.
-- Use static/mock/hardcoded data only — no HTTP calls, no services wired up.
+- Use static/mock/hardcoded data only: no HTTP calls, no services wired up.
 - Use standalone Angular components. Create the page under `pages/<page-name>/`
   in kebab-case, with the component class as the PascalCase of that name (no
-  `Component` suffix) — see "Current Project Structure" below for the exact
+  `Component` suffix). See "Current Project Structure" below for the exact
   file layout (full 4-file page vs. inline-template stub).
 - Reuse the existing design tokens/theme already established in the project
   (check first) rather than inventing new ones. Only introduce new tokens if
   the screenshot clearly needs something not yet defined, and flag it as new.
-- Do NOT create services, interceptors, API models, enums, or mappers yet —
-  that's Phase 2 only.
+- Do NOT create services, interceptors, API models, enums, or mappers yet.
+  That is Phase 2 only.
 - Keep the component isolated and reusable where sensible.
 
 **When Phase 1 is done, provide:**
@@ -45,6 +45,21 @@ For each page, I will provide:
    `feat(booking-page): add static UI for booking screen`
 
 **Then stop.** Wait for explicit instruction ("move to phase 2") before continuing.
+
+---
+
+## Typography and colors (applies to every page, both phases)
+
+- Use the display font class (`font-display`) for the brand wordmark, every h1,
+  card and dialog titles, and large headings.
+- Use `font-mono` for plates, spot labels, amounts and booking values.
+  Body text uses the default font.
+- Use only the `@theme` color tokens defined in `src/styles.css`. Do not
+  hardcode hex colors in templates. If a design needs a new color, ask me
+  first, then add it as a token and flag it as new.
+- Do not change shared tokens or fonts while building a page.
+- Report the contrast ratio of every text and background pair, and tell me if
+  any fails WCAG AA (4.5:1 for normal text).
 
 ---
 
@@ -68,18 +83,19 @@ Each file contains that service's routes, auth requirements, request/response
 JSON, error shapes, enums (wire values), and rate limits.
 
 Before writing any Phase 2 code, read the file(s) relevant to the page you're
-integrating. Many pages need more than one — e.g. a Booking page typically
-also needs `vehicle.md` for a vehicle dropdown, or `spot.md` for availability.
-Check all services the page's UI actually touches, not just the obvious one.
+integrating. Many pages need more than one. For example, a Booking page
+typically also needs `vehicle.md` for a vehicle dropdown, or `spot.md` for
+availability. Check all services the page's UI actually touches, not just the
+obvious one.
 
 If a route, field, or enum value the page needs isn't documented in these
-files, **ask rather than guess** — do not invent a contract. Some entries in
-these docs may be marked "⚠️ verify against actual controller" — treat those
+files, **ask rather than guess**. Do not invent a contract. Some entries in
+these docs may be marked "verify against actual controller"; treat those
 as unconfirmed and flag it back if the page depends on one.
 
 ---
 
-## PHASE 2 — Backend Integration
+## PHASE 2 - Backend Integration
 
 Only start when explicitly told to proceed, and only once told which
 `docs/api/*.md` file(s) apply to this page.
@@ -87,15 +103,15 @@ Only start when explicitly told to proceed, and only once told which
 - Wire the static page from Phase 1 to the real backend using the relevant
   file(s) in `docs/api/`.
 - Follow the structure below (see "Current Project Structure"). Check the
-  existing repo first and reuse what's already there — don't create a
+  existing repo first and reuse what's already there. Don't create a
   parallel structure for a page that already has shared infra from an
   earlier page.
 - Handle loading, error, and empty states based on the actual API responses.
-- Write Jasmine + Karma unit tests for the individual components touched in
-  this phase only — not the whole app.
+- Write Vitest unit tests for the individual components touched in this
+  phase only, not the whole app. Run them with `npm test`.
 - Build on top of Phase 1's components. If a shared service/model/enum already
   exists from a previous page's Phase 2, reuse or extend it instead of
-  duplicating — but don't force a dependency that doesn't naturally exist.
+  duplicating, but don't force a dependency that doesn't naturally exist.
 
 **When Phase 2 is done, provide:**
 1. Summary of what was integrated (services, models, mappers, tests added).
@@ -109,14 +125,15 @@ Only start when explicitly told to proceed, and only once told which
 ## Current Project Structure
 
 This is the actual structure as of the auth/register-driver pages (Phase 2
-complete for both). Treat this as the canonical layout — extend it, don't
+complete for both). Treat this as the canonical layout: extend it, don't
 reinvent it, for every new page.
 
 ```
 src/
 ├── environments/
-│   ├── environment.ts                    # dev config (apiBaseUrl, production flag)
-│   └── environment.production.ts
+│   ├── environment.ts                    # dev config, committed
+│   ├── environment.production.ts
+│   └── environment.generated.ts          # git-ignored, written from .env by scripts/generate-env.mjs
 │
 └── app/
     ├── app.config.ts                     # providers: router, HttpClient + interceptors
@@ -167,6 +184,9 @@ src/
   wrapper.
 - **`environment.apiBaseUrl`** holds the base URL; `ApiService` prefixes all
   paths with it. Never hardcode a host in a service.
+- **Environment files**: `.env` and `environment.generated.ts` stay out of git.
+  Use `npm start`, `npm run build` and `npm test`, not bare `ng` commands,
+  because the pre-scripts generate the environment file.
 - **Route path constants** live in `constants/<domain>.constants.ts` (e.g.
   `AUTH_API.login`), not hardcoded strings inside services.
 - **Models**: a shared `ApiResponse<T>` envelope stays at the top level of
@@ -175,20 +195,20 @@ src/
   (singular filenames: `*.model.ts`, `*.enum.ts`). A domain with only one
   model file can stay flat at `models/` until it grows.
 - **`core/`** is reserved for app-wide, feature-agnostic infra (guards,
-  interceptors) — never per-page logic.
-- **`mappers/`** — add only when a page's Phase 2 API shape genuinely
+  interceptors), never per-page logic.
+- **`mappers/`**: add only when a page's Phase 2 API shape genuinely
   diverges from its UI view-model. None exist yet; don't add one
   preemptively.
-- **Session/auth state** lives in `AuthService` via `localStorage` — don't
+- **Session/auth state** lives in `AuthService` via `localStorage`. Don't
   introduce a separate state service for this unless asked.
 - **Pages**: standalone components, one folder per page under `pages/`,
   folder name in kebab-case, component class the PascalCase of that same
-  name with no `Component` suffix (e.g. `pages/register-driver/` →
+  name with no `Component` suffix (e.g. `pages/register-driver/` ->
   `export class RegisterDriver`). A fully built page has 4 files: `.ts`,
   `.html`, `.css`, `.spec.ts`.
 - **Stub pages** (routed to but not yet given a screenshot/Phase 1) are a
   single `.ts` file with the template written inline via the `template:`
-  property — no `.html`/`.css`/`.spec.ts` until the page actually goes
+  property, with no `.html`/`.css`/`.spec.ts` until the page actually goes
   through Phase 1. When Phase 1 happens for a stub, split the inline
   template out into the standard 4-file layout.
 
@@ -199,10 +219,10 @@ src/
 - Never jump to Phase 2 without explicit go-ahead.
 - Never start a new page until its screenshot (and, for Phase 2, its endpoint
   doc) is provided.
-- Don't over-engineer shared infrastructure preemptively — build it when a
+- Don't over-engineer shared infrastructure preemptively: build it when a
   page actually needs it. Don't refactor earlier pages unless asked.
 - Ask clarifying questions only when the screenshot or endpoint doc is
-  ambiguous in a way that affects data contracts or shared design tokens —
-  don't guess silently on those.
+  ambiguous in a way that affects data contracts or shared design tokens.
+  Don't guess silently on those.
 - Never attempt to use a Figma MCP tool, fetch a Figma URL, or assume design
   data beyond what's in the attached image/notes.

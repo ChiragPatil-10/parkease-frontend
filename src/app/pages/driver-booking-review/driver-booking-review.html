@@ -48,7 +48,7 @@
       @case ('ready') {
         <a
           [routerLink]="['/lots', lotId()]"
-          class="mb-3 inline-block rounded text-sm font-semibold text-ink underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          class="mb-3 inline-block text-sm font-semibold text-link"
         >
           ← Back to spot picker
         </a>
@@ -210,7 +210,7 @@
             } @else if (orderId() !== null) {
               <span class="text-base font-semibold">Retry payment</span>
             } @else {
-              <span class="text-base font-semibold">Razorpay</span>
+              <span class="font-display text-base font-semibold">Razorpay</span>
               <span class="text-sm font-medium">— Pay ₹{{ amount() }}</span>
             }
           </button>
