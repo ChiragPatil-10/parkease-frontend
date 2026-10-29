@@ -1,0 +1,41 @@
+<main class="flex min-h-screen items-center justify-center bg-surface px-4 py-8">
+  <div class="w-full max-w-115 rounded-2xl border border-border bg-card p-10 text-center max-sm:p-6">
+    <svg
+      class="spinner mx-auto h-14 w-14 text-accent"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 3A9 9 0 1 0 21 12H12Z" />
+    </svg>
+
+    <h1 class="mt-5 font-display text-lg font-medium text-ink">
+      Payment successful — confirming your booking
+    </h1>
+    <p class="mt-4 text-sm text-muted">
+      Hang tight while we verify your payment. This usually takes a few seconds, occasionally a
+      bit longer. Don't close this page.
+    </p>
+
+    <div
+      class="mt-6 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 rounded-xl bg-surface px-3.5 py-3 text-left max-sm:flex-col"
+    >
+      <span class="text-xs text-muted">Booking</span>
+      <span class="font-mono text-sm font-medium text-ink">{{ bookingSummary }}</span>
+    </div>
+
+    <span
+      class="mt-4 inline-flex items-center gap-2 rounded-full bg-surface px-3 py-1.5 text-xs text-muted"
+    >
+      <span class="h-1.5 w-1.5 rounded-full bg-muted" aria-hidden="true"></span>
+      Pending
+    </span>
+
+    <p class="sr-only" role="status" aria-live="polite">
+      Payment received. Confirming your booking.
+    </p>
+  </div>
+</main>
