@@ -17,7 +17,7 @@ let nextId = 0;
       class="flex items-center justify-between border-b border-border bg-card px-4 py-5 max-md:flex-wrap md:px-8"
       (keydown.escape)="onEscape()"
     >
-      <span class="text-xl font-bold text-ink">ParkEase</span>
+      <span class="font-display text-xl font-bold text-ink">ParkEase</span>
 
       <button
         #menuButton

@@ -1,5 +1,14 @@
 /* You can add global styles to this file, and also import other style files */
 
+/* Self-hosted fonts (Latin subset, swap): Space Grotesk, IBM Plex Mono, Inter. */
+@import '@fontsource/space-grotesk/latin-500.css';
+@import '@fontsource/space-grotesk/latin-700.css';
+@import '@fontsource/ibm-plex-mono/latin-400.css';
+@import '@fontsource/ibm-plex-mono/latin-500.css';
+@import '@fontsource/inter/latin-400.css';
+@import '@fontsource/inter/latin-500.css';
+@import '@fontsource/inter/latin-600.css';
+
 @import 'tailwindcss';
 
 /* ParkEase design tokens — established on the Login page (first page built). */
@@ -9,9 +18,21 @@
   --color-accent: #f6b93b;
   --color-accent-hover: #e5a82c;
   --color-ink: #1a1a1a;
-  --color-muted: #6b7280;
+  --color-muted: #5b6270;
   --color-border: #e2e0dc;
-  --color-link: #2563eb;
+  --color-link: #1d4ed8;
+
+  --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+  }
 }
 
 body {
