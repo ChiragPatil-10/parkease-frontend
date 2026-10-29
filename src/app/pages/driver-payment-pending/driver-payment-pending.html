@@ -1,0 +1,165 @@
+<main class="flex min-h-screen items-center justify-center bg-surface px-4 py-8">
+  <div class="w-full max-w-115 rounded-2xl border border-border bg-card p-10 text-center max-sm:p-6">
+    @if (state() === 'pending') {
+      <svg
+        class="spinner mx-auto h-14 w-14 text-accent"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M12 3A9 9 0 1 0 21 12H12Z" />
+      </svg>
+    } @else if (state() === 'confirmed') {
+      <svg
+        class="mx-auto h-14 w-14 rounded-full bg-accent p-3.5 text-ink"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M5 12.5l4.5 4.5L19 7.5" />
+      </svg>
+    }
+
+    <h1
+      #heading
+      tabindex="-1"
+      class="font-display text-lg font-medium text-ink focus:outline-none"
+      [class.mt-5]="hasIcon()"
+    >
+      {{ title() }}
+    </h1>
+
+    @switch (state()) {
+      @case ('pending') {
+        <p class="mt-4 text-sm text-muted">
+          Hang tight while we verify your payment. This usually takes a few seconds, occasionally
+          a bit longer. Don't close this page.
+        </p>
+        @if (slow()) {
+          <p class="mt-3 text-sm text-muted">
+            This is taking longer than usual. Please keep this page open.
+          </p>
+          <a
+            routerLink="/lots"
+            class="mt-2 inline-block rounded text-sm font-semibold text-link focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-link"
+          >
+            Back to parking lots
+          </a>
+        }
+      }
+      @case ('confirmed') {
+        <p class="mt-4 text-sm text-muted">Your payment went through and your spot is reserved.</p>
+      }
+      @case ('cancelled') {
+        <p class="mt-4 text-sm text-muted">
+          Your spot was released. If you were charged, the amount will be refunded.
+        </p>
+      }
+      @case ('timed-out') {
+        <p class="mt-4 text-sm text-muted">
+          We're still waiting to hear back. Your booking keeps processing on our side, so you can
+          check again in a moment.
+        </p>
+      }
+      @case ('other') {
+        <p class="mt-4 text-sm text-muted">There is nothing left to pay for this booking.</p>
+      }
+    }
+
+    @if (showBanner()) {
+      <p
+        role="alert"
+        class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+      >
+        We're having trouble checking your booking. Retrying...
+      </p>
+    }
+
+    @if (showRow()) {
+      <div
+        class="mt-6 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 rounded-xl bg-surface px-3.5 py-3 text-left max-sm:flex-col"
+      >
+        <span class="text-xs text-muted">Booking</span>
+        <span class="font-mono text-sm font-medium text-ink">{{ summary() }}</span>
+      </div>
+    }
+
+    @if (state() === 'pending') {
+      <span
+        class="mt-4 inline-flex items-center gap-2 rounded-full bg-surface px-3 py-1.5 text-xs text-muted"
+      >
+        <span class="h-1.5 w-1.5 rounded-full bg-muted" aria-hidden="true"></span>
+        Pending
+      </span>
+    } @else if (state() === 'confirmed') {
+      <span
+        class="mt-4 inline-flex items-center gap-2 rounded-full bg-surface px-3 py-1.5 text-xs text-ink"
+      >
+        <span class="h-1.5 w-1.5 rounded-full bg-ink" aria-hidden="true"></span>
+        Confirmed
+      </span>
+    }
+
+    @switch (state()) {
+      @case ('confirmed') {
+        <!-- Page 17 (Booking Detail) will link here later with a "View booking" button. -->
+        <a
+          routerLink="/lots"
+          class="mt-6 flex w-full items-center justify-center rounded-lg bg-accent px-4 py-3 text-sm font-semibold text-ink transition-colors hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+        >
+          Find more parking
+        </a>
+      }
+      @case ('timed-out') {
+        <button
+          type="button"
+          (click)="checkAgain()"
+          [disabled]="checking()"
+          [attr.aria-busy]="checking()"
+          class="mt-6 flex w-full cursor-pointer items-center justify-center rounded-lg bg-accent px-4 py-3 text-sm font-semibold text-ink transition-colors hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {{ checking() ? 'Checking…' : 'Check again' }}
+        </button>
+        <a
+          routerLink="/lots"
+          class="mt-3 inline-block rounded text-sm font-semibold text-link focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-link"
+        >
+          Back to parking lots
+        </a>
+      }
+      @case ('cancelled') {
+        <a
+          routerLink="/lots"
+          class="mt-6 flex w-full items-center justify-center rounded-lg bg-accent px-4 py-3 text-sm font-semibold text-ink transition-colors hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+        >
+          Find parking
+        </a>
+      }
+      @case ('other') {
+        <a
+          routerLink="/lots"
+          class="mt-6 flex w-full items-center justify-center rounded-lg bg-accent px-4 py-3 text-sm font-semibold text-ink transition-colors hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+        >
+          Find parking
+        </a>
+      }
+      @case ('not-found') {
+        <a
+          routerLink="/lots"
+          class="mt-6 flex w-full items-center justify-center rounded-lg bg-accent px-4 py-3 text-sm font-semibold text-ink transition-colors hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+        >
+          Find parking
+        </a>
+      }
+    }
+
+    <p class="sr-only" role="status" aria-live="polite">{{ statusText() }}</p>
+  </div>
+</main>

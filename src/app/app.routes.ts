@@ -6,6 +6,7 @@ import { ManagerApplicationSubmitted } from './pages/manager-application-submitt
 import { DriverLots } from './pages/driver-lots/driver-lots';
 import { DriverLotDetail } from './pages/driver-lot-detail/driver-lot-detail';
 import { DriverBookingReview } from './pages/driver-booking-review/driver-booking-review';
+import { DriverPaymentPending } from './pages/driver-payment-pending/driver-payment-pending';
 import { DriverMyVehicles } from './pages/driver-my-vehicles/driver-my-vehicles';
 import { ManagerLots } from './pages/manager-lots/manager-lots';
 import { ManagerLotForm } from './pages/manager-lot-form/manager-lot-form';
@@ -35,6 +36,11 @@ export const routes: Routes = [
   {
     path: 'lots/:lotId/book',
     component: DriverBookingReview,
+    canActivate: [authGuard, roleGuard(UserRole.Driver)],
+  },
+  {
+    path: 'bookings/:bookingId/payment',
+    component: DriverPaymentPending,
     canActivate: [authGuard, roleGuard(UserRole.Driver)],
   },
   {
