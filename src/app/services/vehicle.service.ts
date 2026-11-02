@@ -13,6 +13,11 @@ export class VehicleService {
     return this.api.get<VehicleResponse[]>(VEHICLE_API.my);
   }
 
+  /** Only the owning driver may read it (401 otherwise). */
+  getVehicleById(vehicleId: string): Observable<ApiResponse<VehicleResponse>> {
+    return this.api.get<VehicleResponse>(VEHICLE_API.one(vehicleId));
+  }
+
   createVehicle(request: CreateVehicleRequest): Observable<ApiResponse<VehicleResponse>> {
     return this.api.post<VehicleResponse>(VEHICLE_API.create, {
       ...request,

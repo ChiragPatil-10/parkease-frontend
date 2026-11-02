@@ -15,6 +15,10 @@ export interface CreateBookingRequest {
   idempotencyKey: string;
 }
 
+export interface CancelBookingRequest {
+  reason: string;
+}
+
 export interface BookingResponse {
   bookingId: string;
   driverId: string;

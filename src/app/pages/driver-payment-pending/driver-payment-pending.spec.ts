@@ -120,7 +120,14 @@ describe('DriverPaymentPending', () => {
       expect(bookingCalls).toBe(4);
       expect(h1().textContent?.trim()).toBe('Booking confirmed');
       expect(text()).toContain('Find more parking');
-      expect(text()).not.toContain('View booking');
+      const view = Array.from(el.querySelectorAll('a')).find((a) =>
+        a.textContent?.includes('View booking'),
+      );
+      expect(view?.getAttribute('href')).toBe('/bookings/bk-1');
+      const find = Array.from(el.querySelectorAll('a')).find((a) =>
+        a.textContent?.includes('Find more parking'),
+      );
+      expect(find?.getAttribute('href')).toBe('/lots');
       expect(el.querySelector('[role="status"]')?.textContent).toContain('Booking confirmed.');
       expect(document.activeElement).toBe(h1());
 
