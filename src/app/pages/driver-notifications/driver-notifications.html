@@ -30,6 +30,7 @@
           Could not load notifications.
           <button
             type="button"
+            (click)="load()"
             class="mt-1 block cursor-pointer font-semibold underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700"
           >
             Retry
@@ -69,10 +70,10 @@
                     <span data-status [class]="statusClass[row.status]">{{
                       statusText[row.status]
                     }}</span>
-                    ·
-                    <time [attr.datetime]="row.sentAt" [title]="fullTime(row)">{{
-                      timeText(row)
-                    }}</time>
+                    @if (row.time) {
+                      ·
+                      <time [attr.datetime]="row.sentAt" [title]="row.fullTime">{{ row.time }}</time>
+                    }
                   </p>
                 </div>
               </div>
@@ -94,10 +95,14 @@
           <button
             type="button"
             [disabled]="loadingMore()"
+            (click)="showMore()"
             class="mt-4 min-h-11 cursor-pointer rounded-lg border border-border bg-card px-5 py-2.5 text-sm text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-default disabled:text-muted disabled:hover:bg-card"
           >
             {{ loadingMore() ? 'Loading...' : 'Show more' }}
           </button>
+          @if (moreError()) {
+            <p role="alert" class="mt-2 text-sm text-red-700">Could not load more.</p>
+          }
         }
       }
     }
