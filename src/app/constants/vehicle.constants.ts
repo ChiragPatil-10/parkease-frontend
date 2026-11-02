@@ -3,6 +3,7 @@ import { VehicleType } from '../models/spot.model';
 export const VEHICLE_API = {
   create: '/api/vehicles',
   my: '/api/vehicles/my',
+  one: (vehicleId: string) => `/api/vehicles/${vehicleId}`,
   byId: (vehicleId: string, confirm: boolean) => `/api/vehicles/${vehicleId}?confirm=${confirm}`,
 } as const;
 

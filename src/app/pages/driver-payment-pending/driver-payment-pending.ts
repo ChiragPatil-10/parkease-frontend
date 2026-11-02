@@ -83,7 +83,7 @@ export class DriverPaymentPending implements OnInit {
       this.state() === 'pending' || this.state() === 'confirmed' || this.state() === 'timed-out',
   );
 
-  private bookingId = '';
+  protected bookingId = '';
   private startedAt = 0;
   private deadline: number | null = null;
   private lookupStarted = false;
