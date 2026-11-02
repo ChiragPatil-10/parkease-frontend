@@ -49,3 +49,19 @@ export interface BookingResponse {
   plateNumber?: string | null;
   cancelReason?: CancelReason | null;
 }
+
+/** One row of GET /api/bookings/lot/{lotId} (manager view): no driver, vehicle or payment data. */
+export interface ManagerLotBooking {
+  bookingId: string;
+  /** Snapshot taken at booking creation; null on older bookings. */
+  spotNumber: string | null;
+  /** Unformatted, e.g. "KA05MJ4471"; null on older bookings. */
+  plateNumber: string | null;
+  /** UTC ISO with Z. */
+  startTime: string;
+  totalAmount: number;
+  /** Kept a plain string so an unknown value never breaks the page. */
+  status: string;
+  /** Only for Cancelled bookings; not displayed on the manager page. */
+  cancelReason?: CancelReason | null;
+}

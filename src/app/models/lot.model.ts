@@ -12,6 +12,8 @@ export interface LotResponse {
   openTime: string;
   closeTime: string;
   isApproved: boolean;
+  /** Not sent by the API yet. A rejected lot also has isApproved false. */
+  approvalStatus?: string;
   isOpen: boolean;
   description: string | null;
   approvalFeedback: string | null;

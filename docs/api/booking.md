@@ -187,11 +187,55 @@ else's booking exists. A 401 now means only a missing or invalid token.
 
 ### `GET /api/bookings/lot/{lotId}` (Requires role: `Manager`)
 
-Array of `BookingResponse` for that lot, newest first.
+The bookings of one of the calling manager's own lots, for the Manager Lot Bookings
+page. Returns a smaller row than `BookingResponse` (no driver, vehicle or payment
+data).
 
-Unconfirmed: the code does not check that the lot belongs to the calling manager,
-so any manager can query any lot by id. Check the lot's `managerId` yourself
-(`GET /api/v1/lots/{lotId}`) if a screen must show only the manager's own lots.
+Query:
+| Name | Default | Rules |
+|---|---|---|
+| status | (none) | Optional. One of `Confirmed`, `CheckedIn`, `Completed`, `Cancelled`, `NoShow`, case-insensitive. `Pending` or any other value gives 400 `"Unknown status filter."` |
+| page | 1 | Values below 1 become 1 |
+| pageSize | 20 | Clamped to 1..50 |
+
+Rules:
+- `Pending` (unpaid) bookings are never returned, with or without a filter.
+- Ordered newest created first (then by bookingId), so paging is stable.
+- `data` is a flat array with no total count. If it has exactly `pageSize` rows, another
+  page may exist. Fewer rows means this is the last page. An empty array on a later page
+  just means there is nothing more.
+
+Row (`ManagerLotBookingResponse`):
+```json
+{
+  "bookingId": "guid",
+  "spotNumber": "A-02",
+  "plateNumber": "KA05MJ4471",
+  "startTime": "2026-11-02T11:00:00Z",
+  "totalAmount": 120.00,
+  "status": "Confirmed",
+  "cancelReason": null
+}
+```
+- `spotNumber` and `plateNumber`: snapshot taken at booking creation. Null for older
+  bookings. `plateNumber` arrives unformatted, so pass it through `formatPlate`.
+- `status`: `Confirmed`, `CheckedIn`, `Completed`, `Cancelled` or `NoShow` (never `Pending`).
+- `cancelReason`: only when `status` is `Cancelled`: `DriverCancelled`,
+  `PaymentTimeout`, `PaymentFailed`, `SpotUnavailable`, `Other`, or null for older
+  cancelled bookings. Never free text.
+- `totalAmount`: the booked amount, or the final charged amount once completed.
+
+Errors:
+| Status | When |
+|---|---|
+| 400 | Unknown or `Pending` status filter |
+| 401 | Missing or invalid token |
+| 403 | Logged in, but not a Manager |
+| 404 | `"Lot '<id>' not found."` The lot does not exist OR belongs to another manager (the same response for both) |
+| 500 | The lot lookup failed (ParkingLot unreachable). No data is returned |
+
+The lot's name is not in this response. Get the manager's lots (and names) from
+`GET /api/v1/lots/manager/{managerId}` (see `parkinglot.md`).
 
 ### `POST /api/bookings/{id}/checkin` (Requires role: `Driver`)
 
