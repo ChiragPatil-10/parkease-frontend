@@ -35,9 +35,12 @@ describe('DriverNav items', () => {
     expect(other.classList).not.toContain('font-semibold');
   });
 
-  it('keeps Notifications inert', () => {
-    const notifications = item(render('my-bookings'), 'Notifications');
-    expect(notifications.tagName).toBe('SPAN');
-    expect(notifications.hasAttribute('href')).toBe(false);
+  it('makes Notifications a link to /notifications, active only on that tab', () => {
+    const link = item(render('my-bookings'), 'Notifications');
+    expect(link.tagName).toBe('A');
+    expect(link.getAttribute('href')).toBe('/notifications');
+    expect(link.classList).toContain('text-muted');
+    TestBed.resetTestingModule();
+    expect(item(render('notifications'), 'Notifications').classList).toContain('text-ink');
   });
 });
