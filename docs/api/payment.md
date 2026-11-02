@@ -45,7 +45,7 @@ On a 422 validation failure, `errors` is populated instead of `data`:
 | Status | When |
 |---|---|
 | 400 | Malformed or invalid input (`ArgumentException`) |
-| 401 | Missing or invalid JWT. On Booking, Spot, Vehicle and ParkingLot also an ownership failure (see the Booking service note) |
+| 401 | Missing or invalid JWT. On Spot, Vehicle and ParkingLot also an ownership failure. Booking no longer does this (it returns 404, see the Booking doc) |
 | 403 | Ownership failure on the Payment service only; also a valid JWT with the wrong role |
 | 404 | Entity not found |
 | 409 | Business rule conflict, or a concurrent update (refetch and retry) |
@@ -106,7 +106,12 @@ becomes `Confirmed` after that, and a cancel refunds it.
 - `razorpayKeyId` is the public key to pass to Razorpay Checkout. The key secret never leaves the backend.
 - `amountInPaise` and `currency` are the values to pass to Checkout (50.00 INR is 5000 paise).
 - `razorpayPaymentId` and `paidAt` are `null` until the payment is captured.
-- When `status` is `"Failed"`, `gatewayOrderId` is `""` and `failureReason` explains why. The booking is cancelled in that case.
+- When `status` is `"Failed"`, `gatewayOrderId` is `""`. The booking is cancelled in that case.
+- `failureReason` for a **driver** is fixed text chosen from the status, never the raw error:
+  `"Failed"` gives `"Payment could not be set up."`, `"RefundFailed"` gives
+  `"Your refund could not be completed automatically."`, and every other status gives `null`.
+  Managers and Admins still see the raw reason. The frontend may show the driver text or
+  its own wording.
 
 ## Rate limiting
 

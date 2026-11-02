@@ -204,12 +204,13 @@ describe('DriverBookingDetail', () => {
       expect(buttonLabels()).toContain('Check in');
     });
 
-    it('marks My Bookings active and not a link', async () => {
+    it('marks My Bookings active (it is now a link to /bookings)', async () => {
       await setup();
       const item = Array.from(el.querySelectorAll('nav > *')).find((n) =>
         n.textContent?.includes('My Bookings'),
       ) as HTMLElement;
-      expect(item.tagName).toBe('SPAN');
+      expect(item.tagName).toBe('A');
+      expect(item.getAttribute('href')).toBe('/bookings');
       expect(item.classList).toContain('text-ink');
     });
   });
