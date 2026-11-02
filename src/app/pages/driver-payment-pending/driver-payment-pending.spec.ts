@@ -87,6 +87,29 @@ describe('DriverPaymentPending', () => {
   });
 
   describe('pending', () => {
+    it('uses the booking snapshot and makes no lookups when it is complete', async () => {
+      let lookups = 0;
+      lotResult = () => (lookups++, of(envelope({ lotId: 'lot-1', name: 'Looked Up' })));
+      spotResult = () => (lookups++, of(envelope({ spotId: 'spot-1', spotNumber: 'X-1' })));
+      bookingResult = () =>
+        of(envelope({ ...booking('Pending'), lotName: 'Snapshot Lot', spotNumber: 'Z-9' }));
+      await setup();
+      expect(el.querySelector('.font-mono')?.textContent?.trim()).toBe('Snapshot Lot · Z-9');
+      expect(lookups).toBe(0);
+    });
+
+    it('looks up only the value the snapshot lacks', async () => {
+      let lotLookups = 0;
+      let spotLookups = 0;
+      lotResult = () => (lotLookups++, of(envelope({ lotId: 'lot-1', name: 'Looked Up' })));
+      spotResult = () => (spotLookups++, of(envelope({ spotId: 'spot-1', spotNumber: 'X-1' })));
+      bookingResult = () => of(envelope({ ...booking('Pending'), lotName: 'Snapshot Lot' }));
+      await setup();
+      expect(lotLookups).toBe(0);
+      expect(spotLookups).toBe(1);
+      expect(el.querySelector('.font-mono')?.textContent?.trim()).toBe('Snapshot Lot · X-1');
+    });
+
     it('loads the booking and shows the lot and spot', async () => {
       await setup();
       expect(h1().textContent).toContain('Payment successful');

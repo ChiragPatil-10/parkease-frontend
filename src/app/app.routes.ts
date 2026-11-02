@@ -7,6 +7,7 @@ import { DriverLots } from './pages/driver-lots/driver-lots';
 import { DriverLotDetail } from './pages/driver-lot-detail/driver-lot-detail';
 import { DriverBookingReview } from './pages/driver-booking-review/driver-booking-review';
 import { DriverPaymentPending } from './pages/driver-payment-pending/driver-payment-pending';
+import { DriverMyBookings } from './pages/driver-my-bookings/driver-my-bookings';
 import { DriverBookingDetail } from './pages/driver-booking-detail/driver-booking-detail';
 import { DriverMyVehicles } from './pages/driver-my-vehicles/driver-my-vehicles';
 import { ManagerLots } from './pages/manager-lots/manager-lots';
@@ -42,6 +43,11 @@ export const routes: Routes = [
   {
     path: 'bookings/:bookingId/payment',
     component: DriverPaymentPending,
+    canActivate: [authGuard, roleGuard(UserRole.Driver)],
+  },
+  {
+    path: 'bookings',
+    component: DriverMyBookings,
     canActivate: [authGuard, roleGuard(UserRole.Driver)],
   },
   {

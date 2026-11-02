@@ -15,6 +15,14 @@ export interface CreateBookingRequest {
   idempotencyKey: string;
 }
 
+/** Code set only on Cancelled bookings; null on bookings cancelled before the field existed. */
+export type CancelReason =
+  | 'DriverCancelled'
+  | 'PaymentTimeout'
+  | 'PaymentFailed'
+  | 'SpotUnavailable'
+  | 'Other';
+
 export interface CancelBookingRequest {
   reason: string;
 }
@@ -34,4 +42,10 @@ export interface BookingResponse {
   paymentDueAt?: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Snapshot taken when the booking was created; null on older bookings (fall back to a lookup). */
+  lotName?: string | null;
+  spotNumber?: string | null;
+  spotType?: string | null;
+  plateNumber?: string | null;
+  cancelReason?: CancelReason | null;
 }

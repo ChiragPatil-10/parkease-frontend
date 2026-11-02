@@ -45,7 +45,7 @@ On a 422 validation failure, `errors` is populated instead of `data`:
 | Status | When |
 |---|---|
 | 400 | Malformed or invalid input (`ArgumentException`) |
-| 401 | Missing or invalid JWT. On Booking, Spot, Vehicle and ParkingLot also an ownership failure (see the Booking service note) |
+| 401 | Missing or invalid JWT. On Spot, Vehicle and ParkingLot also an ownership failure. Booking no longer does this (it returns 404, see the Booking doc) |
 | 403 | Ownership failure on the Payment service only; also a valid JWT with the wrong role |
 | 404 | Entity not found |
 | 409 | Business rule conflict, or a concurrent update (refetch and retry) |
@@ -109,14 +109,29 @@ Bookings are **prepaid**. A booking stays `Pending` until the driver pays (see
   "status": "Pending",
   "createdAt": "2026-09-16T15:30:00Z",
   "updatedAt": "2026-09-16T15:30:00Z",
-  "paymentDueAt": "2026-09-16T15:45:00Z"
+  "paymentDueAt": "2026-09-16T15:45:00Z",
+  "lotName": "Whitefield Central Lot",
+  "spotNumber": "A-02",
+  "spotType": "Standard",
+  "plateNumber": "KA05MJ4471",
+  "cancelReason": null
 }
 ```
 
 - `paymentDueAt` is set only while `status` is `"Pending"`, otherwise `null`.
 - `endTime` is `null` until the booking ends (checkout, cancel or no-show).
-- The response has no lot name, spot label or cancel reason. Read the lot and spot
-  from their own services (`parkinglot.md`, `spot.md`).
+- `lotName`, `spotNumber`, `spotType` and `plateNumber` are a **snapshot taken when
+  the booking was created**. They do not change if the lot is renamed later. They
+  are always present in the JSON and are `null` when unknown: bookings created
+  before this feature have `null`, and `lotName` can also be `null` if the lot
+  service was unavailable at that moment. When a value is `null`, fall back to
+  reading the lot (`parkinglot.md`), the spot (`spot.md`) or the vehicle
+  (`vehicle.md`).
+- `cancelReason` is set only when `status` is `"Cancelled"`, otherwise `null`. It
+  is a code, never free text: `"DriverCancelled"`, `"PaymentTimeout"`,
+  `"PaymentFailed"`, `"SpotUnavailable"` or `"Other"`. Bookings cancelled before
+  this feature also have `null`, so treat `null` on a cancelled booking as
+  "cancelled, reason unknown".
 
 ## Endpoints
 
@@ -152,24 +167,23 @@ Success (201), message `"Booking created - confirmation pending."`, `data` is a
 
 Errors:
 - 400: bad input (`"Start time cannot be in the past."`, `"Start time cannot be more than 24 hours in the future."`, `"The lot does not match the selected spot."`, or the amount message `"Total amount must equal the spot's price per hour (X.XX) multiplied by a whole number of hours between 1 and 4."`)
-- 401: the vehicle does not belong to the caller (`"You do not own this vehicle."`)
+- 401: the vehicle in the request does not belong to the caller (`"You do not own this vehicle."`). This is the only ownership 401 left in the Booking service
 - 404: vehicle or spot not found
 - 409: `"This vehicle is not active."`, `"This spot is reserved for electric vehicles only."`, `"This spot is not available."`, or `"A booking request with this idempotency key is already being processed."`
 - 422: a required field is missing
 
 ### `GET /api/bookings/my` (Requires role: `Driver`)
 
-Array of `BookingResponse` for the caller, newest first.
+Array of `BookingResponse` for the caller, newest first. It is not paginated, and each item carries the snapshot fields above, so a list screen needs no extra calls for names, spot numbers or plates.
 
 ### `GET /api/bookings/{id}` (Requires role: `Driver`)
 
 Single `BookingResponse`. Only the owning driver may read it.
 
-Errors: **401** when the booking belongs to another driver (this service maps
-ownership failures to 401, not 403), 404 when it does not exist.
-
-> Frontend note: because a not-owner result is a 401, make sure the auth
-> interceptor does not log the user out on every 401 from this endpoint.
+Errors: **404** `"Booking '<id>' not found."` when the booking does not exist
+**and** when it belongs to another driver. The two cases are deliberately
+identical (same status and same message), so a driver cannot learn that someone
+else's booking exists. A 401 now means only a missing or invalid token.
 
 ### `GET /api/bookings/lot/{lotId}` (Requires role: `Manager`)
 
@@ -184,7 +198,7 @@ so any manager can query any lot by id. Check the lot's `managerId` yourself
 Synchronous. No body. Only valid from `Confirmed`.
 
 Success (200), message `"Checked in."`, `status: "CheckedIn"`.
-Errors: 401 (not owner), 404, 409 (wrong status, or Spot rejects the occupy request).
+Errors: 404 (not found, or not your booking), 409 (wrong status, or Spot rejects the occupy request).
 
 ### `POST /api/bookings/{id}/checkout` (Requires role: `Driver`)
 
@@ -192,7 +206,7 @@ No body. Only valid from `CheckedIn`. The response still shows `CheckedIn`; the
 saga completes the booking afterward, so poll for `Completed`.
 
 Success (200), message `"Checkout in progress."`.
-Errors: 401, 404, 409 (`"Cannot check out a booking in status 'X' - must be CheckedIn."`).
+Errors: 404 (not found, or not your booking), 409 (`"Cannot check out a booking in status 'X' - must be CheckedIn."`).
 
 ### `POST /api/bookings/{id}/cancel` (Requires role: `Driver`)
 
@@ -203,8 +217,7 @@ The response still shows the old status; the saga moves it to `Cancelled`, so po
 
 Success (200), message `"Cancellation in progress."`.
 Errors:
-- 401: not the owner
-- 404
+- 404: not found, or not your booking
 - 409: `"Cannot cancel a booking in status 'Completed'."` (same for `Cancelled` and `NoShow`), or `"Cannot cancel after check-in."` for `CheckedIn` (check out instead)
 
 ### Internal only (not reachable through the Gateway)

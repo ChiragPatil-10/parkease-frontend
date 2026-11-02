@@ -14,7 +14,7 @@ interface DriverNavItem {
 const NAV_ITEMS: DriverNavItem[] = [
   { tab: 'search-lots', label: 'Search Lots', route: '/lots' },
   { tab: 'my-vehicles', label: 'My Vehicles', route: '/vehicles' },
-  { tab: 'my-bookings', label: 'My Bookings', route: null },
+  { tab: 'my-bookings', label: 'My Bookings', route: '/bookings' },
   { tab: 'notifications', label: 'Notifications', route: null },
 ];
 

@@ -161,6 +161,44 @@ describe('DriverBookingDetail', () => {
       expect(text()).toContain('Paid at');
     });
 
+    it('uses the snapshot and makes no lot, spot or vehicle lookups when it is complete', async () => {
+      bookingResult = () =>
+        of(
+          envelope(
+            booking('Confirmed', {
+              lotName: 'Snapshot Lot',
+              spotNumber: 'S-1',
+              spotType: 'Large',
+              plateNumber: 'KA01AB1234',
+            }),
+          ),
+        );
+      await setup();
+      expect(h1().textContent?.trim()).toBe('Snapshot Lot');
+      expect(mono('S-1 · Large')).toBe(true);
+      expect(mono('KA 01 AB 1234')).toBe(true);
+      expect(count('/api/v1/lots/lot-1')).toBe(0);
+      expect(count('/api/v1/spots/spot-1')).toBe(0);
+      expect(count('/api/vehicles/veh-1')).toBe(0);
+      expect(count('/api/payments/booking/bk-1')).toBe(1);
+    });
+
+    it('looks up only the values the snapshot is missing', async () => {
+      bookingResult = () => of(envelope(booking('Confirmed', { lotName: 'Snapshot Lot' })));
+      await setup();
+      expect(h1().textContent?.trim()).toBe('Snapshot Lot');
+      expect(count('/api/v1/lots/lot-1')).toBe(0);
+      expect(count('/api/v1/spots/spot-1')).toBe(1);
+      expect(count('/api/vehicles/veh-1')).toBe(1);
+      expect(mono('A-02 · Standard')).toBe(true);
+    });
+
+    it('treats a spot snapshot with a missing type as incomplete', async () => {
+      bookingResult = () => of(envelope(booking('Confirmed', { spotNumber: 'S-1' })));
+      await setup();
+      expect(count('/api/v1/spots/spot-1')).toBe(1);
+    });
+
     it('shows a loading state, not the not-found view, until the booking arrives', async () => {
       const pending = new Subject<unknown>();
       bookingResult = () => pending;
@@ -204,12 +242,13 @@ describe('DriverBookingDetail', () => {
       expect(buttonLabels()).toContain('Check in');
     });
 
-    it('marks My Bookings active and not a link', async () => {
+    it('marks My Bookings active (it is now a link to /bookings)', async () => {
       await setup();
       const item = Array.from(el.querySelectorAll('nav > *')).find((n) =>
         n.textContent?.includes('My Bookings'),
       ) as HTMLElement;
-      expect(item.tagName).toBe('SPAN');
+      expect(item.tagName).toBe('A');
+      expect(item.getAttribute('href')).toBe('/bookings');
       expect(item.classList).toContain('text-ink');
     });
   });
@@ -251,6 +290,25 @@ describe('DriverBookingDetail', () => {
       expect(buttonLabels()).toEqual(['Book again']);
       expect(find('a', 'Book again')?.getAttribute('href')).toBe('/lots/lot-1');
       expect(text()).toContain(label);
+    });
+  });
+
+  describe('cancelled status text', () => {
+    it.each([
+      ['DriverCancelled', 'Cancelled'],
+      ['PaymentTimeout', 'Cancelled — payment timed out'],
+      ['PaymentFailed', 'Cancelled — payment failed'],
+      ['SpotUnavailable', 'Cancelled — spot unavailable'],
+      ['Other', 'Cancelled'],
+      [null, 'Cancelled'],
+    ])('cancelReason %s shows "%s" in the Status row', async (cancelReason, label) => {
+      bookingResult = () => of(envelope(booking('Cancelled', { cancelReason })));
+      paymentResult = () => of(envelope(payment('Refunded')));
+      await setup();
+      const status = Array.from(el.querySelectorAll('dt'))
+        .find((d) => d.textContent?.trim() === 'Status')
+        ?.parentElement?.querySelector('dd');
+      expect(status?.textContent?.trim()).toBe(label);
     });
   });
 
@@ -303,7 +361,8 @@ describe('DriverBookingDetail', () => {
       await setup();
       expect(h1().textContent?.trim()).toBe('Booking not found or not accessible');
       expect(el.querySelector('h2')).toBeNull();
-      expect(find('a', 'Back to parking lots')?.getAttribute('href')).toBe('/lots');
+      expect(find('a', 'Back to My Bookings')?.getAttribute('href')).toBe('/bookings');
+      expect(text()).not.toContain('Back to parking lots');
       expect(auth.clearSession).not.toHaveBeenCalled();
       expect(router.navigateByUrl).not.toHaveBeenCalled();
       expect(count('/api/bookings/bk-1')).toBe(1);

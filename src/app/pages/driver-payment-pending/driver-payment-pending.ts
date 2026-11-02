@@ -195,21 +195,25 @@ export class DriverPaymentPending implements OnInit {
     this.state.set(state);
   }
 
-  /** Lot name and spot label are cosmetic: a failed lookup keeps the fallback and never blocks polling. */
+  /** Lot name and spot label come from the booking snapshot; a lookup runs only for a null value. A failed lookup keeps the fallback and never blocks polling. */
   private loadLookups(booking: BookingResponse): void {
     if (this.lookupStarted) {
       return;
     }
     this.lookupStarted = true;
     forkJoin([
-      this.lotService.getLotById(booking.lotId).pipe(
-        map((res) => res.data?.name ?? null),
-        catchError(() => of(null)),
-      ),
-      this.spotService.getSpotById(booking.spotId).pipe(
-        map((res) => res.data?.spotNumber ?? null),
-        catchError(() => of(null)),
-      ),
+      booking.lotName
+        ? of(booking.lotName)
+        : this.lotService.getLotById(booking.lotId).pipe(
+            map((res) => res.data?.name ?? null),
+            catchError(() => of(null)),
+          ),
+      booking.spotNumber
+        ? of(booking.spotNumber)
+        : this.spotService.getSpotById(booking.spotId).pipe(
+            map((res) => res.data?.spotNumber ?? null),
+            catchError(() => of(null)),
+          ),
     ])
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(([lotName, spotLabel]) => {

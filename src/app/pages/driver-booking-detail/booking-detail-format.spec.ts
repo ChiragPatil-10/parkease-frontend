@@ -2,6 +2,7 @@ import { PaymentResponse, PaymentStatus } from '../../models/payment.model';
 import {
   FAILED_PAYMENT_REASON,
   bookingStatusLabel,
+  cancelledLabel,
   formatAmount,
   formatBookingTime,
   paymentCardView,
@@ -140,5 +141,23 @@ describe('paymentCardView', () => {
     const view = paymentCardView(null, 62.5, NOW);
     expect(view.pill).toBe('No payment taken');
     expect(view.amount).toBe('₹62.50');
+  });
+});
+
+describe('cancelledLabel', () => {
+  it.each([
+    ['DriverCancelled', 'Cancelled'],
+    ['PaymentTimeout', 'Cancelled — payment timed out'],
+    ['PaymentFailed', 'Cancelled — payment failed'],
+    ['SpotUnavailable', 'Cancelled — spot unavailable'],
+    ['Other', 'Cancelled'],
+    [null, 'Cancelled'],
+    [undefined, 'Cancelled'],
+  ] as const)('%s reads "%s"', (reason, expected) => {
+    expect(cancelledLabel(reason)).toBe(expected);
+  });
+
+  it('never shows an unknown code', () => {
+    expect(cancelledLabel('SomethingNew' as never)).toBe('Cancelled');
   });
 });
