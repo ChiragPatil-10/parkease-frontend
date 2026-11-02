@@ -1,0 +1,231 @@
+<div class="min-h-screen bg-surface">
+  <app-manager-nav activeTab="lot-bookings" />
+
+  <main class="px-4 py-8 md:px-8">
+    @if (view() === 'noLots') {
+      <h1 class="font-display text-2xl font-bold text-ink">Bookings</h1>
+      <div class="mt-6 rounded-xl border border-border bg-card px-5 py-10 text-center">
+        <p class="text-base text-ink">You don't have any parking lots yet.</p>
+        <a
+          routerLink="/manager/lots"
+          class="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-link underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+        >
+          Go to My Lots
+        </a>
+      </div>
+    } @else if (view() === 'lotNotFound') {
+      <h1 class="font-display text-2xl font-bold text-ink">Bookings</h1>
+      <div class="mt-6 rounded-xl border border-border bg-card px-5 py-10 text-center">
+        <p class="text-base text-ink">Lot not found.</p>
+        <p class="mt-1 text-sm text-muted">
+          It may have been removed, or it isn't one of your lots.
+        </p>
+        <a
+          routerLink="/manager/lots"
+          class="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-link underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+        >
+          Back to My Lots
+        </a>
+      </div>
+    } @else {
+      <h1 class="font-display text-2xl font-bold text-ink">Bookings &mdash; {{ lotName() }}</h1>
+
+      @if (showLotPicker()) {
+        <div class="mt-4 flex max-w-sm flex-col gap-1">
+          <label for="lot-select" class="text-sm font-medium text-ink">Lot</label>
+          <select
+            id="lot-select"
+            class="min-h-11 cursor-pointer rounded-lg border border-border bg-card px-3 text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+            (change)="selectLot($any($event.target).value)"
+          >
+            @for (option of lotOptions(); track option.id) {
+              <option [value]="option.id" [selected]="option.id === selectedLotId()">
+                {{ option.label }}
+              </option>
+            }
+          </select>
+        </div>
+      }
+
+      <div role="group" aria-label="Filter by status" class="mt-4 flex flex-wrap gap-2">
+        @for (chip of chips; track chip.value) {
+          <button
+            type="button"
+            [attr.aria-pressed]="filter() === chip.value"
+            (click)="selectFilter(chip.value)"
+            class="min-h-9 cursor-pointer rounded-full border px-4 py-1.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+            [class]="
+              filter() === chip.value
+                ? 'border-accent bg-accent font-medium text-ink'
+                : 'border-border text-muted hover:bg-card'
+            "
+          >
+            {{ chip.label }}
+          </button>
+        }
+      </div>
+
+      @switch (view()) {
+        @case ('error') {
+          <p
+            role="alert"
+            class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          >
+            Could not load bookings.
+            <button
+              type="button"
+              class="mt-1 block min-h-11 cursor-pointer font-semibold underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700"
+            >
+              Retry
+            </button>
+          </p>
+        }
+
+        @case ('empty') {
+          <div class="mt-4 rounded-xl border border-border bg-card px-5 py-10 text-center">
+            <p class="text-sm text-muted">{{ emptyText() }}</p>
+          </div>
+        }
+
+        @case ('loading') {
+          <div class="mt-4" aria-busy="true">
+            <p class="sr-only" role="status">Loading bookings</p>
+            <div
+              class="hidden overflow-hidden rounded-xl border border-border bg-card md:block"
+              aria-hidden="true"
+              data-skeleton="table"
+            >
+              <div class="h-10 bg-surface"></div>
+              @for (i of skeletonRows; track i) {
+                <div class="flex animate-pulse items-center gap-6 px-5 py-4">
+                  <span class="h-4 w-1/6 rounded bg-surface"></span>
+                  <span class="h-4 w-1/5 rounded bg-surface"></span>
+                  <span class="h-4 w-1/5 rounded bg-surface"></span>
+                  <span class="h-4 w-1/6 rounded bg-surface"></span>
+                  <span class="h-6 w-24 rounded-lg bg-surface"></span>
+                </div>
+              }
+            </div>
+            <ul class="flex flex-col gap-3 md:hidden" aria-hidden="true" data-skeleton="cards">
+              @for (i of skeletonRows; track i) {
+                <li
+                  class="flex animate-pulse flex-col gap-3 rounded-xl border border-border bg-card p-4"
+                >
+                  <span class="h-5 w-2/3 rounded bg-surface"></span>
+                  <span class="h-4 w-full rounded bg-surface"></span>
+                </li>
+              }
+            </ul>
+          </div>
+        }
+
+        @default {
+          <!-- Desktop table (md and up) -->
+          <div class="mt-4 hidden overflow-hidden rounded-xl border border-border bg-card md:block">
+            <table class="w-full table-fixed text-left text-sm text-ink">
+              <thead class="bg-surface">
+                <tr>
+                  <th scope="col" class="px-5 py-3 text-xs font-semibold text-muted">Spot</th>
+                  <th scope="col" class="px-5 py-3 text-xs font-semibold text-muted">
+                    Driver vehicle
+                  </th>
+                  <th scope="col" class="px-5 py-3 text-xs font-semibold text-muted">Start time</th>
+                  <th scope="col" class="px-5 py-3 text-xs font-semibold text-muted">Amount</th>
+                  <th scope="col" class="px-5 py-3 text-xs font-semibold text-muted">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of rows(); track row.id) {
+                  <tr>
+                    <td class="px-5 py-4 font-mono font-semibold">
+                      <ng-container
+                        [ngTemplateOutlet]="value"
+                        [ngTemplateOutletContext]="{ $implicit: row.spot }"
+                      />
+                    </td>
+                    <td class="px-5 py-4 font-mono">
+                      <ng-container
+                        [ngTemplateOutlet]="value"
+                        [ngTemplateOutletContext]="{ $implicit: row.plate }"
+                      />
+                    </td>
+                    <td class="px-5 py-4">{{ row.startTime }}</td>
+                    <td class="px-5 py-4 font-mono font-semibold">{{ row.amount }}</td>
+                    <td class="px-5 py-4">
+                      <ng-container
+                        [ngTemplateOutlet]="pill"
+                        [ngTemplateOutletContext]="{ $implicit: row }"
+                      />
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Mobile cards (below md) -->
+          <ul class="mt-4 flex flex-col gap-3 md:hidden" data-cards>
+            @for (row of rows(); track row.id) {
+              <li class="rounded-xl border border-border bg-card p-4">
+                <div class="flex items-center justify-between gap-3">
+                  <span class="font-mono font-semibold text-ink">
+                    <ng-container
+                      [ngTemplateOutlet]="value"
+                      [ngTemplateOutletContext]="{ $implicit: row.spot }"
+                    />
+                  </span>
+                  <ng-container
+                    [ngTemplateOutlet]="pill"
+                    [ngTemplateOutletContext]="{ $implicit: row }"
+                  />
+                </div>
+                <dl class="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+                  <dt class="text-xs text-muted">Vehicle</dt>
+                  <dd class="font-mono text-ink">
+                    <ng-container
+                      [ngTemplateOutlet]="value"
+                      [ngTemplateOutletContext]="{ $implicit: row.plate }"
+                    />
+                  </dd>
+                  <dt class="text-xs text-muted">Start time</dt>
+                  <dd class="text-ink">{{ row.startTime }}</dd>
+                  <dt class="text-xs text-muted">Amount</dt>
+                  <dd class="font-mono font-semibold text-ink">{{ row.amount }}</dd>
+                </dl>
+              </li>
+            }
+          </ul>
+
+          @if (hasMore() || loadingMore()) {
+            <button
+              type="button"
+              [disabled]="loadingMore()"
+              (click)="showMore()"
+              class="mt-4 min-h-11 cursor-pointer rounded-lg border border-border bg-card px-5 py-2.5 text-sm text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-default disabled:opacity-60"
+            >
+              {{ loadingMore() ? 'Loading...' : 'Show more' }}
+            </button>
+          }
+        }
+      }
+    }
+  </main>
+</div>
+
+<ng-template #value let-text>
+  @if (text) {
+    {{ text }}
+  } @else {
+    <span class="text-muted" role="img" aria-label="Not recorded">-</span>
+  }
+</ng-template>
+
+<ng-template #pill let-row>
+  <span
+    class="inline-flex items-center gap-2 rounded-lg bg-surface px-3 py-1.5 text-xs text-muted"
+    data-pill
+  >
+    <span class="h-1.5 w-1.5 rounded-full" [class]="row.dotClass" aria-hidden="true"></span>
+    {{ row.statusLabel }}
+  </span>
+</ng-template>
