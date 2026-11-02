@@ -1,4 +1,4 @@
-import { BookingStatus } from '../../models/booking.model';
+import { BookingStatus, CancelReason } from '../../models/booking.model';
 import { PaymentResponse } from '../../models/payment.model';
 import { formatTime12h } from '../driver-lot-detail/driver-lot-detail';
 
@@ -46,6 +46,19 @@ const STATUS_LABEL: Record<BookingStatus, string> = {
   Cancelled: 'Cancelled',
   NoShow: 'No-show',
 };
+
+const CANCELLED_LABEL: Record<CancelReason, string> = {
+  DriverCancelled: 'Cancelled',
+  PaymentTimeout: 'Cancelled — payment timed out',
+  PaymentFailed: 'Cancelled — payment failed',
+  SpotUnavailable: 'Cancelled — spot unavailable',
+  Other: 'Cancelled',
+};
+
+/** The only text ever shown for a cancelled booking; unknown or missing reasons read plain "Cancelled". */
+export function cancelledLabel(reason: CancelReason | null | undefined): string {
+  return (reason && CANCELLED_LABEL[reason]) || 'Cancelled';
+}
 
 export function bookingStatusLabel(status: BookingStatus): string {
   return STATUS_LABEL[status] ?? status;

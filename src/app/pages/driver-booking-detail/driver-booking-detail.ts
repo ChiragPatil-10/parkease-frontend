@@ -15,8 +15,6 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subscription, catchError, forkJoin, map, of } from 'rxjs';
 import { BookingResponse } from '../../models/booking.model';
 import { PaymentResponse } from '../../models/payment.model';
-import { SpotResponse } from '../../models/spot.model';
-import { VehicleResponse } from '../../models/vehicle/vehicle.model';
 import { AuthService } from '../../services/auth.service';
 import { BookingService } from '../../services/booking.service';
 import { ParkingLotService } from '../../services/parkinglot.service';
@@ -29,6 +27,7 @@ import { formatPlate } from '../driver-my-vehicles/vehicle-format';
 import {
   PillTone,
   bookingStatusLabel,
+  cancelledLabel,
   formatAmount,
   formatBookingTime,
   paymentCardView,
@@ -42,6 +41,15 @@ type PaymentState =
   | { kind: 'none' }
   | { kind: 'unavailable' }
   | { kind: 'ready'; payment: PaymentResponse };
+
+interface SpotInfo {
+  spotNumber: string;
+  spotType: string;
+}
+
+interface VehicleInfo {
+  plateNumber: string;
+}
 
 interface Row {
   label: string;
@@ -96,8 +104,8 @@ export class DriverBookingDetail implements OnInit {
   protected readonly booking = signal<BookingResponse | null>(null);
   protected readonly lookupsDone = signal(false);
   protected readonly lotName = signal<string | null>(null);
-  protected readonly spot = signal<SpotResponse | null>(null);
-  protected readonly vehicle = signal<VehicleResponse | null>(null);
+  protected readonly spot = signal<SpotInfo | null>(null);
+  protected readonly vehicle = signal<VehicleInfo | null>(null);
   protected readonly paymentState = signal<PaymentState>({ kind: 'loading' });
 
   protected readonly phase = signal<Phase>('idle');
@@ -156,7 +164,13 @@ export class DriverBookingDetail implements OnInit {
         mono: !!vehicle,
       },
       { label: 'Start time', value: formatBookingTime(booking.startTime) },
-      { label: 'Status', value: bookingStatusLabel(booking.status) },
+      {
+        label: 'Status',
+        value:
+          booking.status === 'Cancelled'
+            ? cancelledLabel(booking.cancelReason)
+            : bookingStatusLabel(booking.status),
+      },
     ];
   });
 
@@ -320,24 +334,34 @@ export class DriverBookingDetail implements OnInit {
     this.loadState.set('load-error');
   }
 
-  /** Lot, spot, vehicle and payment are supporting details: each fails on its own without breaking the page. */
+  /**
+   * Lot, spot and vehicle come from the booking's snapshot; a lookup runs only for a value that is null.
+   * Every one of them, and the payment, can fail on its own without breaking the page.
+   */
   private loadLookups(booking: BookingResponse): void {
     this.lookupsDone.set(false);
     this.paymentState.set({ kind: 'loading' });
     this.track(
       forkJoin({
-        lot: this.lotService.getLotById(booking.lotId).pipe(
-          map((res) => res.data?.name ?? null),
-          catchError(() => of(null)),
-        ),
-        spot: this.spotService.getSpotById(booking.spotId).pipe(
-          map((res) => res.data ?? null),
-          catchError(() => of(null)),
-        ),
-        vehicle: this.vehicleService.getVehicleById(booking.vehicleId).pipe(
-          map((res) => res.data ?? null),
-          catchError(() => of(null)),
-        ),
+        lot: booking.lotName
+          ? of(booking.lotName)
+          : this.lotService.getLotById(booking.lotId).pipe(
+              map((res) => res.data?.name ?? null),
+              catchError(() => of(null)),
+            ),
+        spot:
+          booking.spotNumber && booking.spotType
+            ? of<SpotInfo | null>({ spotNumber: booking.spotNumber, spotType: booking.spotType })
+            : this.spotService.getSpotById(booking.spotId).pipe(
+                map((res): SpotInfo | null => res.data ?? null),
+                catchError(() => of(null)),
+              ),
+        vehicle: booking.plateNumber
+          ? of<VehicleInfo | null>({ plateNumber: booking.plateNumber })
+          : this.vehicleService.getVehicleById(booking.vehicleId).pipe(
+              map((res): VehicleInfo | null => res.data ?? null),
+              catchError(() => of(null)),
+            ),
         payment: this.paymentService.getPaymentByBooking(booking.bookingId).pipe(
           map((res): PaymentState => (res.data ? { kind: 'ready', payment: res.data } : { kind: 'none' })),
           catchError((err: unknown): [PaymentState] => [

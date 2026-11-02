@@ -1,78 +1,211 @@
 <div class="flex min-h-screen flex-col bg-surface">
   <app-driver-nav activeTab="my-bookings" />
 
-  @if (view() === 'list') {
-    <main class="px-4 py-8 md:px-8">
-      <h1 class="sr-only">My bookings</h1>
-      <ul class="flex flex-col gap-4">
-        @for (booking of bookings; track booking.spot) {
-          <li
-            class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-2xl border border-border bg-card p-5 md:min-h-22"
-          >
-            <div class="flex min-w-0 items-center gap-4 max-sm:basis-full">
-              <span
-                class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-surface font-mono text-sm font-bold text-muted"
-              >
-                {{ booking.spot }}
+  @switch (view()) {
+    @case ('loading') {
+      <main class="px-4 py-8 md:px-8" aria-busy="true">
+        <h1 class="sr-only">My bookings</h1>
+        <ul class="flex flex-col gap-4" aria-hidden="true">
+          @for (i of [1, 2, 3]; track i) {
+            <li
+              class="flex min-h-22 animate-pulse items-center gap-4 rounded-2xl border border-border bg-card p-5"
+            >
+              <span class="h-12 w-12 shrink-0 rounded-lg bg-surface"></span>
+              <span class="flex flex-1 flex-col gap-2">
+                <span class="h-4 w-48 max-w-full rounded bg-surface"></span>
+                <span class="h-3.5 w-64 max-w-full rounded bg-surface"></span>
               </span>
-              <div class="min-w-0">
-                <p class="text-base font-medium text-ink">{{ booking.lotName }}</p>
-                <p class="mt-1 flex flex-wrap gap-x-4 text-sm text-muted">
-                  <span>{{ booking.startTime }}</span>
-                  <span class="font-mono">{{ booking.plate }}</span>
-                </p>
-              </div>
-            </div>
+            </li>
+          }
+        </ul>
+      </main>
+    }
 
-            <div class="flex flex-wrap items-center gap-3 sm:justify-end">
-              <span
-                class="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs"
-                [class]="pill[booking.tone].pill"
-              >
-                <span
-                  class="h-1.5 w-1.5 rounded-full"
-                  [class]="pill[booking.tone].dot"
-                  aria-hidden="true"
-                ></span>
-                {{ booking.status }}
-              </span>
-              @for (action of booking.actions; track action.label) {
-                <button
-                  type="button"
-                  class="min-h-9.5 cursor-pointer rounded-lg px-4 py-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
-                  [class]="actionClasses[action.kind]"
-                >
-                  {{ action.label }}
-                </button>
-              }
-            </div>
-          </li>
-        }
-      </ul>
-    </main>
-  } @else {
-    <main class="flex flex-1 items-center justify-center px-4 py-8">
-      <div class="flex flex-col items-center text-center">
-        <div
-          class="flex h-18 w-18 items-center justify-center rounded-full border border-border text-2xl font-bold text-muted"
-          aria-hidden="true"
+    @case ('error') {
+      <main class="px-4 py-8 md:px-8">
+        <h1 class="sr-only">My bookings</h1>
+        <p
+          role="alert"
+          class="max-w-120 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
         >
-          P
+          We couldn't load your bookings.
+          <button
+            type="button"
+            (click)="load()"
+            class="mt-1 block cursor-pointer font-semibold underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700"
+          >
+            Try again
+          </button>
+        </p>
+      </main>
+    }
+
+    @case ('empty') {
+      <main class="flex flex-1 items-center justify-center px-4 py-8">
+        <div class="flex flex-col items-center text-center">
+          <div
+            class="flex h-18 w-18 items-center justify-center rounded-full border border-border text-2xl font-bold text-muted"
+            aria-hidden="true"
+          >
+            P
+          </div>
+          <p class="mt-4 text-[11px] font-medium tracking-widest text-muted uppercase">
+            My bookings
+          </p>
+          <h1 class="mt-2 font-display text-2xl font-bold text-ink">No bookings yet</h1>
+          <p class="mt-3 max-w-85 text-sm text-muted">
+            Once you book a spot, it'll show up here — with check-in, check-out, and cancel actions.
+          </p>
+          <a
+            routerLink="/lots"
+            class="mt-6 flex min-h-11 items-center rounded-lg bg-accent px-6 py-3 text-sm font-semibold text-ink transition-colors hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          >
+            Find a spot near you
+          </a>
         </div>
-        <p class="mt-4 text-[11px] font-medium tracking-widest text-muted uppercase">
-          My bookings
-        </p>
-        <h1 class="mt-2 font-display text-2xl font-bold text-ink">No bookings yet</h1>
-        <p class="mt-3 max-w-85 text-sm text-muted">
-          Once you book a spot, it'll show up here — with check-in, check-out, and cancel actions.
-        </p>
-        <a
-          routerLink="/lots"
-          class="mt-6 flex min-h-11 items-center rounded-lg bg-accent px-6 py-3 text-sm font-semibold text-ink transition-colors hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-        >
-          Find a spot near you
-        </a>
-      </div>
-    </main>
+      </main>
+    }
+
+    @case ('list') {
+      <main class="px-4 py-8 md:px-8">
+        <h1 class="sr-only">My bookings</h1>
+
+        @if (banner(); as message) {
+          <p
+            role="alert"
+            class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          >
+            {{ message }}
+          </p>
+        }
+
+        <ul class="flex flex-col gap-4">
+          @for (row of rows(); track row.booking.bookingId) {
+            <li
+              [attr.data-booking]="row.booking.bookingId"
+              tabindex="-1"
+              class="relative flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-2xl border border-border bg-card p-5 focus:outline-none md:min-h-22"
+            >
+              <div class="flex min-w-0 items-center gap-4 max-sm:basis-full">
+                <span
+                  class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-surface font-mono text-sm font-bold text-muted"
+                >
+                  {{ row.badge }}
+                </span>
+                <div class="min-w-0">
+                  @if (row.linked) {
+                    <a
+                      data-title
+                      [routerLink]="['/bookings', row.booking.bookingId]"
+                      class="text-base font-medium text-ink after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-ink"
+                    >
+                      {{ row.title }}
+                    </a>
+                  } @else {
+                    <p class="text-base font-medium text-ink">{{ row.title }}</p>
+                  }
+                  <p class="mt-1 flex flex-wrap gap-x-4 text-sm text-muted">
+                    <span>{{ row.startTime }}</span>
+                    @if (row.plate) {
+                      <span class="font-mono">{{ row.plate }}</span>
+                    }
+                  </p>
+                </div>
+              </div>
+
+              <div class="relative z-10 flex flex-wrap items-center gap-3 sm:justify-end">
+                <div class="flex flex-col items-start gap-1">
+                  <span
+                    class="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs"
+                    [class]="pill[row.tone].pill"
+                  >
+                    <span
+                      class="h-1.5 w-1.5 rounded-full"
+                      [class]="pill[row.tone].dot"
+                      aria-hidden="true"
+                    ></span>
+                    {{ row.pill }}
+                  </span>
+                  @if (row.hint) {
+                    <span class="text-xs text-muted">{{ row.hint }}</span>
+                  }
+                </div>
+
+                @if (row.ui.phase !== 'idle') {
+                  <span class="text-sm text-muted">{{ phaseText[row.ui.phase] }}</span>
+                  @if (row.ui.slow) {
+                    <span class="basis-full text-xs text-muted sm:text-right">
+                      This is taking longer than usual. Please refresh in a moment.
+                    </span>
+                  }
+                } @else {
+                  @for (action of row.actions; track action.key) {
+                    @switch (action.key) {
+                      @case ('book-again') {
+                        <a
+                          [routerLink]="['/lots', row.booking.lotId]"
+                          class="flex min-h-9.5 items-center rounded-lg px-4 py-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+                          [class]="actionClasses[action.kind]"
+                        >
+                          {{ action.label }}
+                        </a>
+                      }
+                      @case ('view-receipt') {
+                        <a
+                          [routerLink]="['/bookings', row.booking.bookingId]"
+                          class="flex min-h-9.5 items-center rounded-lg px-4 py-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+                          [class]="actionClasses[action.kind]"
+                        >
+                          {{ action.label }}
+                        </a>
+                      }
+                      @default {
+                        <button
+                          type="button"
+                          class="min-h-9.5 cursor-pointer rounded-lg px-4 py-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+                          [class]="actionClasses[action.kind]"
+                          (click)="
+                            action.key === 'check-in'
+                              ? checkIn(row.booking)
+                              : action.key === 'check-out'
+                                ? checkOut(row.booking)
+                                : openCancel(row.booking, $event)
+                          "
+                        >
+                          {{ action.label }}
+                        </button>
+                      }
+                    }
+                  }
+                }
+              </div>
+            </li>
+          }
+        </ul>
+
+        @if (hasMore()) {
+          <button
+            type="button"
+            (click)="showMore()"
+            class="mt-4 min-h-11 cursor-pointer rounded-lg border border-border bg-card px-5 py-2.5 text-sm text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          >
+            Show more
+          </button>
+        }
+      </main>
+    }
   }
+
+  @if (cancelTarget()) {
+    <app-cancel-booking-dialog
+      [message]="cancelMessage()"
+      [busy]="dialogBusy()"
+      [error]="dialogError()"
+      [opener]="dialogOpener()"
+      (closed)="closeCancel()"
+      (confirmed)="confirmCancel()"
+    />
+  }
+
+  <p class="sr-only" role="status" aria-live="polite">{{ announcement() }}</p>
 </div>

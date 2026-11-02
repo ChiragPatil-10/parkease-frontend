@@ -13,6 +13,11 @@ export class BookingService {
     return this.api.post<BookingResponse>(BOOKING_API.create, request);
   }
 
+  /** All of the caller's bookings, newest first, no pagination. */
+  getMyBookings(): Observable<ApiResponse<BookingResponse[]>> {
+    return this.api.get<BookingResponse[]>(BOOKING_API.my);
+  }
+
   getBookingById(bookingId: string): Observable<ApiResponse<BookingResponse>> {
     return this.api.get<BookingResponse>(BOOKING_API.byId(bookingId));
   }
