@@ -385,9 +385,9 @@ describe('DriverMyBookings', () => {
 
     it.each([
       ['DriverCancelled', 'Cancelled'],
-      ['PaymentTimeout', 'Cancelled — payment timed out'],
-      ['PaymentFailed', 'Cancelled — payment failed'],
-      ['SpotUnavailable', 'Cancelled — spot unavailable'],
+      ['PaymentTimeout', 'Cancelled \u2014 payment timed out'],
+      ['PaymentFailed', 'Cancelled \u2014 payment failed'],
+      ['SpotUnavailable', 'Cancelled \u2014 spot unavailable'],
       ['Other', 'Cancelled'],
       [null, 'Cancelled'],
     ])('cancelReason %s shows "%s" and no other text', async (cancelReason, pill) => {
@@ -490,7 +490,7 @@ describe('DriverMyBookings', () => {
       );
       expect(gets.filter((p) => p === '/api/bookings/1').length).toBe(1);
       expect(count('/api/bookings/my')).toBe(1);
-      expect(text(row('1'))).toContain('Cancelled — spot unavailable');
+      expect(text(row('1'))).toContain('Cancelled \u2014 spot unavailable');
     });
 
     it('reloads the whole list on 404', async () => {

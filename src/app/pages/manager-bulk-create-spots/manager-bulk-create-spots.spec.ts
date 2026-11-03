@@ -108,7 +108,7 @@ describe('ManagerBulkCreateSpots', () => {
     await flushLot(fixture);
 
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(text).toContain('Add spots — Whitefield Central Lot');
+    expect(text).toContain('Add spots \u2014 Whitefield Central Lot');
   });
 
   it('clears the session and redirects to /login on a 401 while loading the lot', async () => {
@@ -146,7 +146,7 @@ describe('ManagerBulkCreateSpots', () => {
     await flushLot(fixture);
 
     expect(el.querySelector('[data-rate-limited]')).toBeNull();
-    expect(el.textContent).toContain('Add spots — Whitefield Central Lot');
+    expect(el.textContent).toContain('Add spots \u2014 Whitefield Central Lot');
   });
 
   it('shows a not-found message when the lot 404s', async () => {

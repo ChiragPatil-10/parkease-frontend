@@ -435,7 +435,7 @@ describe('DriverMyVehicles', () => {
     it('switches to the warning variant on 409 and deletes with confirm=true', async () => {
       await click(dialog()!.querySelectorAll('button')[1]);
       httpMock.expectOne(deleteUrl(false)).flush(
-        failure('This vehicle has an upcoming booking — deleting it will cancel that booking.'),
+        failure('This vehicle has an upcoming booking \u2014 deleting it will cancel that booking.'),
         { status: 409, statusText: 'Conflict' },
       );
       await settle();

@@ -145,7 +145,7 @@ describe('ManagerLotBookings', () => {
       expect(lotsCalls).toEqual(['mgr-1']);
       expect(el.querySelector('app-manager-nav')).toBeTruthy();
       expect(el.querySelector('nav a.font-semibold')?.textContent?.trim()).toBe('Lot Bookings');
-      expect(h1(el)).toBe('Bookings — Whitefield Central Lot');
+      expect(h1(el)).toBe('Bookings \u2014 Whitefield Central Lot');
       expect(el.querySelector('h1')?.className).toContain('font-display');
     });
 
@@ -216,7 +216,7 @@ describe('ManagerLotBookings', () => {
         'Hebbal Annex Lot (not approved)',
         'Whitefield Central Lot',
       ]);
-      expect(h1(el)).toBe('Bookings — Hebbal Annex Lot');
+      expect(h1(el)).toBe('Bookings \u2014 Hebbal Annex Lot');
     });
 
     it('changing it updates the URL, reloads, resets the chip to All and drops the suffix from the h1', async () => {
@@ -238,7 +238,7 @@ describe('ManagerLotBookings', () => {
       expect(last().status).toBeNull();
       expect(last().page).toBe(1);
       expect(chip(el, 'All').getAttribute('aria-pressed')).toBe('true');
-      expect(h1(el)).toBe('Bookings — Indiranagar Metro Lot');
+      expect(h1(el)).toBe('Bookings \u2014 Indiranagar Metro Lot');
       respond(last(), []);
       await settle();
       expect(el.textContent).toContain('No bookings yet.');

@@ -326,7 +326,7 @@ describe('DriverLotDetail', () => {
     it('shows the single-floor label when there is one floor', async () => {
       const { text, el } = await open();
 
-      expect(text()).toContain('PICK A SPOT — FLOOR 1');
+      expect(text()).toContain('PICK A SPOT \u2014 FLOOR 1');
       expect(el.querySelector('button[aria-pressed][class*="px-4 py-1.5"]:not(.rounded-full)')).toBeNull();
     });
 
@@ -334,7 +334,7 @@ describe('DriverLotDetail', () => {
       const floor2 = spot({ spotId: 's6', spotNumber: 'B-01', floor: 2 });
       const { el, text } = await open({ spots: [floor2, ...SPOTS] });
 
-      expect(text()).not.toContain('PICK A SPOT — FLOOR');
+      expect(text()).not.toContain('PICK A SPOT \u2014 FLOOR');
       expect(button(el, 'Floor 1').getAttribute('aria-pressed')).toBe('true');
       expect(spotButton(el, 'B-01')).toBeNull();
 

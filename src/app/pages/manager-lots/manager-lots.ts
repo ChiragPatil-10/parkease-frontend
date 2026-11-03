@@ -109,7 +109,7 @@ export class ManagerLots implements OnInit {
 
   /**
    * GET /lots/manager/{managerId} uses ASP.NET's Forbid() directly for a mismatched id (per
-   * parkinglot-service.md), so an error body here may not be the usual ApiResponse envelope —
+   * parkinglot-service.md), so an error body here may not be the usual ApiResponse envelope -
    * don't assume err.error.message exists before falling back to a generic message.
    */
   private resolveErrorMessage(err: unknown): string {

@@ -50,7 +50,7 @@ const EMPTY_LOT: LotFormModel = {
 
 /**
  * gateway.md flags the 422 `errors` dict's key casing as unconfirmed (PascalCase per the
- * validator source, but never observed live) — matched case-insensitively here so this keeps
+ * validator source, but never observed live) - matched case-insensitively here so this keeps
  * working whichever casing the API actually sends.
  */
 const SERVER_FIELD_KEYS: Record<string, keyof LotFormModel> = {

@@ -157,7 +157,7 @@ describe('DriverBookingDetail', () => {
       expect(mono('₹120')).toBe(true);
       expect(mono('order_Nk3xR9Qp')).toBe(true);
       expect(el.querySelector('h2')?.textContent?.trim()).toBe('Payment');
-      expect(text()).toContain('Captured — paid');
+      expect(text()).toContain('Captured \u2014 paid');
       expect(text()).toContain('Paid at');
     });
 
@@ -224,7 +224,7 @@ describe('DriverBookingDetail', () => {
       await setup();
       expect(text()).toContain('Spot Not available');
       expect(text()).toContain('Vehicle Not available');
-      expect(text()).toContain('Captured — paid');
+      expect(text()).toContain('Captured \u2014 paid');
     });
 
     it('treats a payment 404 as "no payment"', async () => {
@@ -296,9 +296,9 @@ describe('DriverBookingDetail', () => {
   describe('cancelled status text', () => {
     it.each([
       ['DriverCancelled', 'Cancelled'],
-      ['PaymentTimeout', 'Cancelled — payment timed out'],
-      ['PaymentFailed', 'Cancelled — payment failed'],
-      ['SpotUnavailable', 'Cancelled — spot unavailable'],
+      ['PaymentTimeout', 'Cancelled \u2014 payment timed out'],
+      ['PaymentFailed', 'Cancelled \u2014 payment failed'],
+      ['SpotUnavailable', 'Cancelled \u2014 spot unavailable'],
       ['Other', 'Cancelled'],
       [null, 'Cancelled'],
     ])('cancelReason %s shows "%s" in the Status row', async (cancelReason, label) => {
@@ -314,8 +314,8 @@ describe('DriverBookingDetail', () => {
 
   describe('payment card', () => {
     const cases: [string, string, boolean][] = [
-      ['Captured', 'Captured — paid', true],
-      ['Held', 'Captured — paid', true],
+      ['Captured', 'Captured \u2014 paid', true],
+      ['Held', 'Captured \u2014 paid', true],
       ['Created', 'Awaiting payment', false],
       ['Refunded', 'Refunded', true],
       ['RefundFailed', 'Refund pending', true],

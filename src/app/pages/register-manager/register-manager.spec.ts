@@ -65,7 +65,7 @@ describe('RegisterManager', () => {
     expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it('treats phone as required, unlike Register — Driver', () => {
+  it('treats phone as required, unlike Register \u2014 Driver', () => {
     const component = createFixture(
       'Priya Shah',
       'priya@example.com',

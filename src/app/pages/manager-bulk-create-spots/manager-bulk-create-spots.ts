@@ -258,7 +258,7 @@ export class ManagerBulkCreateSpots implements OnInit {
 
     if (err.status === 400) {
       this.serverError.set(
-        body?.message ?? "One of these spots isn't valid — check the spot type and vehicle type combinations.",
+        body?.message ?? "One of these spots isn't valid \u2014 check the spot type and vehicle type combinations.",
       );
       return;
     }
@@ -275,7 +275,7 @@ export class ManagerBulkCreateSpots implements OnInit {
   }
 
   /**
-   * Best-effort mapping only — 03-Spot-Service.md doesn't show a worked example of the 422 `errors`
+   * Best-effort mapping only - 03-Spot-Service.md doesn't show a worked example of the 422 `errors`
    * dict shape for the bulk endpoint's per-item validation, so this assumes the common ASP.NET
    * indexed-property key format ("Spots[0].SpotNumber") and falls back to the banner if it doesn't match.
    */
