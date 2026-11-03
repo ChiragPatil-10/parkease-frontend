@@ -183,7 +183,7 @@ describe('RegisterManager', () => {
     expect(component.serverError()).toBe('Validation failed.');
   });
 
-  it('shows a rate-limit message on 429 responses', async () => {
+  it('shows no inline error on 429 responses and ends the busy state', async () => {
     const component = createFixture(
       'Priya Shah',
       'priya@example.com',
@@ -199,9 +199,9 @@ describe('RegisterManager', () => {
 
     await submission;
 
-    expect(component.serverError()).toBe(
-      'Too many registration attempts. Please wait a minute and try again.',
-    );
+    // The global toast covers a 429, so the page shows no inline error and the form is not busy.
+    expect(component.serverError()).toBeNull();
+    expect(component.registerForm().submitting()).toBe(false);
   });
 
   it('links to the driver registration page', () => {

@@ -62,7 +62,7 @@ describe('ErrorNotFound', () => {
     it('is the last route', () => {
       const last = routes[routes.length - 1];
       expect(last.path).toBe('**');
-      expect(last.component).toBe(ErrorNotFound);
+      expect(last.loadComponent).toBeDefined();
     });
 
     it('resolves an unknown URL to the 404 page', async () => {

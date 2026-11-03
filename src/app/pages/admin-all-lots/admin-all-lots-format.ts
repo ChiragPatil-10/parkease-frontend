@@ -1,20 +1,3 @@
-/** Local view type for a lot of GET /api/v1/lots/all (same field names and values as the docs). */
-export interface AdminLotRow {
-  lotId: string;
-  name: string;
-  address: string;
-  /** Lowercase in the API; shown capitalised. */
-  city: string;
-  totalSpots: number;
-  minPricePerHour: number;
-  maxPricePerHour: number;
-  isOpen: boolean;
-  /** "Pending" | "Approved" | "Rejected" (string so unknown values still render) */
-  approvalStatus: string;
-  managerName: string | null;
-  createdAt: string;
-}
-
 export interface LotStatusPill {
   label: string;
   dotClass: string;
@@ -25,7 +8,7 @@ export interface LotStatusPill {
  * Approved + open -> green, Approved + closed -> muted, Pending -> muted, Rejected -> red.
  * Unknown values show the raw text with the muted dot.
  */
-export function lotStatusPill(approvalStatus: string, isOpen: boolean): LotStatusPill {
+export function lotStatusPill(approvalStatus: string | undefined, isOpen: boolean): LotStatusPill {
   switch (approvalStatus) {
     case 'Approved':
       return isOpen
@@ -36,7 +19,7 @@ export function lotStatusPill(approvalStatus: string, isOpen: boolean): LotStatu
     case 'Rejected':
       return { label: 'Rejected', dotClass: 'bg-red-700' };
     default:
-      return { label: approvalStatus, dotClass: 'bg-muted' };
+      return { label: approvalStatus ?? '', dotClass: 'bg-muted' };
   }
 }
 
@@ -48,6 +31,6 @@ export function capitalizeCity(city: string): string {
     .join(' ');
 }
 
-export function managerLabel(managerName: string | null): string {
+export function managerLabel(managerName: string | null | undefined): string {
   return managerName?.trim() ? managerName : 'Unknown manager';
 }

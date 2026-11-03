@@ -1,11 +1,13 @@
-import { UserRow, formatJoinedDate, userActionFor, userStatusPill } from './admin-users-format';
+import { UserRole } from '../../models/auth/user-role.enum';
+import { UserSummaryDto } from '../../models/auth/user-summary.model';
+import { formatJoinedDate, userActionFor, userStatusPill } from './admin-users-format';
 
-function user(over: Partial<UserRow>): UserRow {
+function user(over: Partial<UserSummaryDto>): UserSummaryDto {
   return {
     userId: 'u-1',
     fullName: 'Test',
     email: 't@example.com',
-    role: 'Driver',
+    role: UserRole.Driver,
     isActive: true,
     createdAt: '2026-06-12T09:30:00Z',
     status: 'Active',
@@ -50,8 +52,8 @@ describe('userActionFor', () => {
   });
 
   it('offers nothing for admins, the signed-in admin, pending and rejected rows or unknown status', () => {
-    expect(userActionFor(user({ role: 'Admin' }), 'me')).toBeNull();
-    expect(userActionFor(user({ role: 'Admin', status: 'Suspended' }), 'me')).toBeNull();
+    expect(userActionFor(user({ role: UserRole.Admin }), 'me')).toBeNull();
+    expect(userActionFor(user({ role: UserRole.Admin, status: 'Suspended' }), 'me')).toBeNull();
     expect(userActionFor(user({ userId: 'me' }), 'me')).toBeNull();
     expect(userActionFor(user({ status: 'PendingApproval' }), 'me')).toBeNull();
     expect(userActionFor(user({ status: 'Rejected' }), 'me')).toBeNull();

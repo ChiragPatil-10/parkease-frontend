@@ -2,23 +2,33 @@
   <app-admin-nav activeTab="all-lots" />
 
   <main class="px-4 py-8 md:px-8">
-    <h1 class="font-display text-2xl font-bold text-ink">All lots &mdash; {{ total() }} total</h1>
+    <h1 class="font-display text-2xl font-bold text-ink">All lots @if (state() === 'loaded' || state() === 'empty') {&mdash; {{ totalCount() }} total}</h1>
 
-    @switch (view()) {
+    @switch (state()) {
       @case ('error') {
-        <p
-          role="alert"
-          class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-        >
-          Could not load lots.
+        @if (loadError(); as message) {
+          <p
+            role="alert"
+            class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          >
+            {{ message }}
+            <button
+              type="button"
+              (click)="retry()"
+              class="mt-1 block min-h-11 cursor-pointer font-semibold underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700"
+            >
+              Retry
+            </button>
+          </p>
+        } @else {
           <button
             type="button"
             (click)="retry()"
-            class="mt-1 block min-h-11 cursor-pointer font-semibold underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700"
+            class="mt-4 min-h-11 cursor-pointer rounded-lg border border-border bg-card px-5 py-2.5 text-sm text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           >
             Retry
           </button>
-        </p>
+        }
       }
 
       @case ('empty') {

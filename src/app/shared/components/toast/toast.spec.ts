@@ -29,7 +29,7 @@ describe('Toast', () => {
     const el = fixture.nativeElement as HTMLElement;
 
     expect(el.querySelector('[data-toast]')?.textContent).toContain(
-      'Too many login attempts — try again in a minute.',
+      'Too many login attempts \u2014 try again in a minute.',
     );
   });
 
@@ -56,7 +56,7 @@ describe('Toast', () => {
   });
 
   it('exports the two rate-limit messages', () => {
-    expect(LOGIN_RATE_LIMIT_MESSAGE).toBe('Too many login attempts — try again in a minute.');
+    expect(LOGIN_RATE_LIMIT_MESSAGE).toBe('Too many login attempts \u2014 try again in a minute.');
     expect(GENERAL_RATE_LIMIT_MESSAGE).toBe(
       'Too many requests. Please wait a moment and try again.',
     );

@@ -25,21 +25,31 @@
       </p>
     }
 
-    @switch (view()) {
+    @switch (state()) {
       @case ('error') {
-        <p
-          role="alert"
-          class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-        >
-          Could not load users.
+        @if (loadError(); as message) {
+          <p
+            role="alert"
+            class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          >
+            {{ message }}
+            <button
+              type="button"
+              (click)="retry()"
+              class="mt-1 block min-h-11 cursor-pointer font-semibold underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700"
+            >
+              Retry
+            </button>
+          </p>
+        } @else {
           <button
             type="button"
             (click)="retry()"
-            class="mt-1 block min-h-11 cursor-pointer font-semibold underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700"
+            class="mt-4 min-h-11 cursor-pointer rounded-lg border border-border bg-card px-5 py-2.5 text-sm text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           >
             Retry
           </button>
-        </p>
+        }
       }
 
       @case ('empty') {
@@ -160,7 +170,7 @@
 </div>
 
 @if (pending(); as p) {
-  <app-user-confirm-dialog
+  <app-confirm-dialog
     [title]="dialogTitle(p)"
     [message]="dialogMessage(p)"
     [confirmLabel]="p.kind === 'suspend' ? 'Suspend' : 'Reactivate'"

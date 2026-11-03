@@ -1,15 +1,5 @@
-/** Local view type for a row of GET /api/v1/auth/users (same field names and values as the docs). */
-export interface UserRow {
-  userId: string;
-  fullName: string;
-  email: string;
-  /** "Driver" | "Manager" | "Admin" */
-  role: string;
-  isActive: boolean;
-  createdAt: string;
-  /** "Active" | "Suspended" | "PendingApproval" | "Rejected" (kept as string so unknown values still render) */
-  status: string;
-}
+import { UserRole } from '../../models/auth/user-role.enum';
+import { UserSummaryDto } from '../../models/auth/user-summary.model';
 
 export type UserActionKind = 'suspend' | 'reactivate';
 
@@ -49,8 +39,8 @@ export function userStatusPill(status: string): StatusPill {
  * reactivated. Admin rows, the signed-in admin's own row, Pending approval rows (approved on the
  * Manager Applications page) and Rejected rows get none.
  */
-export function userActionFor(user: UserRow, currentAdminId: string): UserActionKind | null {
-  if (user.role === 'Admin' || user.userId === currentAdminId) return null;
+export function userActionFor(user: UserSummaryDto, currentAdminId: string): UserActionKind | null {
+  if (user.role === UserRole.Admin || user.userId === currentAdminId) return null;
   if (user.status === 'Active') return 'suspend';
   if (user.status === 'Suspended') return 'reactivate';
   return null;

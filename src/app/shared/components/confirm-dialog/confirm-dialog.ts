@@ -1,11 +1,11 @@
 import { Component, input, output } from '@angular/core';
-import { DialogBehavior } from '../driver-my-vehicles/dialog-behavior.directive';
+import { DialogBehavior } from '../../../pages/driver-my-vehicles/dialog-behavior.directive';
 
 let nextId = 0;
 
 /** Confirm dialog in the style of the Booking Detail cancel dialog, with configurable text. */
 @Component({
-  selector: 'app-user-confirm-dialog',
+  selector: 'app-confirm-dialog',
   imports: [DialogBehavior],
   template: `
     <div
@@ -53,7 +53,7 @@ let nextId = 0;
     </div>
   `,
 })
-export class UserConfirmDialog {
+export class ConfirmDialog {
   readonly title = input.required<string>();
   readonly message = input('');
   readonly confirmLabel = input.required<string>();
@@ -64,8 +64,8 @@ export class UserConfirmDialog {
   readonly confirmed = output<void>();
 
   private readonly id = nextId++;
-  protected readonly titleId = `user-confirm-title-${this.id}`;
-  protected readonly bodyId = `user-confirm-body-${this.id}`;
+  protected readonly titleId = `confirm-dialog-title-${this.id}`;
+  protected readonly bodyId = `confirm-dialog-body-${this.id}`;
 
   protected onBackdropClick(event: MouseEvent): void {
     if (event.target === event.currentTarget) {

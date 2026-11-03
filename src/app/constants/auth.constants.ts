@@ -3,7 +3,11 @@ export const AUTH_API = {
   logout: '/api/v1/auth/logout',
   registerDriver: '/api/v1/auth/register/driver',
   registerManager: '/api/v1/auth/register/manager',
-  userById: (id: string) => `/api/v1/auth/users/${id}`,
+  /** Path prefix shared by both register routes (the 429 interceptor matches on it). */
+  registerPrefix: '/api/v1/auth/register',
+  users: '/api/v1/auth/users',
+  suspendUser: (userId: string) => `/api/v1/auth/users/${userId}/suspend`,
+  reactivateUser: (userId: string) => `/api/v1/auth/users/${userId}/reactivate`,
   managerApplications: '/api/v1/admin/manager-applications',
   approveManager: (applicationId: string) => `/api/v1/admin/approve-manager/${applicationId}`,
   rejectManager: (applicationId: string) => `/api/v1/admin/reject-manager/${applicationId}`,

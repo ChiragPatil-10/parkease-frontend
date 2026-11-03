@@ -34,8 +34,16 @@ export class AuthService {
     return this.api.post<ManagerApplicationDto>(AUTH_API.registerManager, request);
   }
 
-  getUserById(userId: string): Observable<ApiResponse<UserSummaryDto>> {
-    return this.api.get<UserSummaryDto>(AUTH_API.userById(userId));
+  getUsers(page: number, pageSize: number): Observable<ApiResponse<PagedResponse<UserSummaryDto>>> {
+    return this.api.get<PagedResponse<UserSummaryDto>>(AUTH_API.users, { page, pageSize });
+  }
+
+  suspendUser(userId: string): Observable<ApiResponse<unknown>> {
+    return this.api.put(AUTH_API.suspendUser(userId), {});
+  }
+
+  reactivateUser(userId: string): Observable<ApiResponse<unknown>> {
+    return this.api.put(AUTH_API.reactivateUser(userId), {});
   }
 
   getManagerApplications(
