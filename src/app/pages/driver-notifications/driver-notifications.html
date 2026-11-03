@@ -38,6 +38,19 @@
         </p>
       }
 
+      @case ('rate-limited') {
+        <div class="mt-6" data-rate-limited>
+          <p class="text-sm text-muted">Couldn't load this right now.</p>
+          <button
+            type="button"
+            (click)="load()"
+            class="mt-2 min-h-11 cursor-pointer rounded-lg border border-border bg-card px-5 py-2.5 text-sm text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          >
+            Retry
+          </button>
+        </div>
+      }
+
       @case ('empty') {
         <div class="mt-16 flex flex-col items-center text-center">
           <p class="text-base font-medium text-ink">No notifications yet.</p>

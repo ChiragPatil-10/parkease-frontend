@@ -450,10 +450,52 @@ describe('DriverLotDetail', () => {
       expect(localStorage.getItem(SESSION_STORAGE_KEY)).toBeNull();
     });
 
-    it('shows a retry banner on a 429 from the spots request', async () => {
-      const { text } = await open({ spots: 429 });
+    it('a 429 on the spots request shows no banner, a neutral retry, and keeps the rest of the page', async () => {
+      const { el, text } = await open({ spots: 429 });
 
-      expect(text()).toContain('retry in a few moments');
+      expect(el.querySelector('[role="alert"]')).toBeNull();
+      expect(text()).not.toContain('Too many requests');
+      expect(text()).toContain('Whitefield Central Lot');
+      expect(el.querySelector('[data-rate-limited]')?.textContent).toContain(
+        "Couldn't load this right now.",
+      );
+
+      button(el, 'Retry').click();
+      httpMock.expectOne(SPOTS_URL).flush(envelope(SPOTS));
+      await settle();
+
+      expect(el.querySelector('[data-rate-limited]')).toBeNull();
+      expect(el.querySelectorAll('button.font-mono').length).toBe(4);
+    });
+
+    it('a 429 on the lot request shows a neutral retry instead of the red banner', async () => {
+      const { el, text } = await open({ lot: 429 });
+
+      expect(el.querySelector('[role="alert"]')).toBeNull();
+      expect(text()).not.toContain('Too many requests');
+      expect(el.querySelector('[data-rate-limited]')).toBeTruthy();
+      expect(el.querySelector('a[href="/lots"]')).toBeTruthy();
+
+      button(el, 'Retry').click();
+      httpMock.expectOne(LOT_URL).flush(envelope(LOT));
+      await settle();
+
+      expect(text()).toContain('Whitefield Central Lot');
+    });
+
+    it('a 429 on the vehicles request shows no banner and a retry; the spot grid stays', async () => {
+      const { el, text } = await open({ vehicles: 429 });
+
+      expect(el.querySelector('[role="alert"]')).toBeNull();
+      expect(text()).not.toContain('Too many requests');
+      expect(el.querySelector('[data-rate-limited]')).toBeTruthy();
+      expect(el.querySelectorAll('button.font-mono').length).toBe(4);
+
+      button(el, 'Retry').click();
+      httpMock.expectOne(VEHICLES_URL).flush(envelope([CAR, BIKE]));
+      await settle();
+
+      expect(el.querySelector('[data-rate-limited]')).toBeNull();
     });
   });
 

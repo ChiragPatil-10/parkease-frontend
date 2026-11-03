@@ -34,7 +34,7 @@ import {
   toBookingStartTime,
 } from './booking-review-format';
 
-type View = 'loading' | 'bad-link' | 'spot-taken' | 'load-error' | 'ready';
+type View = 'loading' | 'bad-link' | 'spot-taken' | 'load-error' | 'rate-limited' | 'ready';
 type Notice =
   | 'payment-failed'
   | 'dismissed'
@@ -246,6 +246,9 @@ export class DriverBookingReview implements OnInit, OnDestroy {
     } catch (err) {
       if (isHttpStatus(err, 400, 404)) {
         this.view.set('bad-link');
+      } else if (isHttpStatus(err, 429)) {
+        // Nothing to show yet: the toast explains, the page offers a neutral retry.
+        this.view.set('rate-limited');
       } else {
         this.expireSessionIfUnauthorised(err);
         this.view.set('load-error');
@@ -337,7 +340,8 @@ export class DriverBookingReview implements OnInit, OnDestroy {
         if (!alive()) {
           return false;
         }
-        if (!isHttpStatus(err, 404)) {
+        // A 404 (no payment yet) and a 429 (explained by the toast) both keep this status poll going.
+        if (!isHttpStatus(err, 404, 429)) {
           this.pollSession++;
           throw err;
         }
@@ -482,6 +486,12 @@ export class DriverBookingReview implements OnInit, OnDestroy {
   }
 
   private handleError(err: unknown): void {
+    if (isHttpStatus(err, 429)) {
+      // The toast explains. Pay works again; the idempotency key is unchanged, so a later click
+      // can never create a second booking, and nothing is resent automatically.
+      this.running.set(false);
+      return;
+    }
     this.expireSessionIfUnauthorised(err);
     if (isHttpStatus(err, 409) && SPOT_UNAVAILABLE_MESSAGE.test(serverMessage(err))) {
       this.running.set(false);

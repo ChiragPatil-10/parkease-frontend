@@ -14,6 +14,10 @@ const DEFAULT_RADIUS: RadiusKm = 2;
 // Search endpoint caps pageSize at 50; the design has no pagination controls, so one page covers it.
 const SEARCH_PAGE_SIZE = 50;
 
+function isHttpStatus(err: unknown, ...statuses: number[]): boolean {
+  return err instanceof HttpErrorResponse && statuses.includes(err.status);
+}
+
 const LOCATION_BLOCKED_HINT =
   "Couldn't get your location. Enable location access for this site in your browser settings, then try again.";
 
@@ -56,6 +60,8 @@ export class DriverLots implements OnInit {
   protected readonly nearbyLots = signal<NearbyLot[]>([]);
   protected readonly nearbyLoading = signal(false);
   protected readonly nearbyError = signal<string | null>(null);
+  /** A 429 on a nearby load with nothing to show yet; the toast explains, the page offers Retry. */
+  protected readonly nearbyRateLimited = signal(false);
 
   protected readonly cityInput = signal('');
   protected readonly searchedCity = signal<string | null>(null);
@@ -107,6 +113,10 @@ export class DriverLots implements OnInit {
     await this.loadNearby();
   }
 
+  protected retryNearby(): void {
+    void this.loadNearby();
+  }
+
   protected dismissBanner(): void {
     this.bannerDismissed.set(true);
   }
@@ -145,6 +155,10 @@ export class DriverLots implements OnInit {
       if (requestId !== this.searchRequestId) {
         return;
       }
+      if (isHttpStatus(err, 429)) {
+        // The toast explains; the Search button works again and earlier results stay.
+        return;
+      }
       this.searchError.set(this.resolveErrorMessage(err));
     } finally {
       if (requestId === this.searchRequestId) {
@@ -161,6 +175,7 @@ export class DriverLots implements OnInit {
     const requestId = ++this.nearbyRequestId;
     this.nearbyLoading.set(true);
     this.nearbyError.set(null);
+    this.nearbyRateLimited.set(false);
 
     try {
       const response = await firstValueFrom(
@@ -176,6 +191,11 @@ export class DriverLots implements OnInit {
       this.nearbyLots.set(response.data ?? []);
     } catch (err) {
       if (requestId !== this.nearbyRequestId) {
+        return;
+      }
+      if (isHttpStatus(err, 429)) {
+        // Lots already on screen stay; with none yet the page offers a neutral Retry.
+        this.nearbyRateLimited.set(this.nearbyLots().length === 0);
         return;
       }
       this.nearbyError.set(this.resolveErrorMessage(err));
@@ -211,8 +231,6 @@ export class DriverLots implements OnInit {
           return 'Your session has expired. Please log in again.';
         case err.status === 400 || err.status === 422:
           return "That request wasn't valid. Please check your input and try again.";
-        case err.status === 429:
-          return 'Too many requests. Please retry in a few moments.';
         case err.status >= 500:
           return 'Something went wrong on our side. Please try again shortly.';
       }

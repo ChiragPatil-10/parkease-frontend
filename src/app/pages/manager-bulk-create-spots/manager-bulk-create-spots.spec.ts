@@ -122,6 +122,33 @@ describe('ManagerBulkCreateSpots', () => {
     expect(localStorage.getItem(SESSION_STORAGE_KEY)).toBeNull();
   });
 
+  it('a 429 loading the lot shows a neutral Retry instead of an error, then loads', async () => {
+    const { fixture, component } = createFixture();
+
+    httpMock.expectOne(LOT_URL).flush(
+      { success: false, message: 'Slow down', data: null, errors: null },
+      { status: 429, statusText: 'Too Many Requests' },
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(component.lotLoading()).toBe(false);
+    expect(component.lotLoadError()).toBeNull();
+    expect(el.querySelector('.text-red-600')).toBeNull();
+    expect(el.textContent).not.toContain('Slow down');
+    expect(el.querySelector('[data-rate-limited]')?.textContent).toContain(
+      "Couldn't load this right now.",
+    );
+
+    el.querySelector<HTMLButtonElement>('[data-rate-limited] button')!.click();
+    await flushLot(fixture);
+
+    expect(el.querySelector('[data-rate-limited]')).toBeNull();
+    expect(el.textContent).toContain('Add spots — Whitefield Central Lot');
+  });
+
   it('shows a not-found message when the lot 404s', async () => {
     const { fixture, component } = createFixture();
 
@@ -215,6 +242,31 @@ describe('ManagerBulkCreateSpots', () => {
       });
       req.flush({ success: true, message: null, data: [], errors: null });
       await submission;
+    });
+
+    it('a 429 shows no banner, keeps the rows and ends the creating state', async () => {
+      const { fixture, component } = createFixture();
+      await flushLot(fixture);
+      fillValidRow(component);
+
+      const submission = component.onSubmit();
+      httpMock
+        .expectOne(BULK_URL)
+        .flush(
+          { success: false, message: 'Slow down', data: null, errors: null },
+          { status: 429, statusText: 'Too Many Requests' },
+        );
+      await submission;
+      fixture.detectChanges();
+
+      const el = fixture.nativeElement as HTMLElement;
+      expect(component.serverError()).toBeNull();
+      expect(component.submitting()).toBe(false);
+      expect(component.rows()[0].spotNumber).toBe('A-16');
+      expect(el.textContent).not.toContain('Slow down');
+      expect(el.textContent).not.toContain('Something went wrong');
+      expect(el.textContent).not.toContain('Creating…');
+      expect(router.navigateByUrl).not.toHaveBeenCalled();
     });
 
     it('navigates back to /manager/spots on a successful bulk create', async () => {

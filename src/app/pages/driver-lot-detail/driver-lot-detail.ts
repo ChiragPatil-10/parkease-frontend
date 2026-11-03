@@ -39,7 +39,11 @@ const START_TIME_STEP_MINUTES = 15;
 const EV_ONLY_REASON = 'EV charging spot: requires an electric vehicle';
 const LOT_CLOSED_REASON = 'This lot is closed right now';
 
-type LotFailure = 'not-found' | 'error';
+type LotFailure = 'not-found' | 'error' | 'rate-limited';
+
+function isHttpStatus(err: unknown, ...statuses: number[]): boolean {
+  return err instanceof HttpErrorResponse && statuses.includes(err.status);
+}
 
 /** Accepts the distance passed as router state from /lots only if it is a finite number >= 0. */
 export function parseDistanceKm(state: unknown): number | null {
@@ -103,10 +107,13 @@ export class DriverLotDetail implements OnInit {
   protected readonly spots = signal<SpotResponse[]>([]);
   protected readonly spotsLoading = signal(false);
   protected readonly spotsError = signal<string | null>(null);
+  /** A 429 with nothing loaded yet; the global toast explains, the section offers Retry. */
+  protected readonly spotsRateLimited = signal(false);
 
   protected readonly vehicles = signal<VehicleResponse[]>([]);
   protected readonly vehiclesLoading = signal(false);
   protected readonly vehiclesError = signal<string | null>(null);
+  protected readonly vehiclesRateLimited = signal(false);
 
   protected readonly distanceKm = signal<number | null>(null);
   protected readonly startTimeLabel = signal(formatStartTime(new Date()));
@@ -172,6 +179,24 @@ export class DriverLotDetail implements OnInit {
         void this.loadSpots(lotId);
       }
     });
+    void this.loadVehicles();
+  }
+
+  protected retryLot(): void {
+    const lotId = this.route.snapshot.paramMap.get('lotId');
+    if (lotId) {
+      void this.loadLot(lotId);
+    }
+  }
+
+  protected retrySpots(): void {
+    const lotId = this.route.snapshot.paramMap.get('lotId');
+    if (lotId) {
+      void this.loadSpots(lotId);
+    }
+  }
+
+  protected retryVehicles(): void {
     void this.loadVehicles();
   }
 
@@ -242,6 +267,9 @@ export class DriverLotDetail implements OnInit {
       if (requestId === this.lotRequestId) {
         if (err instanceof HttpErrorResponse && (err.status === 404 || err.status === 400)) {
           this.lotFailure.set('not-found');
+        } else if (isHttpStatus(err, 429)) {
+          // Nothing to show yet: a neutral retry state instead of the red banner.
+          this.lotFailure.set('rate-limited');
         } else {
           this.lotFailure.set('error');
           this.lotError.set(this.resolveErrorMessage(err, "Couldn't load this lot."));
@@ -258,6 +286,7 @@ export class DriverLotDetail implements OnInit {
     const requestId = ++this.spotsRequestId;
     this.spotsLoading.set(true);
     this.spotsError.set(null);
+    this.spotsRateLimited.set(false);
     this.spots.set([]);
 
     try {
@@ -266,7 +295,9 @@ export class DriverLotDetail implements OnInit {
         this.spots.set(response.data ?? []);
       }
     } catch (err) {
-      if (requestId === this.spotsRequestId) {
+      if (requestId === this.spotsRequestId && isHttpStatus(err, 429)) {
+        this.spotsRateLimited.set(true);
+      } else if (requestId === this.spotsRequestId) {
         this.spotsError.set(this.resolveErrorMessage(err, "Couldn't load spots for this lot."));
       }
     } finally {
@@ -280,6 +311,7 @@ export class DriverLotDetail implements OnInit {
     const requestId = ++this.vehiclesRequestId;
     this.vehiclesLoading.set(true);
     this.vehiclesError.set(null);
+    this.vehiclesRateLimited.set(false);
 
     try {
       const response = await firstValueFrom(this.vehicleService.getMyVehicles());
@@ -293,7 +325,9 @@ export class DriverLotDetail implements OnInit {
         this.selectedType.set(firstActive?.vehicleType ?? DEFAULT_VEHICLE_TYPE);
       }
     } catch (err) {
-      if (requestId === this.vehiclesRequestId) {
+      if (requestId === this.vehiclesRequestId && isHttpStatus(err, 429)) {
+        this.vehiclesRateLimited.set(this.vehicles().length === 0);
+      } else if (requestId === this.vehiclesRequestId) {
         this.vehiclesError.set(this.resolveErrorMessage(err, "Couldn't load your vehicles."));
       }
     } finally {
@@ -312,9 +346,6 @@ export class DriverLotDetail implements OnInit {
       }
       if (err.status === 0) {
         return "Couldn't reach the server. Check your connection and try again.";
-      }
-      if (err.status === 429) {
-        return 'Too many requests. Please retry in a few moments.';
       }
       if (err.status >= 500) {
         return 'Something went wrong on our side. Please try again shortly.';

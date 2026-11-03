@@ -156,6 +156,62 @@ describe('ManagerLots', () => {
     expect(component.error()).toBe('Something specific went wrong.');
   });
 
+  it('a first-load 429 shows no banner and a neutral Retry that loads again', async () => {
+    const { fixture, component } = createFixture();
+    fixture.detectChanges();
+
+    httpMock
+      .expectOne(LOTS_URL)
+      .flush(
+        { success: false, message: 'Slow down', data: null, errors: null },
+        { status: 429, statusText: 'Too Many Requests' },
+      );
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(component.error()).toBeNull();
+    expect(component.loading()).toBe(false);
+    expect(el.querySelector('.text-red-600')).toBeNull();
+    expect(el.textContent).not.toContain('Slow down');
+    expect(el.textContent).not.toContain("You haven't added any lots yet.");
+    expect(el.querySelector('[data-rate-limited]')?.textContent).toContain(
+      "Couldn't load this right now.",
+    );
+
+    el.querySelector<HTMLButtonElement>('[data-rate-limited] button')!.click();
+    httpMock
+      .expectOne(LOTS_URL)
+      .flush({ success: true, message: null, data: [OPEN_LOT], errors: null });
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(component.lots()).toEqual([OPEN_LOT]);
+    expect(el.querySelector('[data-rate-limited]')).toBeNull();
+  });
+
+  it('a 429 on a reload keeps the lots on screen with no banner or retry state', async () => {
+    const { fixture, component } = createFixture();
+    fixture.detectChanges();
+    httpMock
+      .expectOne(LOTS_URL)
+      .flush({ success: true, message: null, data: [OPEN_LOT], errors: null });
+    await Promise.resolve();
+
+    void (component as unknown as { loadLots(): Promise<void> }).loadLots();
+    httpMock.expectOne(LOTS_URL).flush(null, { status: 429, statusText: 'Too Many Requests' });
+    await Promise.resolve();
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(component.lots()).toEqual([OPEN_LOT]);
+    expect(component.error()).toBeNull();
+    expect(component.loading()).toBe(false);
+    expect(el.querySelector('[data-rate-limited]')).toBeNull();
+    expect(el.textContent).toContain('Whitefield Central Lot');
+  });
+
   it('clears the session and redirects to /login on a 401', async () => {
     const { fixture, component } = createFixture();
     fixture.detectChanges();

@@ -273,6 +273,35 @@ describe('DriverPaymentPending', () => {
       expect(el.querySelector('[role="alert"]')).toBeNull();
     });
 
+    it('never shows the banner for repeated 429s and keeps polling every time', async () => {
+      await setup();
+      const before = bookingCalls;
+      bookingResult = () => httpError(429);
+      for (let i = 0; i < 5; i++) {
+        await flush(2000);
+      }
+      expect(bookingCalls).toBe(before + 5);
+      expect(el.querySelector('[role="alert"]')).toBeNull();
+      expect(h1().textContent).toContain('Payment successful');
+
+      bookingResult = () => of(envelope(booking('Confirmed')));
+      await flush(2000);
+      expect(h1().textContent?.trim()).toBe('Booking confirmed');
+    });
+
+    it('a 429 does not reset or add to the failure count', async () => {
+      await setup();
+      bookingResult = () => httpError(503);
+      await flush(2000);
+      await flush(2000);
+      bookingResult = () => httpError(429);
+      await flush(2000);
+      expect(el.querySelector('[role="alert"]')).toBeNull();
+      bookingResult = () => httpError(503);
+      await flush(2000);
+      expect(el.querySelector('[role="alert"]')).not.toBeNull();
+    });
+
     it('keeps polling through network errors and 429', async () => {
       await setup();
       bookingResult = () => httpError(0);

@@ -164,6 +164,45 @@ describe('DriverMyVehicles', () => {
       expect(text()).not.toContain("You haven't added any vehicles yet.");
     });
 
+    it('a first-load 429 shows no banner and a neutral Retry that loads again', async () => {
+      await open(429);
+
+      expect(root.querySelector('[role="alert"]')).toBeNull();
+      expect(text()).not.toContain('boom');
+      expect(text()).not.toContain('Too many requests');
+      expect(text()).not.toContain("You haven't added any vehicles yet.");
+      expect(one('[data-rate-limited]').textContent).toContain("Couldn't load this right now.");
+      expect(text()).not.toContain('Loading your vehicles');
+
+      await click(button('Retry'));
+      listRequest().flush(envelope([CAR]));
+      await settle();
+
+      expect(root.querySelector('[data-rate-limited]')).toBeNull();
+      expect(cards().length).toBe(1);
+    });
+
+    it('a 429 on the refresh after adding keeps the vehicles on screen with no banner', async () => {
+      await open([CAR]);
+      await click(button('+ Add vehicle'));
+      type('#plate', 'KA05MJ4471');
+      type('#make', 'Tata');
+      type('#model', 'Prima');
+      button('Four Wheeler').click();
+      harness.detectChanges();
+      await click(one<HTMLButtonElement>('form button[type="submit"]'));
+      httpMock
+        .expectOne((r) => r.method === 'POST' && r.url === `${API}/api/vehicles`)
+        .flush(envelope(CAR), { status: 201, statusText: 'Created' });
+      await settle();
+      listRequest().flush(failure('boom'), { status: 429, statusText: 'Too Many' });
+      await settle();
+
+      expect(cards().length).toBe(1);
+      expect(root.querySelector('[role="alert"]')).toBeNull();
+      expect(root.querySelector('[data-rate-limited]')).toBeNull();
+    });
+
     it('clears the session and redirects to /login on 401', async () => {
       const clear = vi.spyOn(TestBed.inject(AuthService), 'clearSession');
       await open(401);
@@ -319,11 +358,19 @@ describe('DriverMyVehicles', () => {
       expect(one('[role="alert"]').textContent).toContain('Heavy vehicles cannot be electric.');
     });
 
-    it('tells the user to retry shortly on 429', async () => {
+    it('a 429 shows no message, keeps the form and the modal open, and enables Add again', async () => {
       const req = await submitValid();
-      req.flush(failure(null), { status: 429, statusText: 'Too Many' });
+      req.flush(failure('Slow down'), { status: 429, statusText: 'Too Many' });
       await settle();
-      expect(one('[role="alert"]').textContent).toContain('retry in a few moments');
+
+      expect(root.querySelector('[role="alert"]')).toBeNull();
+      expect(text()).not.toContain('Slow down');
+      expect(text()).not.toContain('Too many requests');
+      expect(one<HTMLInputElement>('#plate').value).toBe('ka 05-mj 4471');
+      expect(one<HTMLInputElement>('#make').value).toBe('Tata');
+      const submitButton = one<HTMLButtonElement>('form button[type="submit"]');
+      expect(submitButton.disabled).toBe(false);
+      expect(submitButton.textContent).not.toContain('Adding…');
     });
 
     it('redirects to /login on 401', async () => {
@@ -439,6 +486,22 @@ describe('DriverMyVehicles', () => {
       httpMock.expectOne(deleteUrl(false)).flush(failure('x'), { status: 500, statusText: 'err' });
       await settle();
       expect(dialog()?.textContent).toContain('Something went wrong on our side');
+      expect(cards().length).toBe(2);
+    });
+
+    it('a 429 shows no message, keeps the dialog open and enables the buttons again', async () => {
+      const confirmButton = dialog()!.querySelectorAll('button')[1] as HTMLButtonElement;
+      await click(confirmButton);
+      httpMock
+        .expectOne(deleteUrl(false))
+        .flush(failure('Slow down'), { status: 429, statusText: 'Too Many' });
+      await settle();
+
+      expect(dialog()).not.toBeNull();
+      expect(dialog()!.querySelector('[role="alert"]')).toBeNull();
+      expect(dialog()!.textContent).not.toContain('Slow down');
+      expect(dialog()!.textContent).not.toContain('Too many requests');
+      expect(confirmButton.disabled).toBe(false);
       expect(cards().length).toBe(2);
     });
 

@@ -17,7 +17,7 @@ import { VehicleService } from '../../services/vehicle.service';
 import { VehicleResponse } from '../../models/vehicle/vehicle.model';
 import { AddVehicleModal } from './add-vehicle-modal/add-vehicle-modal';
 import { DeleteVehicleDialog } from './delete-vehicle-dialog/delete-vehicle-dialog';
-import { backendMessage, genericErrorMessage } from './vehicle-errors';
+import { backendMessage, genericErrorMessage, isRateLimited } from './vehicle-errors';
 import { formatPlate, parseReturnTo, vehicleDetail, vehicleName } from './vehicle-format';
 
 const SESSION_EXPIRED_MESSAGE = 'Your session has expired. Please log in again.';
@@ -48,6 +48,8 @@ export class DriverMyVehicles implements OnInit {
   protected readonly vehicles = signal<VehicleResponse[]>([]);
   protected readonly loading = signal(false);
   protected readonly loadError = signal<string | null>(null);
+  /** A 429 with no vehicles on screen yet; the toast explains, the page offers Retry. */
+  protected readonly loadRateLimited = signal(false);
 
   protected readonly addOpen = signal(false);
   protected readonly addOpener = signal<HTMLElement | null>(null);
@@ -62,6 +64,10 @@ export class DriverMyVehicles implements OnInit {
   private loadRequestId = 0;
 
   ngOnInit(): void {
+    void this.loadVehicles(true);
+  }
+
+  protected retryLoad(): void {
     void this.loadVehicles(true);
   }
 
@@ -109,6 +115,8 @@ export class DriverMyVehicles implements OnInit {
         this.removeDeleted(target);
       } else if (err instanceof HttpErrorResponse && err.status === 409 && !confirm) {
         this.deleteWarning.set(backendMessage(err) ?? DEFAULT_BOOKING_WARNING);
+      } else if (isRateLimited(err)) {
+        // The toast explains; the dialog stays open and its buttons work again.
       } else if (this.handleUnauthorized(err)) {
         this.deleteError.set(SESSION_EXPIRED_MESSAGE);
       } else {
@@ -141,6 +149,7 @@ export class DriverMyVehicles implements OnInit {
     const requestId = ++this.loadRequestId;
     this.loading.set(showLoading);
     this.loadError.set(null);
+    this.loadRateLimited.set(false);
 
     try {
       const response = await firstValueFrom(this.vehicleService.getMyVehicles());
@@ -148,7 +157,10 @@ export class DriverMyVehicles implements OnInit {
         this.vehicles.set(response.data ?? []);
       }
     } catch (err) {
-      if (requestId === this.loadRequestId) {
+      if (requestId === this.loadRequestId && isRateLimited(err)) {
+        // Vehicles already on screen stay; with none yet the page offers a neutral Retry.
+        this.loadRateLimited.set(this.vehicles().length === 0);
+      } else if (requestId === this.loadRequestId) {
         this.loadError.set(
           this.handleUnauthorized(err)
             ? SESSION_EXPIRED_MESSAGE

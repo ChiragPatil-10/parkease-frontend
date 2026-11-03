@@ -8,14 +8,16 @@ export function backendMessage(err: unknown): string | null {
     : null;
 }
 
-/** Message for errors that are not specific to a field or a business rule (not 401, which redirects). */
+/** A 429 is explained by the global toast, so callers show nothing of their own for it. */
+export function isRateLimited(err: unknown): boolean {
+  return err instanceof HttpErrorResponse && err.status === 429;
+}
+
+/** Message for errors that are not specific to a field or a business rule (not 401, which redirects, and not 429, see isRateLimited). */
 export function genericErrorMessage(err: unknown, fallback: string): string {
   if (err instanceof HttpErrorResponse) {
     if (err.status === 0) {
       return "Couldn't reach the server. Check your connection and try again.";
-    }
-    if (err.status === 429) {
-      return 'Too many requests. Please retry in a few moments.';
     }
     if (err.status >= 500) {
       return 'Something went wrong on our side. Please try again shortly.';

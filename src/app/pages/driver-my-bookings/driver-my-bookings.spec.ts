@@ -177,7 +177,39 @@ describe('DriverMyBookings', () => {
       expect(link?.getAttribute('href')).toBe('/lots');
     });
 
-    it.each([0, 500, 429])('shows the banner on %s and Try again reloads', async (code) => {
+    it('a first-load 429 shows no banner and a neutral Retry that reloads', async () => {
+      listResult = () => httpError(429);
+      await setup();
+      expect(el.querySelector('[role="alert"]')).toBeNull();
+      expect(text()).not.toContain("We couldn't load your bookings.");
+      expect(text()).not.toContain('No bookings yet');
+      expect(el.querySelector('[data-rate-limited]')?.textContent).toContain(
+        "Couldn't load this right now.",
+      );
+      await flush(10_000);
+      expect(count('/api/bookings/my')).toBe(1);
+
+      respondWith(booking('1', 'Confirmed'));
+      (find(el, 'button', 'Retry') as HTMLButtonElement).click();
+      await flush();
+      expect(rows().length).toBe(1);
+      expect(el.querySelector('[data-rate-limited]')).toBeNull();
+    });
+
+    it('a 429 on a reload keeps the bookings on screen with no banner', async () => {
+      await setup();
+      expect(rows().length).toBe(1);
+
+      listResult = () => httpError(429);
+      (fixture.componentInstance as unknown as { load(): void }).load();
+      await flush();
+
+      expect(rows().length).toBe(1);
+      expect(el.querySelector('[role="alert"]')).toBeNull();
+      expect(el.querySelector('[data-rate-limited]')).toBeNull();
+    });
+
+    it.each([0, 500])('shows the banner on %s and Try again reloads', async (code) => {
       listResult = () => httpError(code);
       await setup();
       expect(el.querySelector('[role="alert"]')?.textContent).toContain(
@@ -478,7 +510,18 @@ describe('DriverMyBookings', () => {
       expect(router.navigateByUrl).toHaveBeenCalledWith('/login');
     });
 
-    it.each([0, 500, 429])('shows a generic banner on %s and brings the buttons back', async (code) => {
+    it('a 429 shows no banner and brings the buttons back', async () => {
+      postResult['checkin'] = () => httpError(429);
+      await setup();
+      (find(row('1'), 'button', 'Check in') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      expect(el.querySelector('[role="alert"]')).toBeNull();
+      expect(text()).not.toContain('Something went wrong');
+      expect(labels(row('1'))).toEqual(['Check in', 'Cancel']);
+      expect(rows().length).toBe(1);
+    });
+
+    it.each([0, 500])('shows a generic banner on %s and brings the buttons back', async (code) => {
       postResult['checkin'] = () => httpError(code);
       await setup();
       (find(row('1'), 'button', 'Check in') as HTMLButtonElement).click();
@@ -525,6 +568,16 @@ describe('DriverMyBookings', () => {
       await start();
       byId['1'] = () => httpError(503);
       await flush(2000);
+      byId['1'] = () => of(envelope(booking('1', 'Completed')));
+      await flush(2000);
+      expect(labels(row('1'))).toEqual(['View receipt']);
+    });
+
+    it('keeps polling through a 429 with no banner', async () => {
+      await start();
+      byId['1'] = () => httpError(429);
+      await flush(2000);
+      expect(el.querySelector('[role="alert"]')).toBeNull();
       byId['1'] = () => of(envelope(booking('1', 'Completed')));
       await flush(2000);
       expect(labels(row('1'))).toEqual(['View receipt']);
@@ -664,6 +717,18 @@ describe('DriverMyBookings', () => {
       fixture.detectChanges();
       expect(auth.clearSession).toHaveBeenCalled();
       expect(router.navigateByUrl).toHaveBeenCalledWith('/login');
+    });
+
+    it('a 429 shows no message, keeps the dialog open and enables its button again', async () => {
+      postResult['cancel'] = () => httpError(429);
+      await setup();
+      await openDialog();
+      confirm().click();
+      fixture.detectChanges();
+      expect(dialog()).not.toBeNull();
+      expect(dialog()!.querySelector('[role="alert"]')).toBeNull();
+      expect(dialog()!.textContent).not.toContain('Something went wrong');
+      expect(confirm().disabled).toBe(false);
     });
 
     it('keeps the dialog open with a banner on a 500', async () => {

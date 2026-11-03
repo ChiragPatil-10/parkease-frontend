@@ -9,6 +9,10 @@ import { SpotService } from '../../services/spot.service';
 import { ApiResponse } from '../../models/api-response.model';
 import { SpotCreateItem, SpotType, VehicleType } from '../../models/spot.model';
 
+function isHttpStatus(err: unknown, ...statuses: number[]): boolean {
+  return err instanceof HttpErrorResponse && statuses.includes(err.status);
+}
+
 interface BulkSpotRow {
   spotNumber: string;
   floor: string;
@@ -70,6 +74,8 @@ export class ManagerBulkCreateSpots implements OnInit {
   protected readonly lotName = signal<string | null>(null);
   protected readonly lotLoading = signal(true);
   protected readonly lotLoadError = signal<string | null>(null);
+  /** A 429 loading the lot: nothing to show yet, so the page offers a neutral Retry. */
+  protected readonly lotRateLimited = signal(false);
 
   protected readonly floorOptions = FLOOR_OPTIONS;
   protected readonly spotTypeOptions = SPOT_TYPE_OPTIONS;
@@ -93,6 +99,12 @@ export class ManagerBulkCreateSpots implements OnInit {
       return;
     }
     void this.loadLot(this.lotId);
+  }
+
+  protected retryLoadLot(): void {
+    if (this.lotId) {
+      void this.loadLot(this.lotId);
+    }
   }
 
   protected updateRow(index: number, field: keyof BulkSpotRow, value: string): void {
@@ -153,6 +165,7 @@ export class ManagerBulkCreateSpots implements OnInit {
   private async loadLot(lotId: string): Promise<void> {
     this.lotLoading.set(true);
     this.lotLoadError.set(null);
+    this.lotRateLimited.set(false);
 
     try {
       const response = await firstValueFrom(this.lotService.getLotById(lotId));
@@ -170,6 +183,10 @@ export class ManagerBulkCreateSpots implements OnInit {
           this.lotLoadError.set('This lot could not be found. It may have been removed.');
           return;
         }
+      }
+      if (isHttpStatus(err, 429)) {
+        this.lotRateLimited.set(true);
+        return;
       }
       this.lotLoadError.set("Couldn't load this lot. Please try again.");
     } finally {
@@ -212,6 +229,11 @@ export class ManagerBulkCreateSpots implements OnInit {
   private handleSubmitError(err: unknown): void {
     if (!(err instanceof HttpErrorResponse)) {
       this.serverError.set('Something went wrong. Please try again.');
+      return;
+    }
+
+    if (err.status === 429) {
+      // The toast explains; the rows keep their input and Create works again.
       return;
     }
 

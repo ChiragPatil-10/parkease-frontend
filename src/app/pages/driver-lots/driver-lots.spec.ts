@@ -278,8 +278,53 @@ describe('DriverLots', () => {
       expect(text).toContain('Open now');
     });
 
+    it('first-load 429 shows no banner and a neutral Retry that loads again', async () => {
+      const { fixture, c } = await startGranted();
+      (await nearbyRequest()).flush(null, { status: 429, statusText: 'Too Many Requests' });
+      await settle();
+      fixture.detectChanges();
+
+      const el = fixture.nativeElement as HTMLElement;
+      expect(c.nearbyError()).toBeNull();
+      expect(c.nearbyLoading()).toBe(false);
+      expect(el.querySelector('[role="alert"]')).toBeNull();
+      expect(el.querySelector('[data-rate-limited]')?.textContent).toContain(
+        "Couldn't load this right now.",
+      );
+      expect(el.textContent).not.toContain('No open lots within');
+      expect(el.textContent).not.toContain('Too many requests');
+
+      const retry = el.querySelector<HTMLButtonElement>('[data-rate-limited] button');
+      retry?.click();
+      httpMock.expectOne((r) => r.url === NEARBY_URL).flush(envelope([NEARBY_LOT]));
+      await settle();
+      fixture.detectChanges();
+
+      expect(el.querySelector('[data-rate-limited]')).toBeNull();
+      expect(c.nearbyLots()).toEqual([NEARBY_LOT]);
+    });
+
+    it('a 429 on a radius change keeps the lots on screen with no banner or retry state', async () => {
+      const { fixture, c } = await startGranted();
+      (await nearbyRequest()).flush(envelope([NEARBY_LOT]));
+      await settle();
+
+      c.selectRadius(5);
+      httpMock
+        .expectOne((r) => r.url === NEARBY_URL)
+        .flush(null, { status: 429, statusText: 'Too Many Requests' });
+      await settle();
+      fixture.detectChanges();
+
+      const el = fixture.nativeElement as HTMLElement;
+      expect(c.nearbyLots()).toEqual([NEARBY_LOT]);
+      expect(c.nearbyError()).toBeNull();
+      expect(c.nearbyLoading()).toBe(false);
+      expect(el.querySelector('[role="alert"]')).toBeNull();
+      expect(el.querySelector('[data-rate-limited]')).toBeNull();
+    });
+
     it.each([
-      [429, 'retry'],
       [500, 'Something went wrong'],
       [422, "wasn't valid"],
       [0, 'reach the server'],
@@ -369,10 +414,37 @@ describe('DriverLots', () => {
       const done = c.search();
       httpMock
         .expectOne((r) => r.url === SEARCH_URL)
-        .flush(null, { status: 429, statusText: 'Too Many Requests' });
+        .flush(null, { status: 500, statusText: 'Server Error' });
       await done;
 
-      expect(c.searchError()).toContain('retry');
+      expect(c.searchError()).toContain('Something went wrong');
+    });
+
+    it('a 429 on search shows no banner, keeps earlier results and the typed city, and re-enables Search', async () => {
+      const { fixture, c } = await startDenied();
+      c.cityInput.set('Bengaluru');
+      const first = c.search();
+      httpMock.expectOne((r) => r.url === SEARCH_URL).flush(paged([CITY_LOT]));
+      await first;
+
+      c.cityInput.set('Mysuru');
+      const second = c.search();
+      httpMock
+        .expectOne((r) => r.url === SEARCH_URL)
+        .flush(null, { status: 429, statusText: 'Too Many Requests' });
+      await second;
+      fixture.detectChanges();
+
+      const el = fixture.nativeElement as HTMLElement;
+      expect(c.searchError()).toBeNull();
+      expect(c.cityLots()).toEqual([CITY_LOT]);
+      expect(c.searchedCity()).toBe('Bengaluru');
+      expect(c.cityInput()).toBe('Mysuru');
+      expect(el.querySelector('[role="alert"]')).toBeNull();
+      const searchButton = Array.from(el.querySelectorAll('button')).find(
+        (b) => b.textContent?.trim() === 'Search',
+      );
+      expect(searchButton?.disabled).toBe(false);
     });
   });
 

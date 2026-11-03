@@ -276,6 +276,23 @@ describe('DriverBookingReview', () => {
       expect(text()).toContain('Review your booking');
     });
 
+    it('a first-load 429 shows no banner and a neutral Retry that reloads', async () => {
+      lotResponse = () => httpError(429, 'Slow down');
+      await create();
+      expect(el.querySelector('[role="alert"]')).toBeNull();
+      expect(text()).not.toContain('Something went wrong');
+      expect(text()).not.toContain('Slow down');
+      expect(el.querySelector('[data-rate-limited]')?.textContent).toContain(
+        "Couldn't load this right now.",
+      );
+
+      lotResponse = () => of(envelope(LOT));
+      buttonByText('Retry')!.click();
+      await flush();
+      expect(text()).toContain('Review your booking');
+      expect(el.querySelector('[data-rate-limited]')).toBeNull();
+    });
+
     it('back control links to the spot picker', async () => {
       await create();
 
@@ -388,6 +405,29 @@ describe('DriverBookingReview', () => {
       expect(second.idempotencyKey).toBe(first.idempotencyKey);
     });
 
+    it('a 429 on create shows no banner, enables Pay again, and a later click reuses the same key', async () => {
+      createResponse = () => httpError(429, 'Slow down');
+      await create();
+
+      await clickPay();
+
+      expect(el.querySelector('[role="alert"]')).toBeNull();
+      expect(text()).not.toContain('Something went wrong');
+      expect(text()).not.toContain('Slow down');
+      expect(payButton().disabled).toBe(false);
+      expect(payButton().getAttribute('aria-busy')).toBe('false');
+      // Nothing is resent automatically.
+      await flush(10_000);
+      expect(api.post).toHaveBeenCalledTimes(1);
+
+      createResponse = () => of(envelope(BOOKING));
+      await clickPay();
+
+      expect(api.post).toHaveBeenCalledTimes(2);
+      const [first, second] = createBodies() as { idempotencyKey: string }[];
+      expect(second.idempotencyKey).toBe(first.idempotencyKey);
+    });
+
     it('maps a 409 "This spot is not available." to the spot-taken state', async () => {
       createResponse = () => httpError(409, 'This spot is not available.');
       await create();
@@ -473,6 +513,21 @@ describe('DriverBookingReview', () => {
         prefill: {},
       });
       expect(checkout.open).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps polling through a 429 with no banner, then opens Razorpay', async () => {
+      let calls = 0;
+      paymentResponse = () => (++calls <= 2 ? httpError(429) : of(envelope(PAYMENT)));
+      await create();
+
+      await clickPay();
+      expect(el.querySelector('[role="alert"]')).toBeNull();
+      await flush(2000);
+
+      expect(paymentCalls()).toBe(3);
+      expect(el.querySelector('[role="alert"]')).toBeNull();
+      expect(FakeCheckout.instances.length).toBe(1);
+      expect(createBodies().length).toBe(1);
     });
 
     it.each(['Voided', 'Refunded', 'RefundFailed', 'Held'])(
