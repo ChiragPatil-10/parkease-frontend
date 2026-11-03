@@ -34,7 +34,7 @@ import {
 } from './booking-detail-format';
 import { CancelBookingDialog } from './cancel-booking-dialog/cancel-booking-dialog';
 
-type LoadState = 'loading' | 'ready' | 'not-found' | 'load-error';
+type LoadState = 'loading' | 'ready' | 'not-found' | 'load-error' | 'rate-limited';
 type Phase = 'idle' | 'checking-out' | 'cancelling';
 type PaymentState =
   | { kind: 'loading' }
@@ -330,6 +330,11 @@ export class DriverBookingDetail implements OnInit {
       this.loadState.set('not-found');
       return;
     }
+    if (isHttpStatus(err, 429)) {
+      // Nothing to show yet: the toast explains, the page offers a neutral retry.
+      this.loadState.set('rate-limited');
+      return;
+    }
     this.loadErrorText.set(isNetworkError(err) ? NETWORK_ERROR_MESSAGE : GENERIC_ERROR);
     this.loadState.set('load-error');
   }
@@ -379,8 +384,14 @@ export class DriverBookingDetail implements OnInit {
     );
   }
 
-  /** Text for a failed action POST. A 401 here means the session expired (the booking is ours). */
+  /**
+   * Text for a failed action POST. A 401 here means the session expired (the booking is ours).
+   * A 429 returns null: the toast explains, and the page and any open dialog stay as they are.
+   */
   private actionError(err: unknown): string | null {
+    if (isHttpStatus(err, 429)) {
+      return null;
+    }
     if (isHttpStatus(err, 401)) {
       this.authService.clearSession();
       void this.router.navigateByUrl('/login');

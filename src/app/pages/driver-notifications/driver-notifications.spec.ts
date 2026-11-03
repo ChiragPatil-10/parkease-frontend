@@ -225,12 +225,45 @@ describe('DriverNotifications', () => {
       expect(el.querySelector('[role="alert"]')).toBeNull();
     });
 
-    it.each([403, 429, 500, 0])('shows the same banner for status %s', (status) => {
+    it.each([403, 500, 0])('shows the same banner for status %s', (status) => {
       const { el, fail, last } = render();
       fail(last(), status);
       expect(el.querySelector('[role="alert"]')?.textContent).toContain(
         'Could not load notifications.',
       );
+    });
+
+    it('a first-load 429 shows no banner and a neutral Retry that refetches page 1', () => {
+      const { el, items, fail, respond, last, settle } = render();
+      fail(last(), 429, { message: 'Slow down' });
+      expect(el.querySelector('[role="alert"]')).toBeNull();
+      expect(el.textContent).not.toContain('Could not load notifications.');
+      expect(el.textContent).not.toContain('Slow down');
+      expect(el.querySelector('[data-rate-limited]')?.textContent).toContain(
+        "Couldn't load this right now.",
+      );
+      expect(items().length).toBe(0);
+
+      el.querySelector<HTMLButtonElement>('[data-rate-limited] button')!.click();
+      settle();
+      expect(calls.length).toBe(2);
+      expect(last().page).toBe(1);
+      respond(last(), rows(1, 2));
+      expect(items().length).toBe(2);
+      expect(el.querySelector('[data-rate-limited]')).toBeNull();
+    });
+
+    it('a 429 on Show more keeps the rows, shows no message and re-enables the button', () => {
+      const { el, items, respond, fail, last, button, settle } = render();
+      respond(last(), rows(1, 20));
+      button()!.click();
+      settle();
+      fail(last(), 429);
+      expect(items().length).toBe(20);
+      expect(el.querySelector('[role="alert"]')).toBeNull();
+      expect(el.textContent).not.toContain('Could not load more.');
+      expect(button()?.disabled).toBe(false);
+      expect(button()?.textContent).not.toContain('Loading...');
     });
 
     it('never renders raw server text', () => {

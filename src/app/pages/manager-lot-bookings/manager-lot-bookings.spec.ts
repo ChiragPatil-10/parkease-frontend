@@ -145,7 +145,7 @@ describe('ManagerLotBookings', () => {
       expect(lotsCalls).toEqual(['mgr-1']);
       expect(el.querySelector('app-manager-nav')).toBeTruthy();
       expect(el.querySelector('nav a.font-semibold')?.textContent?.trim()).toBe('Lot Bookings');
-      expect(h1(el)).toBe('Bookings — Whitefield Central Lot');
+      expect(h1(el)).toBe('Bookings \u2014 Whitefield Central Lot');
       expect(el.querySelector('h1')?.className).toContain('font-display');
     });
 
@@ -216,7 +216,7 @@ describe('ManagerLotBookings', () => {
         'Hebbal Annex Lot (not approved)',
         'Whitefield Central Lot',
       ]);
-      expect(h1(el)).toBe('Bookings — Hebbal Annex Lot');
+      expect(h1(el)).toBe('Bookings \u2014 Hebbal Annex Lot');
     });
 
     it('changing it updates the URL, reloads, resets the chip to All and drops the suffix from the h1', async () => {
@@ -238,7 +238,7 @@ describe('ManagerLotBookings', () => {
       expect(last().status).toBeNull();
       expect(last().page).toBe(1);
       expect(chip(el, 'All').getAttribute('aria-pressed')).toBe('true');
-      expect(h1(el)).toBe('Bookings — Indiranagar Metro Lot');
+      expect(h1(el)).toBe('Bookings \u2014 Indiranagar Metro Lot');
       respond(last(), []);
       await settle();
       expect(el.textContent).toContain('No bookings yet.');
@@ -411,6 +411,23 @@ describe('ManagerLotBookings', () => {
   });
 
   describe('errors', () => {
+    it('a 429 on Show more keeps the rows, adds no message and re-enables the button', async () => {
+      const { el, settle } = await render();
+      respond(last(), rows(1, PAGE));
+      await settle();
+      button(el, /Show more/)!.click();
+      await settle();
+      fail(last(), 429);
+      await settle();
+
+      expect(tableRows(el).length).toBe(PAGE);
+      expect(el.querySelector('[role="alert"]')).toBeNull();
+      expect(el.textContent).not.toContain('Could not load more.');
+      const more = button(el, /Show more|Loading/)!;
+      expect(more.disabled).toBe(false);
+      expect(more.textContent).not.toContain('Loading...');
+    });
+
     it('a bookings 404 gives lotNotFound', async () => {
       const { el, settle } = await render();
       fail(last(), 404, { message: "Lot 'x' not found." });
@@ -419,7 +436,50 @@ describe('ManagerLotBookings', () => {
       expect(el.textContent).not.toContain("Lot 'x'");
     });
 
-    it.each([400, 403, 429, 500, 0])('a bookings %i error shows the banner and Retry repeats page 1 for the same lot and chip', async (status) => {
+    it('a first-load 429 shows no banner and a neutral Retry that repeats page 1 for the same lot and chip', async () => {
+      const { el, settle } = await render();
+      respond(last(), rows(1, 2));
+      await settle();
+      chip(el, 'Completed').click();
+      await settle();
+      fail(last(), 429, { message: 'raw server text' });
+      await settle();
+
+      expect(el.querySelector('[role="alert"]')).toBeNull();
+      expect(el.textContent).not.toContain('Could not load bookings.');
+      expect(el.textContent).not.toContain('raw server text');
+      expect(el.querySelector('[data-rate-limited]')?.textContent).toContain(
+        "Couldn't load this right now.",
+      );
+      expect(chip(el, 'Completed')).toBeTruthy();
+
+      (el.querySelector('[data-rate-limited] button') as HTMLButtonElement).click();
+      await settle();
+      expect(last().lotId).toBe(LOT_A);
+      expect(last().status).toBe('Completed');
+      expect(last().page).toBe(1);
+      respond(last(), rows(1, 3));
+      await settle();
+      expect(el.querySelector('[data-rate-limited]')).toBeNull();
+      expect(tableRows(el).length).toBe(3);
+    });
+
+    it('a 429 on the lots request shows the neutral retry and Retry reloads lots then bookings', async () => {
+      lotsResult = () => throwError(() => new HttpErrorResponse({ status: 429 }));
+      const { el, settle } = await render();
+      expect(calls.length).toBe(0);
+      expect(el.querySelector('[role="alert"]')).toBeNull();
+      expect(el.querySelector('[data-rate-limited]')).toBeTruthy();
+
+      lotsResult = () => of(envelope(LOTS));
+      (el.querySelector('[data-rate-limited] button') as HTMLButtonElement).click();
+      await settle();
+      await settle();
+      expect(lotsCalls.length).toBe(2);
+      expect(calls.length).toBe(1);
+    });
+
+    it.each([400, 403, 500, 0])('a bookings %i error shows the banner and Retry repeats page 1 for the same lot and chip', async (status) => {
       const { el, settle } = await render();
       respond(last(), rows(1, 2));
       await settle();

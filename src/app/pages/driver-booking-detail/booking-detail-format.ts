@@ -49,9 +49,9 @@ const STATUS_LABEL: Record<BookingStatus, string> = {
 
 const CANCELLED_LABEL: Record<CancelReason, string> = {
   DriverCancelled: 'Cancelled',
-  PaymentTimeout: 'Cancelled — payment timed out',
-  PaymentFailed: 'Cancelled — payment failed',
-  SpotUnavailable: 'Cancelled — spot unavailable',
+  PaymentTimeout: 'Cancelled \u2014 payment timed out',
+  PaymentFailed: 'Cancelled \u2014 payment failed',
+  SpotUnavailable: 'Cancelled \u2014 spot unavailable',
   Other: 'Cancelled',
 };
 
@@ -105,7 +105,7 @@ export function paymentCardView(
   switch (payment.status) {
     case 'Captured':
     case 'Held':
-      return { ...base, ...paid, pill: 'Captured — paid', tone: 'blue' };
+      return { ...base, ...paid, pill: 'Captured \u2014 paid', tone: 'blue' };
     case 'Created':
       return { ...base, pill: 'Awaiting payment' };
     case 'Refunded':

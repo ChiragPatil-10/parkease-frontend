@@ -9,7 +9,7 @@
 
     @if (application(); as app) {
       <p class="mt-3 text-sm text-muted">
-        Thanks, {{ app.fullName }} — we've received your application for
+        Thanks, {{ app.fullName }} &mdash; we've received your application for
         {{ app.businessName }}. An admin will review your business details
         and parking address, usually within 1–2 business days.
       </p>
@@ -22,7 +22,7 @@
       </span>
     } @else {
       <p class="mt-3 text-sm text-muted">
-        Your application has been submitted — check your email for updates.
+        Your application has been submitted &mdash; check your email for updates.
       </p>
     }
 

@@ -25,7 +25,7 @@ import { ApiResponse } from '../../../models/api-response.model';
 import { VehicleType } from '../../../models/spot.model';
 import { CreateVehicleRequest, VehicleResponse } from '../../../models/vehicle/vehicle.model';
 import { DialogBehavior } from '../dialog-behavior.directive';
-import { backendMessage, genericErrorMessage } from '../vehicle-errors';
+import { backendMessage, genericErrorMessage, isRateLimited } from '../vehicle-errors';
 import { normalizePlate } from '../vehicle-format';
 
 const PLATE_MAX = 20;
@@ -248,6 +248,11 @@ export class AddVehicleModal {
           return fieldErrors;
         }
         this.serverError.set(body?.message ?? 'Validation failed. Please check the form and try again.');
+        return undefined;
+      }
+
+      if (isRateLimited(err)) {
+        // The toast explains; the form keeps its input and Add vehicle works again.
         return undefined;
       }
 

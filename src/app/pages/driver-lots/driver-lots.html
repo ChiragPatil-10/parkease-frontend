@@ -4,7 +4,7 @@
   @if (resolvingPermission()) {
     <p class="px-8 py-6 text-sm text-muted">Checking location access…</p>
   } @else if (locationGranted()) {
-    <!-- STATE A — location granted: map + results split pane -->
+    <!-- STATE A - location granted: map + results split pane -->
     <div class="flex flex-1">
       <div class="relative flex-1 overflow-hidden bg-[#ddd8cd]">
         <div
@@ -60,10 +60,23 @@
           </p>
         }
 
+        @if (nearbyRateLimited() && !nearbyLoading()) {
+          <div class="mt-4" data-rate-limited>
+            <p class="text-sm text-muted">Couldn't load this right now.</p>
+            <button
+              type="button"
+              (click)="retryNearby()"
+              class="mt-2 min-h-11 cursor-pointer rounded-lg border border-border bg-card px-5 py-2.5 text-sm text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+            >
+              Retry
+            </button>
+          </div>
+        }
+
         <div class="mt-4 flex flex-col gap-4">
           @if (nearbyLoading()) {
             <p class="text-sm text-muted">Loading nearby lots…</p>
-          } @else if (!nearbyError() && nearbyLots().length === 0) {
+          } @else if (!nearbyError() && !nearbyRateLimited() && nearbyLots().length === 0) {
             <p class="text-sm text-muted">
               No open lots within {{ selectedRadius() }}km. Try a larger radius.
             </p>
@@ -101,7 +114,7 @@
       </aside>
     </div>
   } @else {
-    <!-- STATE B — location denied: banner + city search + full-width grid -->
+    <!-- STATE B - location denied: banner + city search + full-width grid -->
     <main class="mx-auto w-full max-w-6xl px-8 py-6">
       @if (!bannerDismissed()) {
         <div
@@ -140,7 +153,7 @@
       <div class="mt-4 flex items-center gap-3">
         <input
           type="text"
-          placeholder="Search by city — e.g. Bengaluru"
+          placeholder="Search by city &mdash; e.g. Bengaluru"
           [value]="cityInput()"
           (input)="onCityInput($event)"
           (keydown.enter)="search()"

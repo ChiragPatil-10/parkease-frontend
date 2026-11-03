@@ -41,6 +41,8 @@ export class ManagerLots implements OnInit {
   protected readonly lots = signal<LotResponse[]>([]);
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
+  /** A 429 with no lots on screen yet; the toast explains, the page offers Retry. */
+  protected readonly rateLimited = signal(false);
   protected readonly redirectError = signal<string | null>(null);
 
   ngOnInit(): void {
@@ -60,12 +62,18 @@ export class ManagerLots implements OnInit {
 
     this.loading.set(true);
     this.error.set(null);
+    this.rateLimited.set(false);
 
     try {
       const response = await firstValueFrom(this.lotService.getLotsByManager(managerId));
       this.lots.set(response.data ?? []);
     } catch (err) {
-      this.error.set(this.resolveErrorMessage(err));
+      if (err instanceof HttpErrorResponse && err.status === 429) {
+        // Lots already on screen stay; with none yet the page offers a neutral Retry.
+        this.rateLimited.set(this.lots().length === 0);
+      } else {
+        this.error.set(this.resolveErrorMessage(err));
+      }
     } finally {
       this.loading.set(false);
     }
@@ -101,7 +109,7 @@ export class ManagerLots implements OnInit {
 
   /**
    * GET /lots/manager/{managerId} uses ASP.NET's Forbid() directly for a mismatched id (per
-   * parkinglot-service.md), so an error body here may not be the usual ApiResponse envelope —
+   * parkinglot-service.md), so an error body here may not be the usual ApiResponse envelope -
    * don't assume err.error.message exists before falling back to a generic message.
    */
   private resolveErrorMessage(err: unknown): string {

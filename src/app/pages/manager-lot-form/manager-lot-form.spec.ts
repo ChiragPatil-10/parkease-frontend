@@ -310,6 +310,63 @@ describe('ManagerLotForm', () => {
     expect(router.navigateByUrl).toHaveBeenCalledWith('/login');
   });
 
+  it('a 429 while saving shows no message, keeps the form input and ends the saving state', async () => {
+    const { fixture, component } = createFixture();
+    fillValidForm(component);
+
+    const submission = submit(component.lotForm);
+    httpMock
+      .expectOne(CREATE_URL)
+      .flush(
+        { success: false, message: 'Slow down', data: null, errors: null },
+        { status: 429, statusText: 'Too Many Requests' },
+      );
+    await submission;
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(component.serverError()).toBeNull();
+    expect(el.textContent).not.toContain('Slow down');
+    expect(el.textContent).not.toContain('Something went wrong');
+    expect(component.lotForm.name().value()).toBe('Central Mall Parking');
+    expect(component.lotForm.maxPricePerHour().value()).toBe(80);
+    expect(component.lotForm().submitting()).toBe(false);
+    const save = el.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    expect(save.disabled).toBe(false);
+    expect(save.textContent).toContain('Save lot');
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+  });
+
+  it('a first-load 429 in edit mode shows a neutral Retry instead of an error, then loads', async () => {
+    const { fixture, component } = createFixture({ id: LOT_ID });
+    httpMock
+      .expectOne(BY_ID_URL)
+      .flush(null, { status: 429, statusText: 'Too Many Requests' });
+    await Promise.resolve();
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(component.loading()).toBe(false);
+    expect(component.loadError()).toBeNull();
+    expect(el.querySelector('.text-red-600')).toBeNull();
+    expect(el.querySelector('[data-rate-limited]')?.textContent).toContain(
+      "Couldn't load this right now.",
+    );
+    expect(router.navigate).not.toHaveBeenCalled();
+
+    el.querySelector<HTMLButtonElement>('[data-rate-limited] button')!.click();
+    httpMock
+      .expectOne(BY_ID_URL)
+      .flush({ success: true, message: null, data: EXISTING_LOT, errors: null });
+    await Promise.resolve();
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(el.querySelector('[data-rate-limited]')).toBeNull();
+    expect(component.lotForm.name().value()).toBe('Whitefield Central Lot');
+  });
+
   it('shows a friendly message when saving fails without a network', async () => {
     const { component } = createFixture();
     fillValidForm(component);

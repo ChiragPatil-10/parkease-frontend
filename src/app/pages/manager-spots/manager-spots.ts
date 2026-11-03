@@ -11,6 +11,10 @@ import { LotResponse } from '../../models/lot.model';
 import { SpotResponse, SpotStatus } from '../../models/spot.model';
 import { NETWORK_ERROR_MESSAGE, isNetworkError } from '../../shared/network-error';
 
+function isHttpStatus(err: unknown, ...statuses: number[]): boolean {
+  return err instanceof HttpErrorResponse && statuses.includes(err.status);
+}
+
 interface SpotStatusMeta {
   label: string;
   dotClass: string;
@@ -56,6 +60,9 @@ export class ManagerSpots implements OnInit {
   protected readonly lotsLoading = signal(false);
   protected readonly spotsLoading = signal(false);
   protected readonly error = signal<string | null>(null);
+  /** A 429 with nothing to show yet; the toast explains, the page offers Retry. */
+  protected readonly lotsRateLimited = signal(false);
+  protected readonly spotsRateLimited = signal(false);
 
   protected readonly lotMenuOpen = signal(false);
   protected readonly addSpotsMenuOpen = signal(false);
@@ -76,6 +83,7 @@ export class ManagerSpots implements OnInit {
 
     this.lotsLoading.set(true);
     this.error.set(null);
+    this.lotsRateLimited.set(false);
 
     try {
       const response = await firstValueFrom(this.lotService.getLotsByManager(managerId));
@@ -85,7 +93,11 @@ export class ManagerSpots implements OnInit {
         await this.selectLot(lots[0].lotId);
       }
     } catch (err) {
-      this.error.set(this.resolveErrorMessage(err, "Couldn't load your lots. Please try again."));
+      if (isHttpStatus(err, 429)) {
+        this.lotsRateLimited.set(this.lots().length === 0);
+      } else {
+        this.error.set(this.resolveErrorMessage(err, "Couldn't load your lots. Please try again."));
+      }
     } finally {
       this.lotsLoading.set(false);
     }
@@ -110,6 +122,7 @@ export class ManagerSpots implements OnInit {
   private async loadSpots(lotId: string, selectDefaultFloor: boolean): Promise<void> {
     this.spotsLoading.set(true);
     this.error.set(null);
+    this.spotsRateLimited.set(false);
 
     try {
       const response = await firstValueFrom(this.spotService.getSpotsByLot(lotId));
@@ -118,9 +131,25 @@ export class ManagerSpots implements OnInit {
         this.selectedFloor.set(this.floors()[0] ?? null);
       }
     } catch (err) {
-      this.error.set(this.resolveErrorMessage(err, "Couldn't load spots for this lot. Please try again."));
+      if (isHttpStatus(err, 429)) {
+        if (selectDefaultFloor) {
+          // Switching lots: the spots on screen belong to the previous lot, so they must not stay.
+          this.spots.set([]);
+        }
+        // Same lot (floor change): the grid stays. With nothing to show, a neutral Retry.
+        this.spotsRateLimited.set(this.spots().length === 0);
+      } else {
+        this.error.set(this.resolveErrorMessage(err, "Couldn't load spots for this lot. Please try again."));
+      }
     } finally {
       this.spotsLoading.set(false);
+    }
+  }
+
+  protected async retrySpots(): Promise<void> {
+    const lotId = this.selectedLotId();
+    if (lotId) {
+      await this.loadSpots(lotId, true);
     }
   }
 

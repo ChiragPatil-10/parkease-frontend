@@ -46,6 +46,17 @@
 
     @if (loading()) {
       <p class="mt-6 text-sm text-muted">Loading your vehicles…</p>
+    } @else if (loadRateLimited()) {
+      <div class="mt-6" data-rate-limited>
+        <p class="text-sm text-muted">Couldn't load this right now.</p>
+        <button
+          type="button"
+          (click)="retryLoad()"
+          class="mt-2 min-h-11 cursor-pointer rounded-lg border border-border bg-card px-5 py-2.5 text-sm text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+        >
+          Retry
+        </button>
+      </div>
     } @else if (vehicles().length > 0) {
       <ul class="mt-6 flex flex-col gap-4">
         @for (vehicle of vehicles(); track vehicle.vehicleId) {

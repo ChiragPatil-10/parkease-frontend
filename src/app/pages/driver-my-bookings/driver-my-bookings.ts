@@ -25,7 +25,7 @@ import { CancelBookingDialog } from '../driver-booking-detail/cancel-booking-dia
 import { formatPlate } from '../driver-my-vehicles/vehicle-format';
 import { ActionKind, PillTone, bookingRowView } from './booking-row';
 
-type View = 'loading' | 'list' | 'empty' | 'error';
+type View = 'loading' | 'list' | 'empty' | 'error' | 'rate-limited';
 type Phase = 'idle' | 'checking-in' | 'checking-out' | 'cancelling';
 
 interface RowUi {
@@ -180,6 +180,12 @@ export class DriverMyBookings implements OnInit {
           this.expireSession();
           return;
         }
+        if (isHttpStatus(err, 429)) {
+          // The toast explains. Keep any bookings already loaded; with none, offer a neutral retry.
+          this.view.set(this.bookings().length > 0 ? 'list' : 'rate-limited');
+          this.announcement.set('');
+          return;
+        }
         this.view.set('error');
         this.announcement.set('');
       },
@@ -297,6 +303,10 @@ export class DriverMyBookings implements OnInit {
    * booking is gone so the whole list reloads, 409 re-fetches just that booking.
    */
   private actionError(err: unknown, id: string): string | null {
+    if (isHttpStatus(err, 429)) {
+      // The toast explains; the row and any open dialog stay as they are.
+      return null;
+    }
     if (isHttpStatus(err, 401)) {
       this.expireSession();
       return null;

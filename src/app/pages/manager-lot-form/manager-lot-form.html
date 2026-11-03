@@ -1,6 +1,6 @@
 <div class="min-h-screen bg-surface">
   <p class="px-8 pt-4 text-xs font-semibold tracking-wider text-muted">
-    MANAGER — CREATE / EDIT LOT
+    MANAGER &mdash; CREATE / EDIT LOT
   </p>
 
   <app-manager-nav activeTab="my-lots" />
@@ -9,12 +9,25 @@
     <div class="w-full max-w-xl rounded-2xl bg-card p-8 shadow-sm">
       @if (loading()) {
         <p class="text-center text-sm text-muted">Loading lot details…</p>
+      } @else if (loadRateLimited()) {
+        <div data-rate-limited>
+          <p class="text-center text-sm text-muted">Couldn't load this right now.</p>
+          <div class="mt-2 flex justify-center">
+            <button
+              type="button"
+              (click)="retryLoad()"
+              class="min-h-11 cursor-pointer rounded-lg border border-border bg-card px-5 py-2.5 text-sm text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
       } @else if (loadError()) {
         <p class="text-center text-sm text-red-600">{{ loadError() }}</p>
       } @else {
         <h1 class="text-xl font-bold text-ink">{{ heading }}</h1>
         <p class="mt-1 text-sm text-muted">
-          We'll geocode the address automatically — no need to enter coordinates.
+          We'll geocode the address automatically &mdash; no need to enter coordinates.
         </p>
 
         <form [formRoot]="lotForm" class="mt-6">

@@ -14,7 +14,7 @@ describe('ManagerApplications', () => {
     fixture.detectChanges();
 
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.textContent).toContain('Applications — coming soon.');
+    expect(el.textContent).toContain('Applications \u2014 coming soon.');
     expect(el.querySelector('app-manager-nav')).toBeTruthy();
     const active = el.querySelector('nav a.font-semibold');
     expect(active?.textContent?.trim()).toBe('Applications');

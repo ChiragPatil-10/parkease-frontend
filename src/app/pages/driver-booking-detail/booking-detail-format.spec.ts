@@ -86,8 +86,8 @@ describe('paymentCardView', () => {
   }
 
   it.each<[PaymentStatus, string, string]>([
-    ['Captured', 'Captured — paid', 'blue'],
-    ['Held', 'Captured — paid', 'blue'],
+    ['Captured', 'Captured \u2014 paid', 'blue'],
+    ['Held', 'Captured \u2014 paid', 'blue'],
     ['Refunded', 'Refunded', 'blue'],
     ['RefundFailed', 'Refund pending', 'red'],
   ])('%s shows the order and paid-at rows', (status, pill, tone) => {
@@ -147,9 +147,9 @@ describe('paymentCardView', () => {
 describe('cancelledLabel', () => {
   it.each([
     ['DriverCancelled', 'Cancelled'],
-    ['PaymentTimeout', 'Cancelled — payment timed out'],
-    ['PaymentFailed', 'Cancelled — payment failed'],
-    ['SpotUnavailable', 'Cancelled — spot unavailable'],
+    ['PaymentTimeout', 'Cancelled \u2014 payment timed out'],
+    ['PaymentFailed', 'Cancelled \u2014 payment failed'],
+    ['SpotUnavailable', 'Cancelled \u2014 spot unavailable'],
     ['Other', 'Cancelled'],
     [null, 'Cancelled'],
     [undefined, 'Cancelled'],

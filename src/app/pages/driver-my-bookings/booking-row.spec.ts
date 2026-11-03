@@ -33,9 +33,9 @@ describe('bookingRowView', () => {
 
   it.each([
     ['DriverCancelled', 'Cancelled'],
-    ['PaymentTimeout', 'Cancelled — payment timed out'],
-    ['PaymentFailed', 'Cancelled — payment failed'],
-    ['SpotUnavailable', 'Cancelled — spot unavailable'],
+    ['PaymentTimeout', 'Cancelled \u2014 payment timed out'],
+    ['PaymentFailed', 'Cancelled \u2014 payment failed'],
+    ['SpotUnavailable', 'Cancelled \u2014 spot unavailable'],
     ['Other', 'Cancelled'],
     [null, 'Cancelled'],
   ] as const)('cancelReason %s gives the pill "%s"', (cancelReason, pill) => {

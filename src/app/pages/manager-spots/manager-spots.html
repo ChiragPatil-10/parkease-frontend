@@ -12,6 +12,17 @@
 
     @if (lotsLoading()) {
       <p class="mt-6 text-center text-sm text-muted">Loading your lots…</p>
+    } @else if (lotsRateLimited()) {
+      <div class="mt-6" data-rate-limited>
+        <p class="text-sm text-muted">Couldn't load this right now.</p>
+        <button
+          type="button"
+          (click)="loadLots()"
+          class="mt-2 min-h-11 cursor-pointer rounded-lg border border-border bg-card px-5 py-2.5 text-sm text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+        >
+          Retry
+        </button>
+      </div>
     } @else if (lots().length === 0) {
       @if (!error()) {
         <p class="mt-6 text-center text-sm text-muted">You don't have any lots yet.</p>
@@ -76,7 +87,7 @@
               <button
                 type="button"
                 aria-disabled="true"
-                title="Coming soon — needs a page that hasn't been built yet"
+                title="Coming soon &mdash; needs a page that hasn't been built yet"
                 class="rounded-md px-3 py-1.5 text-sm font-medium text-link"
               >
                 + Add floor
@@ -116,6 +127,17 @@
 
       @if (spotsLoading()) {
         <p class="mt-6 text-center text-sm text-muted">Loading spots…</p>
+      } @else if (spotsRateLimited()) {
+        <div class="mt-6" data-rate-limited>
+          <p class="text-sm text-muted">Couldn't load this right now.</p>
+          <button
+            type="button"
+            (click)="retrySpots()"
+            class="mt-2 min-h-11 cursor-pointer rounded-lg border border-border bg-card px-5 py-2.5 text-sm text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          >
+            Retry
+          </button>
+        </div>
       } @else if (floors().length === 0) {
         <div
           class="mt-6 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border py-24"
@@ -126,7 +148,7 @@
             <button
               type="button"
               aria-disabled="true"
-              title="Coming soon — needs a page that hasn't been built yet"
+              title="Coming soon &mdash; needs a page that hasn't been built yet"
               class="rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-surface"
             >
               + Add single spot
@@ -193,11 +215,11 @@
           type="button"
           role="menuitem"
           aria-disabled="true"
-          title="Coming soon — needs a page that hasn't been built yet"
+          title="Coming soon &mdash; needs a page that hasn't been built yet"
           class="block w-full px-4 py-2.5 text-left hover:bg-surface"
         >
           <span class="block text-sm font-semibold text-ink">Add single spot</span>
-          <span class="block text-xs text-muted">Quick add — one spot at a time</span>
+          <span class="block text-xs text-muted">Quick add &mdash; one spot at a time</span>
         </button>
         <button
           type="button"

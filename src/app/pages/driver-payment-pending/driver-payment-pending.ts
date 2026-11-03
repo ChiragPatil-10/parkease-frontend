@@ -38,7 +38,7 @@ const STATUS_TEXT: Record<PageState, string> = {
 };
 
 const TITLE: Record<PageState, string> = {
-  pending: 'Payment successful — confirming your booking',
+  pending: 'Payment successful \u2014 confirming your booking',
   confirmed: 'Booking confirmed',
   cancelled: 'This booking was cancelled',
   'timed-out': 'We could not confirm your booking yet',
@@ -174,8 +174,11 @@ export class DriverPaymentPending implements OnInit {
       this.finish('not-found');
       return;
     }
-    // Network errors, 5xx and 429 never end the flow.
-    this.failures.update((n) => n + 1);
+    // Network errors, 5xx and 429 never end the flow. A 429 is explained by the global toast, so it
+    // does not count toward the "having trouble" banner; polling just carries on.
+    if (!(err instanceof HttpErrorResponse && err.status === 429)) {
+      this.failures.update((n) => n + 1);
+    }
     if (this.checking()) {
       this.checking.set(false);
       return;

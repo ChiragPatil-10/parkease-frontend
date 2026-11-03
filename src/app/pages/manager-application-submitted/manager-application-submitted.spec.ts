@@ -47,7 +47,7 @@ describe('ManagerApplicationSubmitted', () => {
 
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(text).toContain(
-      'Your application has been submitted — check your email for updates.',
+      'Your application has been submitted \u2014 check your email for updates.',
     );
     expect(text).not.toContain('Status:');
   });

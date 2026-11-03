@@ -9,7 +9,11 @@ import { NotificationService } from '../../services/notification.service';
 import { DriverNav } from '../../shared/components/driver-nav/driver-nav';
 import { formatNotificationFullTime, formatNotificationTime } from './notification-time';
 
-export type NotificationsState = 'loaded' | 'loading' | 'empty' | 'error';
+export type NotificationsState = 'loaded' | 'loading' | 'empty' | 'error' | 'rate-limited';
+
+function isHttpStatus(err: unknown, ...statuses: number[]): boolean {
+  return err instanceof HttpErrorResponse && statuses.includes(err.status);
+}
 
 /** What a row shows. Anything the API sends other than Sent or Failed reads as Pending. */
 type DisplayStatus = 'Sent' | 'Failed' | 'Pending';
@@ -125,7 +129,8 @@ export class DriverNotifications implements OnInit {
       error: (err: unknown) => {
         this.inflight = null;
         if (this.expireIfUnauthorized(err)) return;
-        this.state.set('error');
+        // A 429 is explained by the toast; with nothing loaded yet the page offers a neutral retry.
+        this.state.set(isHttpStatus(err, 429) ? 'rate-limited' : 'error');
       },
     });
   }
@@ -153,7 +158,8 @@ export class DriverNotifications implements OnInit {
         this.inflight = null;
         this.loadingMore.set(false);
         if (this.expireIfUnauthorized(err)) return;
-        // The rows already on screen stay; the button retries the same page.
+        // The rows already on screen stay; the button retries the same page. A 429 adds no message.
+        if (isHttpStatus(err, 429)) return;
         this.moreError.set(true);
       },
     });

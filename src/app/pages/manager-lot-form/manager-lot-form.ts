@@ -20,6 +20,10 @@ import { LotRequest, LotResponse } from '../../models/lot.model';
 import { AuthService } from '../../services/auth.service';
 import { NETWORK_ERROR_MESSAGE, isNetworkError } from '../../shared/network-error';
 
+function isHttpStatus(err: unknown, ...statuses: number[]): boolean {
+  return err instanceof HttpErrorResponse && statuses.includes(err.status);
+}
+
 interface LotFormModel {
   name: string;
   address: string;
@@ -46,7 +50,7 @@ const EMPTY_LOT: LotFormModel = {
 
 /**
  * gateway.md flags the 422 `errors` dict's key casing as unconfirmed (PascalCase per the
- * validator source, but never observed live) — matched case-insensitively here so this keeps
+ * validator source, but never observed live) - matched case-insensitively here so this keeps
  * working whichever casing the API actually sends.
  */
 const SERVER_FIELD_KEYS: Record<string, keyof LotFormModel> = {
@@ -79,6 +83,8 @@ export class ManagerLotForm implements OnInit {
 
   protected readonly loading = signal(this.isEditMode);
   protected readonly loadError = signal<string | null>(null);
+  /** A 429 loading the lot to edit: nothing to show yet, so the page offers a neutral Retry. */
+  protected readonly loadRateLimited = signal(false);
   protected readonly serverError = signal<string | null>(null);
 
   private readonly lot = signal<LotFormModel>({ ...EMPTY_LOT });
@@ -152,9 +158,14 @@ export class ManagerLotForm implements OnInit {
     void this.router.navigateByUrl('/manager/lots');
   }
 
+  protected retryLoad(): void {
+    void this.loadLot();
+  }
+
   private async loadLot(): Promise<void> {
     this.loading.set(true);
     this.loadError.set(null);
+    this.loadRateLimited.set(false);
 
     try {
       const response = await firstValueFrom(this.lotService.getLotById(this.lotId!));
@@ -168,6 +179,10 @@ export class ManagerLotForm implements OnInit {
             ? 'That lot could not be found. It may have been removed.'
             : "You don't have permission to edit this lot.",
         );
+        return;
+      }
+      if (isHttpStatus(err, 429)) {
+        this.loadRateLimited.set(true);
         return;
       }
       this.loadError.set("Couldn't load this lot. Please try again.");
@@ -209,6 +224,10 @@ export class ManagerLotForm implements OnInit {
   private handleSubmitError(err: unknown): ValidationError.WithOptionalFieldTree[] | undefined {
     if (isNetworkError(err)) {
       this.serverError.set(NETWORK_ERROR_MESSAGE);
+      return undefined;
+    }
+    if (isHttpStatus(err, 429)) {
+      // The toast explains; the form keeps its input and Save works again.
       return undefined;
     }
     if (err instanceof HttpErrorResponse) {

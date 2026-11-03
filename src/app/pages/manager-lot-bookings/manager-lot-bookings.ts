@@ -19,7 +19,19 @@ import {
 import { formatPlate } from '../driver-my-vehicles/vehicle-format';
 import { lotApprovalSuffix } from './lot-approval-suffix';
 
-export type LotBookingsState = 'loaded' | 'loading' | 'empty' | 'error' | 'lotNotFound' | 'noLots';
+export type LotBookingsState =
+  | 'loaded'
+  | 'loading'
+  | 'empty'
+  | 'error'
+  | 'rateLimited'
+  | 'lotNotFound'
+  | 'noLots';
+
+/** A 429 is explained by the global toast, so the page shows no banner of its own for it. */
+function isRateLimited(err: unknown): boolean {
+  return err instanceof HttpErrorResponse && err.status === 429;
+}
 
 export type StatusFilter = 'all' | 'Confirmed' | 'CheckedIn' | 'Completed' | 'Cancelled';
 
@@ -172,7 +184,7 @@ export class ManagerLotBookings implements OnInit {
       error: (err: unknown) => {
         this.lotsRequest = null;
         if (this.expireIfUnauthorized(err)) return;
-        this.state.set('error');
+        this.state.set(isRateLimited(err) ? 'rateLimited' : 'error');
       },
     });
   }
@@ -215,7 +227,12 @@ export class ManagerLotBookings implements OnInit {
 
     const changed = lot.lotId !== this.selectedLotId();
     this.selectedLotId.set(lot.lotId);
-    if (changed || this.state() === 'lotNotFound' || this.state() === 'error') {
+    if (
+      changed ||
+      this.state() === 'lotNotFound' ||
+      this.state() === 'error' ||
+      this.state() === 'rateLimited'
+    ) {
       this.filter.set('all');
       this.fetchFirstPage();
     }
@@ -265,6 +282,11 @@ export class ManagerLotBookings implements OnInit {
       error: (err: unknown) => {
         this.bookingsRequest = null;
         if (this.expireIfUnauthorized(err)) return;
+        if (isRateLimited(err)) {
+          // Nothing to show yet for this lot and chip: a neutral retry instead of the red banner.
+          this.state.set('rateLimited');
+          return;
+        }
         this.state.set(err instanceof HttpErrorResponse && err.status === 404 ? 'lotNotFound' : 'error');
       },
     });
@@ -296,7 +318,8 @@ export class ManagerLotBookings implements OnInit {
           this.bookingsRequest = null;
           this.loadingMore.set(false);
           if (this.expireIfUnauthorized(err)) return;
-          // The rows already on screen stay; the button retries the same page.
+          // The rows already on screen stay; the button retries the same page. A 429 adds no message.
+          if (isRateLimited(err)) return;
           this.moreError.set(true);
         },
       });

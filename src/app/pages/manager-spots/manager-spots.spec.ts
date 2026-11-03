@@ -248,6 +248,97 @@ describe('ManagerSpots', () => {
     expect(localStorage.getItem(SESSION_STORAGE_KEY)).toBeNull();
   });
 
+  it('a 429 loading lots shows no banner and a neutral Retry that loads again', async () => {
+    const { fixture, component } = createFixture();
+    fixture.detectChanges();
+
+    httpMock
+      .expectOne(LOTS_URL)
+      .flush(
+        { success: false, message: 'Slow down', data: null, errors: null },
+        { status: 429, statusText: 'Too Many Requests' },
+      );
+    await flushAsync();
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(component.error()).toBeNull();
+    expect(el.querySelector('.text-red-600')).toBeNull();
+    expect(el.textContent).not.toContain('Slow down');
+    expect(el.textContent).not.toContain("You don't have any lots yet.");
+    expect(el.querySelector('[data-rate-limited]')?.textContent).toContain(
+      "Couldn't load this right now.",
+    );
+
+    el.querySelector<HTMLButtonElement>('[data-rate-limited] button')!.click();
+    httpMock.expectOne(LOTS_URL).flush({ success: true, message: null, data: [LOT_1], errors: null });
+    await flushAsync();
+    httpMock
+      .expectOne(spotsUrl(LOT_1.lotId))
+      .flush({ success: true, message: null, data: SPOTS_FLOOR_1_AND_2, errors: null });
+    await flushAsync();
+    fixture.detectChanges();
+
+    expect(el.querySelector('[data-rate-limited]')).toBeNull();
+    expect(el.textContent).toContain('A-01');
+  });
+
+  it('a first-load 429 on the spots shows a neutral Retry, not the no-spots state or a banner', async () => {
+    const { fixture, component } = createFixture();
+    fixture.detectChanges();
+
+    httpMock.expectOne(LOTS_URL).flush({ success: true, message: null, data: [LOT_1], errors: null });
+    await flushAsync();
+    httpMock
+      .expectOne(spotsUrl(LOT_1.lotId))
+      .flush(null, { status: 429, statusText: 'Too Many Requests' });
+    await flushAsync();
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(component.error()).toBeNull();
+    expect(el.textContent).toContain('Whitefield Central Lot');
+    expect(el.querySelector('.text-red-600')).toBeNull();
+    expect(el.textContent).not.toContain('This lot has no spots yet');
+    expect(el.querySelector('[data-rate-limited]')).toBeTruthy();
+
+    el.querySelector<HTMLButtonElement>('[data-rate-limited] button')!.click();
+    httpMock
+      .expectOne(spotsUrl(LOT_1.lotId))
+      .flush({ success: true, message: null, data: SPOTS_FLOOR_1_AND_2, errors: null });
+    await flushAsync();
+    fixture.detectChanges();
+
+    expect(el.querySelector('[data-rate-limited]')).toBeNull();
+    expect(el.textContent).toContain('A-01');
+  });
+
+  it('a 429 on a floor change keeps the spots on screen with no banner or retry state', async () => {
+    const { fixture, component } = createFixture();
+    fixture.detectChanges();
+
+    httpMock.expectOne(LOTS_URL).flush({ success: true, message: null, data: [LOT_1], errors: null });
+    await flushAsync();
+    httpMock
+      .expectOne(spotsUrl(LOT_1.lotId))
+      .flush({ success: true, message: null, data: SPOTS_FLOOR_1_AND_2, errors: null });
+    await flushAsync();
+
+    void component.selectFloor(3);
+    httpMock
+      .expectOne(spotsUrl(LOT_1.lotId))
+      .flush(null, { status: 429, statusText: 'Too Many Requests' });
+    await flushAsync();
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(component.spots().length).toBe(3);
+    expect(component.error()).toBeNull();
+    expect(el.querySelector('.text-red-600')).toBeNull();
+    expect(el.querySelector('[data-rate-limited]')).toBeNull();
+    expect(el.textContent).toContain('B-01');
+  });
+
   it('shows an empty state when the manager has no lots', async () => {
     const { fixture } = createFixture();
     fixture.detectChanges();

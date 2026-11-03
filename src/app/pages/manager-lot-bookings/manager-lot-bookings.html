@@ -72,6 +72,18 @@
         }
 
         @switch (view()) {
+          @case ('rateLimited') {
+            <div class="mt-4" data-rate-limited>
+              <p class="text-sm text-muted">Couldn't load this right now.</p>
+              <button
+                type="button"
+                (click)="retry()"
+                class="mt-2 min-h-11 cursor-pointer rounded-lg border border-border bg-card px-5 py-2.5 text-sm text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+              >
+                Retry
+              </button>
+            </div>
+          }
           @case ('error') {
             <p
               role="alert"

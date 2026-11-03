@@ -157,7 +157,7 @@ describe('DriverBookingDetail', () => {
       expect(mono('₹120')).toBe(true);
       expect(mono('order_Nk3xR9Qp')).toBe(true);
       expect(el.querySelector('h2')?.textContent?.trim()).toBe('Payment');
-      expect(text()).toContain('Captured — paid');
+      expect(text()).toContain('Captured \u2014 paid');
       expect(text()).toContain('Paid at');
     });
 
@@ -224,7 +224,7 @@ describe('DriverBookingDetail', () => {
       await setup();
       expect(text()).toContain('Spot Not available');
       expect(text()).toContain('Vehicle Not available');
-      expect(text()).toContain('Captured — paid');
+      expect(text()).toContain('Captured \u2014 paid');
     });
 
     it('treats a payment 404 as "no payment"', async () => {
@@ -296,9 +296,9 @@ describe('DriverBookingDetail', () => {
   describe('cancelled status text', () => {
     it.each([
       ['DriverCancelled', 'Cancelled'],
-      ['PaymentTimeout', 'Cancelled — payment timed out'],
-      ['PaymentFailed', 'Cancelled — payment failed'],
-      ['SpotUnavailable', 'Cancelled — spot unavailable'],
+      ['PaymentTimeout', 'Cancelled \u2014 payment timed out'],
+      ['PaymentFailed', 'Cancelled \u2014 payment failed'],
+      ['SpotUnavailable', 'Cancelled \u2014 spot unavailable'],
       ['Other', 'Cancelled'],
       [null, 'Cancelled'],
     ])('cancelReason %s shows "%s" in the Status row', async (cancelReason, label) => {
@@ -314,8 +314,8 @@ describe('DriverBookingDetail', () => {
 
   describe('payment card', () => {
     const cases: [string, string, boolean][] = [
-      ['Captured', 'Captured — paid', true],
-      ['Held', 'Captured — paid', true],
+      ['Captured', 'Captured \u2014 paid', true],
+      ['Held', 'Captured \u2014 paid', true],
       ['Created', 'Awaiting payment', false],
       ['Refunded', 'Refunded', true],
       ['RefundFailed', 'Refund pending', true],
@@ -374,7 +374,25 @@ describe('DriverBookingDetail', () => {
       expect(gets).toEqual([]);
     });
 
-    it.each([0, 500, 429])('%s shows a banner with Try again, then recovers', async (status) => {
+    it('429 shows no banner and a neutral Retry, then recovers', async () => {
+      bookingResult = () => httpError(429);
+      await setup();
+      expect(el.querySelector('[role="alert"]')).toBeNull();
+      expect(text()).not.toContain('Something went wrong');
+      expect(text()).not.toContain('not found');
+      expect(el.querySelector('[data-rate-limited]')?.textContent).toContain(
+        "Couldn't load this right now.",
+      );
+      expect(el.querySelectorAll('h1').length).toBe(1);
+
+      bookingResult = () => of(envelope(booking('Confirmed')));
+      (find('button', 'Retry') as HTMLButtonElement).click();
+      await flush();
+      expect(h1().textContent?.trim()).toBe('Whitefield Central Lot');
+      expect(el.querySelector('[data-rate-limited]')).toBeNull();
+    });
+
+    it.each([0, 500])('%s shows a banner with Try again, then recovers', async (status) => {
       bookingResult = () => httpError(status);
       await setup();
       expect(el.querySelector('[role="alert"]')?.textContent).toContain('Try again');
@@ -432,7 +450,20 @@ describe('DriverBookingDetail', () => {
       expect(router.navigateByUrl).toHaveBeenCalledWith('/login');
     });
 
-    it.each([0, 500, 429])('shows a generic banner on %s and keeps the button usable', async (status) => {
+    it('a 429 shows no banner, keeps the booking on screen and keeps the button usable', async () => {
+      checkInResult = () => httpError(429);
+      await setup();
+      (find('button', 'Check in') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      expect(el.querySelector('[role="alert"]')).toBeNull();
+      expect(text()).not.toContain('Something went wrong');
+      expect(text()).toContain('Whitefield Central Lot');
+      const button = find('button', 'Check in') as HTMLButtonElement;
+      expect(button.disabled).toBe(false);
+      expect(button.textContent).not.toContain('Checking in…');
+    });
+
+    it.each([0, 500])('shows a generic banner on %s and keeps the button usable', async (status) => {
       checkInResult = () => httpError(status);
       await setup();
       (find('button', 'Check in') as HTMLButtonElement).click();
@@ -494,6 +525,27 @@ describe('DriverBookingDetail', () => {
       await flush();
       bookingResult = () => httpError(503);
       await flush(2000);
+      bookingResult = () => of(envelope(booking('Completed')));
+      await flush(2000);
+      expect(buttonLabels()).toEqual(['Book again']);
+    });
+
+    it('a 429 on checkout shows no banner and keeps Check out usable', async () => {
+      checkOutResult = () => httpError(429);
+      await setup();
+      (find('button', 'Check out') as HTMLButtonElement).click();
+      await flush();
+      expect(el.querySelector('[role="alert"]')).toBeNull();
+      expect((find('button', 'Check out') as HTMLButtonElement).disabled).toBe(false);
+    });
+
+    it('keeps polling through a 429 with no banner', async () => {
+      await setup();
+      (find('button', 'Check out') as HTMLButtonElement).click();
+      await flush();
+      bookingResult = () => httpError(429);
+      await flush(2000);
+      expect(el.querySelector('[role="alert"]')).toBeNull();
       bookingResult = () => of(envelope(booking('Completed')));
       await flush(2000);
       expect(buttonLabels()).toEqual(['Book again']);
@@ -628,6 +680,20 @@ describe('DriverBookingDetail', () => {
       fixture.detectChanges();
       expect(auth.clearSession).toHaveBeenCalled();
       expect(router.navigateByUrl).toHaveBeenCalledWith('/login');
+    });
+
+    it('a 429 shows no message, keeps the dialog open and enables its buttons again', async () => {
+      cancelResult = () => httpError(429);
+      await setup();
+      await openDialog();
+      (find('[role="dialog"] button', 'Yes, cancel booking') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      expect(dialog()).not.toBeNull();
+      expect(dialog()!.querySelector('[role="alert"]')).toBeNull();
+      expect(dialog()!.textContent).not.toContain('Something went wrong');
+      const confirm = find('[role="dialog"] button', 'Yes, cancel booking') as HTMLButtonElement;
+      expect(confirm.disabled).toBe(false);
+      expect(confirm.textContent).not.toContain('Cancelling…');
     });
 
     it('a 500 keeps the dialog open with a usable button', async () => {

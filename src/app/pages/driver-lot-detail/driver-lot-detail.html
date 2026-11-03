@@ -11,6 +11,22 @@
         Back to lots
       </a>
     </main>
+  } @else if (lotFailure() === 'rate-limited') {
+    <main class="mx-auto max-w-6xl px-8 py-8">
+      <div data-rate-limited>
+        <p class="text-sm text-muted">Couldn't load this right now.</p>
+        <button
+          type="button"
+          (click)="retryLot()"
+          class="mt-2 min-h-11 cursor-pointer rounded-lg border border-border bg-card px-5 py-2.5 text-sm text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+        >
+          Retry
+        </button>
+      </div>
+      <a routerLink="/lots" class="mt-4 inline-block text-sm font-semibold text-link">
+        Back to lots
+      </a>
+    </main>
   } @else if (lotFailure() === 'error') {
     <main class="mx-auto max-w-6xl px-8 py-8">
       <p
@@ -84,7 +100,7 @@
           </div>
         } @else if (floors().length === 1) {
           <p class="mt-6 text-xs font-semibold tracking-wide text-muted">
-            PICK A SPOT — FLOOR {{ floors()[0] }}
+            PICK A SPOT &mdash; FLOOR {{ floors()[0] }}
           </p>
         } @else {
           <p class="mt-6 text-xs font-semibold tracking-wide text-muted">PICK A SPOT</p>
@@ -101,6 +117,17 @@
 
         @if (spotsLoading()) {
           <p class="mt-3 text-sm text-muted">Loading spots…</p>
+        } @else if (spotsRateLimited()) {
+          <div class="mt-3" data-rate-limited>
+            <p class="text-sm text-muted">Couldn't load this right now.</p>
+            <button
+              type="button"
+              (click)="retrySpots()"
+              class="mt-2 min-h-11 cursor-pointer rounded-lg border border-border bg-card px-5 py-2.5 text-sm text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+            >
+              Retry
+            </button>
+          </div>
         } @else if (!spotsError() && spots().length === 0) {
           <p class="mt-3 text-sm text-muted">This lot has no spots yet.</p>
         } @else if (spots().length > 0 && visibleSpots().length === 0) {
@@ -149,6 +176,15 @@
             <dd class="text-right text-base text-ink">
               @if (vehiclesLoading()) {
                 <span class="text-sm text-muted">Loading…</span>
+              } @else if (vehiclesRateLimited()) {
+                <span class="text-sm text-muted" data-rate-limited>Couldn't load this right now.</span>
+                <button
+                  type="button"
+                  (click)="retryVehicles()"
+                  class="mt-1 ml-auto block min-h-11 cursor-pointer rounded-lg border border-border bg-card px-5 py-2.5 text-sm text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                >
+                  Retry
+                </button>
               } @else if (vehiclesError(); as message) {
                 <span role="alert" class="text-sm text-red-700">{{ message }}</span>
               } @else if (selectedVehicle(); as vehicle) {
@@ -198,7 +234,7 @@
               @if (selectedSpot(); as spot) {
                 ₹{{ spot.pricePerHour }}/hr
               } @else {
-                —
+                &mdash;
               }
             </dd>
           </div>
@@ -210,7 +246,7 @@
             @if (estimatedTotal() !== null) {
               ₹{{ estimatedTotal() }}
             } @else {
-              —
+              &mdash;
             }
           </span>
         </div>
