@@ -3,7 +3,7 @@ import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 import { PARKINGLOT_API } from '../constants/parkinglot.constants';
 import { ApiResponse } from '../models/api-response.model';
-import { ApproveLotRequest, LotRequest, LotResponse, NearbyLot } from '../models/lot.model';
+import { LotRequest, RejectLotRequest, LotResponse, NearbyLot } from '../models/lot.model';
 import { PagedResponse } from '../models/paged-response.model';
 
 @Injectable({ providedIn: 'root' })
@@ -30,9 +30,20 @@ export class ParkingLotService {
     return this.api.put<LotResponse>(PARKINGLOT_API.byId(lotId), request);
   }
 
-  approveLot(lotId: string, feedback?: string): Observable<ApiResponse<LotResponse>> {
-    const body: ApproveLotRequest = feedback?.trim() ? { feedback: feedback.trim() } : {};
-    return this.api.put<LotResponse>(PARKINGLOT_API.approve(lotId), body);
+  getAllLots(page: number, pageSize: number): Observable<ApiResponse<PagedResponse<LotResponse>>> {
+    return this.api.get<PagedResponse<LotResponse>>(PARKINGLOT_API.all, { page, pageSize });
+  }
+
+  /** The server requires a JSON body, so this sends {} (approval never carries feedback). */
+  approveLot(lotId: string): Observable<ApiResponse<LotResponse>> {
+    return this.api.put<LotResponse>(PARKINGLOT_API.approve(lotId), {});
+  }
+
+  /** Sends { feedback } with the trimmed text, or {} when it is empty. */
+  rejectLot(lotId: string, feedback?: string): Observable<ApiResponse<LotResponse>> {
+    const trimmed = feedback?.trim();
+    const body: RejectLotRequest = trimmed ? { feedback: trimmed } : {};
+    return this.api.put<LotResponse>(PARKINGLOT_API.reject(lotId), body);
   }
 
   getNearbyLots(

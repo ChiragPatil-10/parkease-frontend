@@ -25,7 +25,7 @@ const NAV_ITEMS: DriverNavItem[] = [
   styleUrl: './driver-nav.css',
 })
 export class DriverNav {
-  readonly activeTab = input.required<DriverNavTab>();
+  readonly activeTab = input.required<DriverNavTab | null>();
 
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);

@@ -125,7 +125,7 @@ Bookings are **prepaid**. A booking stays `Pending` until the driver pays (see
   are always present in the JSON and are `null` when unknown: bookings created
   before this feature have `null`, and `lotName` can also be `null` if the lot
   service was unavailable at that moment. When a value is `null`, fall back to
-  reading the lot (`parkinglot.md`), the spot (`spot.md`) or the vehicle
+  reading the lot (`parkinglot-service.md`), the spot (`spot.md`) or the vehicle
   (`vehicle.md`).
 - `cancelReason` is set only when `status` is `"Cancelled"`, otherwise `null`. It
   is a code, never free text: `"DriverCancelled"`, `"PaymentTimeout"`,
@@ -235,7 +235,7 @@ Errors:
 | 500 | The lot lookup failed (ParkingLot unreachable). No data is returned |
 
 The lot's name is not in this response. Get the manager's lots (and names) from
-`GET /api/v1/lots/manager/{managerId}` (see `parkinglot.md`).
+`GET /api/v1/lots/manager/{managerId}` (see `parkinglot-service.md`).
 
 ### `POST /api/bookings/{id}/checkin` (Requires role: `Driver`)
 

@@ -156,7 +156,7 @@ describe('Login', () => {
     expect(component.serverError()).toBe('Invalid email or password.');
   });
 
-  it('shows a rate-limit message on 429 responses', async () => {
+  it('shows no inline error on 429 responses and ends the busy state', async () => {
     const component = createLoggedInFixture('alice@example.com', 'Secret1!');
     const submission = submit(component.loginForm);
 
@@ -165,9 +165,9 @@ describe('Login', () => {
 
     await submission;
 
-    expect(component.serverError()).toBe(
-      'Too many login attempts. Please wait a minute and try again.',
-    );
+    // The global toast covers a 429, so the page shows no inline error and the form is not busy.
+    expect(component.serverError()).toBeNull();
+    expect(component.loginForm().submitting()).toBe(false);
   });
 });
 

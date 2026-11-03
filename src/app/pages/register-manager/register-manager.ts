@@ -99,10 +99,11 @@ export class RegisterManager {
     this.router.navigate(['/register-manager/submitted'], { state });
   }
 
-  private resolveErrorMessage(err: unknown): string {
+  private resolveErrorMessage(err: unknown): string | null {
     if (err instanceof HttpErrorResponse) {
+      // The global 429 toast covers this; no inline error.
       if (err.status === 429) {
-        return 'Too many registration attempts. Please wait a minute and try again.';
+        return null;
       }
       const body = err.error as ApiResponse<unknown> | null;
       if (body?.message) {

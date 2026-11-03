@@ -25,7 +25,7 @@ const NAV_ITEMS: ManagerNavItem[] = [
   styleUrl: './manager-nav.css',
 })
 export class ManagerNav {
-  readonly activeTab = input.required<ManagerNavTab>();
+  readonly activeTab = input.required<ManagerNavTab | null>();
 
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);

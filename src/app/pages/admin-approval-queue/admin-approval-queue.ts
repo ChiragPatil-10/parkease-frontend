@@ -1,11 +1,12 @@
-import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Observable, firstValueFrom } from 'rxjs';
 import { AdminNav } from '../../shared/components/admin-nav/admin-nav';
+import { ConfirmDialog } from '../../shared/components/confirm-dialog/confirm-dialog';
 import { PaginationControls } from '../../shared/components/pagination-controls/pagination-controls';
-import { PaginatePipe } from '../../shared/pipes/paginate.pipe';
 import { AuthService } from '../../services/auth.service';
 import { ParkingLotService } from '../../services/parkinglot.service';
 import { ApiResponse } from '../../models/api-response.model';
@@ -15,13 +16,29 @@ import { LotResponse } from '../../models/lot.model';
 import { NETWORK_ERROR_MESSAGE, isNetworkError } from '../../shared/network-error';
 
 type ApprovalSubTab = 'manager-applications' | 'lot-approvals';
+type LotActionKind = 'approve' | 'reject';
 
 const APPLICATIONS_PAGE_SIZE = 10;
-const LOTS_PAGE_SIZE = 10;
+
+export const GENERIC_ERROR_MESSAGE = 'Something went wrong. Please try again.';
+/** Shown (and the list reloaded) when approve or reject finds the lot already handled (409). */
+export const ALREADY_HANDLED_NOTICE = 'This lot was already handled. The list has been refreshed.';
+/** Shown when approve or reject finds the lot gone (404). */
+export const LOT_GONE_NOTICE = 'This lot no longer exists.';
+
+export const APPROVAL_TABS: { id: ApprovalSubTab; label: string }[] = [
+  { id: 'manager-applications', label: 'Manager applications' },
+  { id: 'lot-approvals', label: 'Lot approvals' },
+];
+
+interface PendingReject {
+  lot: LotResponse;
+  opener: HTMLElement | null;
+}
 
 @Component({
   selector: 'app-admin-approval-queue',
-  imports: [AdminNav, PaginationControls, PaginatePipe],
+  imports: [AdminNav, PaginationControls, ConfirmDialog],
   templateUrl: './admin-approval-queue.html',
   styleUrl: './admin-approval-queue.css',
 })
@@ -31,8 +48,11 @@ export class AdminApprovalQueue implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly document = inject(DOCUMENT);
 
+  protected readonly tabs = APPROVAL_TABS;
   protected readonly subTab = signal<ApprovalSubTab>('manager-applications');
+  /** The aria-live line: success messages and short notices (lot gone, already handled). */
   protected readonly successMessage = signal<string | null>(null);
 
   protected readonly applicationsPageSize = APPLICATIONS_PAGE_SIZE;
@@ -43,19 +63,19 @@ export class AdminApprovalQueue implements OnInit {
   protected readonly applicationsError = signal<string | null>(null);
   protected readonly actingApplicationId = signal<string | null>(null);
 
-  protected readonly lotsPageSize = LOTS_PAGE_SIZE;
+  /** The pending list is not paged: the server returns every pending lot, oldest first. */
   protected readonly lots = signal<LotResponse[]>([]);
-  protected readonly managerNames = signal<Record<string, string>>({});
   protected readonly lotsLoading = signal(false);
   protected readonly lotsError = signal<string | null>(null);
+  /** True when lotsError came from loading the list, so the banner offers Retry. */
+  protected readonly lotsRetryable = signal(false);
   protected readonly lotsLoaded = signal(false);
-  protected readonly lotPage = signal(1);
   protected readonly lotFeedbackDrafts = signal<Record<string, string>>({});
+  /** Server message (400) shown under a card's textarea. */
+  protected readonly lotFieldErrors = signal<Record<string, string>>({});
   protected readonly actingLotId = signal<string | null>(null);
-
-  protected readonly lotTotalPages = computed(() =>
-    Math.max(1, Math.ceil(this.lots().length / LOTS_PAGE_SIZE)),
-  );
+  protected readonly actingKind = signal<LotActionKind | null>(null);
+  protected readonly pendingReject = signal<PendingReject | null>(null);
 
   ngOnInit(): void {
     void this.loadApplications(1);
@@ -78,6 +98,32 @@ export class AdminApprovalQueue implements OnInit {
     });
   }
 
+  /** Left and Right (and Home and End) move between the tabs and focus the new one. */
+  protected onTabKeydown(event: KeyboardEvent): void {
+    const index = this.tabs.findIndex((tab) => tab.id === this.subTab());
+    let next: number;
+    switch (event.key) {
+      case 'ArrowRight':
+        next = (index + 1) % this.tabs.length;
+        break;
+      case 'ArrowLeft':
+        next = (index - 1 + this.tabs.length) % this.tabs.length;
+        break;
+      case 'Home':
+        next = 0;
+        break;
+      case 'End':
+        next = this.tabs.length - 1;
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    const target = this.tabs[next];
+    this.selectSubTab(target.id);
+    this.document.getElementById(`approval-tab-${target.id}`)?.focus();
+  }
+
   private showSubTab(tab: ApprovalSubTab): void {
     this.subTab.set(tab);
     this.successMessage.set(null);
@@ -89,9 +135,12 @@ export class AdminApprovalQueue implements OnInit {
 
   // ---- Manager applications ----
 
-  protected async loadApplications(page: number): Promise<void> {
+  /** `keepError` reloads after a failed action without wiping the message that action just set. */
+  protected async loadApplications(page: number, keepError = false): Promise<void> {
     this.applicationsLoading.set(true);
-    this.applicationsError.set(null);
+    if (!keepError) {
+      this.applicationsError.set(null);
+    }
 
     try {
       const response = await firstValueFrom(
@@ -134,6 +183,9 @@ export class AdminApprovalQueue implements OnInit {
     applicationId: string,
     successText: string,
   ): Promise<void> {
+    if (this.actingApplicationId() !== null) {
+      return;
+    }
     this.actingApplicationId.set(applicationId);
     this.applicationsError.set(null);
     this.successMessage.set(null);
@@ -144,6 +196,10 @@ export class AdminApprovalQueue implements OnInit {
       void this.loadApplications(this.applicationsPage());
     } catch (err) {
       this.applicationsError.set(this.resolveErrorMessage(err));
+      // 404 and 409 mean the application is not what the list showed: refresh it.
+      if (err instanceof HttpErrorResponse && (err.status === 404 || err.status === 409)) {
+        void this.loadApplications(this.applicationsPage(), true);
+      }
     } finally {
       this.actingApplicationId.set(null);
     }
@@ -151,88 +207,152 @@ export class AdminApprovalQueue implements OnInit {
 
   // ---- Lot approvals ----
 
-  protected async loadPendingLots(): Promise<void> {
-    this.lotsLoading.set(true);
+  /** `silent` reloads without swapping the list for the loading text (used after a 409). */
+  protected async loadPendingLots(silent = false): Promise<void> {
+    if (!silent) {
+      this.lotsLoading.set(true);
+    }
     this.lotsError.set(null);
+    this.lotsRetryable.set(false);
 
     try {
       const response = await firstValueFrom(this.lotService.getPendingLots());
-      const lots = response.data ?? [];
-      this.lots.set(lots);
-      this.lotPage.set(1);
+      this.lots.set(response.data ?? []);
       this.lotsLoaded.set(true);
-      await this.resolveManagerNames(lots);
     } catch (err) {
-      this.lotsError.set(this.resolveErrorMessage(err));
+      const message = this.resolveErrorMessage(err);
+      this.lotsError.set(message);
+      this.lotsRetryable.set(message !== null);
     } finally {
       this.lotsLoading.set(false);
     }
-  }
-
-  protected changeLotPage(page: number): void {
-    this.lotPage.set(page);
   }
 
   protected updateLotFeedback(lotId: string, value: string): void {
     this.lotFeedbackDrafts.update((current) => ({ ...current, [lotId]: value }));
   }
 
-  protected async approveLot(lotId: string): Promise<void> {
-    this.actingLotId.set(lotId);
-    this.lotsError.set(null);
-    this.successMessage.set(null);
-
-    try {
-      await firstValueFrom(this.lotService.approveLot(lotId, this.lotFeedbackDrafts()[lotId]));
-      this.successMessage.set('Lot approved.');
-      this.lotFeedbackDrafts.update((current) => {
-        const rest = { ...current };
-        delete rest[lotId];
-        return rest;
-      });
-      await this.loadPendingLots();
-    } catch (err) {
-      this.lotsError.set(this.resolveErrorMessage(err));
-    } finally {
-      this.actingLotId.set(null);
-    }
-  }
-
   protected managerNameFor(lot: LotResponse): string {
-    return this.managerNames()[lot.managerId] ?? 'Loading manager…';
+    return lot.managerName?.trim() ? lot.managerName : 'Unknown manager';
   }
 
   protected submittedTextFor(lot: LotResponse): string {
     return `Submitted ${this.formatRelativeTime(lot.createdAt)}`;
   }
 
-  protected appliedTextFor(application: ManagerApplicationDto): string {
-    return `Applied ${this.formatRelativeTime(application.createdAt)}`;
+  protected lotActionLabel(lotId: string, kind: LotActionKind): string {
+    const busy = this.actingLotId() === lotId && this.actingKind() === kind;
+    if (kind === 'approve') return busy ? 'Approving...' : 'Approve';
+    return busy ? 'Rejecting...' : 'Reject';
   }
 
-  private async resolveManagerNames(lots: LotResponse[]): Promise<void> {
-    const known = this.managerNames();
-    const missingIds = [...new Set(lots.map((lot) => lot.managerId))].filter((id) => !(id in known));
+  protected async approveLot(lotId: string): Promise<void> {
+    const lot = this.lots().find((l) => l.lotId === lotId);
+    if (lot) {
+      await this.runLotAction(lot, 'approve');
+    }
+  }
 
-    if (missingIds.length === 0) {
+  protected requestReject(lot: LotResponse, event: Event): void {
+    if (this.actingLotId() !== null) {
       return;
     }
+    this.pendingReject.set({ lot, opener: event.currentTarget as HTMLElement });
+  }
 
-    const results = await Promise.all(
-      missingIds.map(async (id) => {
-        try {
-          const response = await firstValueFrom(this.authService.getUserById(id));
-          return [id, response.data?.fullName ?? 'Unknown manager'] as const;
-        } catch {
-          return [id, 'Unknown manager'] as const;
-        }
-      }),
-    );
+  protected cancelReject(): void {
+    this.pendingReject.set(null);
+  }
 
-    this.managerNames.update((current) => ({
-      ...current,
-      ...Object.fromEntries(results),
-    }));
+  protected async confirmReject(): Promise<void> {
+    const pending = this.pendingReject();
+    if (!pending) {
+      return;
+    }
+    this.pendingReject.set(null);
+    await this.runLotAction(pending.lot, 'reject');
+  }
+
+  private async runLotAction(lot: LotResponse, kind: LotActionKind): Promise<void> {
+    if (this.actingLotId() !== null) {
+      return;
+    }
+    this.actingLotId.set(lot.lotId);
+    this.actingKind.set(kind);
+    this.lotsError.set(null);
+    this.lotsRetryable.set(false);
+    this.successMessage.set(null);
+    this.clearLotFieldError(lot.lotId);
+
+    try {
+      const request =
+        kind === 'approve'
+          ? this.lotService.approveLot(lot.lotId)
+          : this.lotService.rejectLot(lot.lotId, this.lotFeedbackDrafts()[lot.lotId]);
+      await firstValueFrom(request);
+      this.removeLot(lot.lotId);
+      this.successMessage.set(`${lot.name} ${kind === 'approve' ? 'approved' : 'rejected'}.`);
+    } catch (err) {
+      this.handleLotActionError(err, lot, kind);
+    } finally {
+      this.actingLotId.set(null);
+      this.actingKind.set(null);
+    }
+  }
+
+  private handleLotActionError(err: unknown, lot: LotResponse, kind: LotActionKind): void {
+    if (err instanceof HttpErrorResponse) {
+      if (err.status === 404) {
+        this.removeLot(lot.lotId);
+        this.successMessage.set(LOT_GONE_NOTICE);
+        return;
+      }
+      if (err.status === 409) {
+        this.handleLotConflict(lot.lotId);
+        return;
+      }
+      if (err.status === 400 && kind === 'reject') {
+        const body = err.error as ApiResponse<unknown> | null;
+        this.lotFieldErrors.update((current) => ({
+          ...current,
+          [lot.lotId]: body?.message || GENERIC_ERROR_MESSAGE,
+        }));
+        return;
+      }
+    }
+    this.lotsError.set(this.resolveErrorMessage(err, true));
+  }
+
+  /** Another admin already handled this lot: drop the card, say so, and reload the pending list. */
+  protected handleLotConflict(lotId: string): void {
+    this.removeLot(lotId);
+    this.successMessage.set(ALREADY_HANDLED_NOTICE);
+    void this.loadPendingLots(true);
+  }
+
+  private removeLot(lotId: string): void {
+    this.lots.update((current) => current.filter((lot) => lot.lotId !== lotId));
+    this.lotFeedbackDrafts.update((current) => {
+      const rest = { ...current };
+      delete rest[lotId];
+      return rest;
+    });
+    this.clearLotFieldError(lotId);
+  }
+
+  private clearLotFieldError(lotId: string): void {
+    if (!(lotId in this.lotFieldErrors())) {
+      return;
+    }
+    this.lotFieldErrors.update((current) => {
+      const rest = { ...current };
+      delete rest[lotId];
+      return rest;
+    });
+  }
+
+  protected appliedTextFor(application: ManagerApplicationDto): string {
+    return `Applied ${this.formatRelativeTime(application.createdAt)}`;
   }
 
   private formatRelativeTime(iso: string): string {
@@ -253,14 +373,16 @@ export class AdminApprovalQueue implements OnInit {
   }
 
   /**
-   * [Authorize(Roles = "Admin")] failures aren't documented in the ApiResponse envelope shape
-   * (auth.md/parkinglot-service.md only confirm this for a couple of ownership-check routes), so
-   * treat 401 as an expired session and 403 as a role mismatch defensively rather than assume a
-   * JSON body is present.
+   * 401 and 403 arrive with an empty body, so they are decided by status code only. A 429 returns
+   * null: the global toast tells the user, so the page shows no banner. For an `action`, a network
+   * failure or 5xx gives the generic message and never a server message.
    */
-  private resolveErrorMessage(err: unknown): string {
+  private resolveErrorMessage(err: unknown, action = false): string | null {
+    if (err instanceof HttpErrorResponse && err.status === 429) {
+      return null;
+    }
     if (isNetworkError(err)) {
-      return NETWORK_ERROR_MESSAGE;
+      return action ? GENERIC_ERROR_MESSAGE : NETWORK_ERROR_MESSAGE;
     }
     if (err instanceof HttpErrorResponse) {
       if (err.status === 401) {
@@ -271,6 +393,9 @@ export class AdminApprovalQueue implements OnInit {
       if (err.status === 403) {
         void this.router.navigateByUrl('/403');
         return 'You do not have permission to perform this action.';
+      }
+      if (err.status >= 500) {
+        return GENERIC_ERROR_MESSAGE;
       }
 
       const body = err.error as ApiResponse<unknown> | null;
@@ -284,6 +409,6 @@ export class AdminApprovalQueue implements OnInit {
         return 'This item has already been processed.';
       }
     }
-    return 'Something went wrong. Please try again.';
+    return GENERIC_ERROR_MESSAGE;
   }
 }

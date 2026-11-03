@@ -17,7 +17,6 @@ import { ManagerSpots } from './pages/manager-spots/manager-spots';
 import { ManagerBulkCreateSpots } from './pages/manager-bulk-create-spots/manager-bulk-create-spots';
 import { ManagerLotBookings } from './pages/manager-lot-bookings/manager-lot-bookings';
 import { ManagerApplications } from './pages/manager-applications/manager-applications';
-import { AdminApprovalQueue } from './pages/admin-approval-queue/admin-approval-queue';
 import { Forbidden } from './pages/forbidden/forbidden';
 import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
@@ -103,8 +102,23 @@ export const routes: Routes = [
   },
   {
     path: 'admin/approvals',
-    component: AdminApprovalQueue,
+    loadComponent: () => import('./pages/admin-approval-queue/admin-approval-queue').then((m) => m.AdminApprovalQueue),
+    canActivate: [authGuard, roleGuard(UserRole.Admin)],
+  },
+  {
+    path: 'admin/users',
+    loadComponent: () => import('./pages/admin-users/admin-users').then((m) => m.AdminUsers),
+    canActivate: [authGuard, roleGuard(UserRole.Admin)],
+  },
+  {
+    path: 'admin/lots',
+    loadComponent: () => import('./pages/admin-all-lots/admin-all-lots').then((m) => m.AdminAllLots),
     canActivate: [authGuard, roleGuard(UserRole.Admin)],
   },
   { path: '403', component: Forbidden },
+  // Must stay the last route: anything not matched above is a 404.
+  {
+    path: '**',
+    loadComponent: () => import('./pages/error-not-found/error-not-found').then((m) => m.ErrorNotFound),
+  },
 ];

@@ -9,13 +9,24 @@ interface AdminNavItem {
   tab: AdminNavTab;
   label: string;
   route: string | null;
+  queryParams?: Record<string, string>;
 }
 
 const NAV_ITEMS: AdminNavItem[] = [
-  { tab: 'users', label: 'Users', route: null },
-  { tab: 'manager-applications', label: 'Manager Applications', route: '/admin/approvals' },
-  { tab: 'lot-approvals', label: 'Lot Approvals', route: '/admin/approvals' },
-  { tab: 'all-lots', label: 'All Lots', route: null },
+  { tab: 'users', label: 'Users', route: '/admin/users' },
+  {
+    tab: 'manager-applications',
+    label: 'Manager Applications',
+    route: '/admin/approvals',
+    queryParams: { tab: 'manager-applications' },
+  },
+  {
+    tab: 'lot-approvals',
+    label: 'Lot Approvals',
+    route: '/admin/approvals',
+    queryParams: { tab: 'lot-approvals' },
+  },
+  { tab: 'all-lots', label: 'All Lots', route: '/admin/lots' },
 ];
 
 @Component({
@@ -28,7 +39,7 @@ export class AdminNav {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
 
-  readonly activeTab = input.required<AdminNavTab>();
+  readonly activeTab = input.required<AdminNavTab | null>();
 
   protected readonly navItems = NAV_ITEMS;
 
