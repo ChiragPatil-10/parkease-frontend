@@ -3,7 +3,7 @@
       @if (item.route) {
         <a
           [routerLink]="item.route"
-          [queryParams]="{ tab: item.tab }"
+          [queryParams]="item.queryParams"
           class="cursor-pointer max-md:flex max-md:min-h-11 max-md:items-center"
           [class.font-semibold]="item.tab === activeTab()"
           [class.text-ink]="item.tab === activeTab()"

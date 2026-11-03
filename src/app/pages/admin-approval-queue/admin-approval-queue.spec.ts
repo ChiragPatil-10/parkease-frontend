@@ -317,6 +317,65 @@ describe('AdminApprovalQueue', () => {
     expect(rejectButton.disabled).toBe(true);
   });
 
+  it('renders the lot card per the design: title, sub-line, labelled limited textarea with counter', async () => {
+    const { fixture, component } = createFixture();
+    fixture.detectChanges();
+    flushInitialApplications();
+    await Promise.resolve();
+
+    const loading = component.loadPendingLots();
+    httpMock.expectOne(PENDING_LOTS_URL).flush({ success: true, message: null, data: [LOT_A], errors: null });
+    await Promise.resolve();
+    httpMock
+      .expectOne(userByIdUrl('mgr-1'))
+      .flush({ success: true, message: null, data: USER_SUMMARY_MGR_1, errors: null });
+    await loading;
+
+    component.subTab.set('lot-approvals');
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(el.querySelector('article h2')?.textContent?.replace(/\s+/g, ' ').trim()).toBe(
+      `${LOT_A.name} — Priya Shah`,
+    );
+    expect(el.querySelector('article p')?.textContent).toContain(
+      `₹${LOT_A.minPricePerHour}–₹${LOT_A.maxPricePerHour}/hr`,
+    );
+
+    const textarea = el.querySelector('article textarea') as HTMLTextAreaElement;
+    expect(textarea.placeholder).toBe('Optional feedback for the manager (shown if rejected)');
+    expect(textarea.getAttribute('maxlength')).toBe('500');
+    expect(el.querySelector(`label[for="${textarea.id}"]`)?.textContent?.trim()).toBe(
+      `Feedback for ${LOT_A.name}`,
+    );
+    expect(el.querySelector('[data-feedback-counter]')?.textContent?.trim()).toBe('0/500');
+
+    component.updateLotFeedback(LOT_A.lotId, 'x'.repeat(42));
+    fixture.detectChanges();
+    expect(el.querySelector('[data-feedback-counter]')?.textContent?.trim()).toBe('42/500');
+
+    const reject = el.querySelectorAll('article button')[1] as HTMLButtonElement;
+    expect(reject.className).toContain('text-red-700');
+    expect(reject.className).toContain('border-red-700');
+    expect(el.querySelector('[role="status"][aria-live="polite"]')).not.toBeNull();
+  });
+
+  it('shows exactly "No lots waiting for approval." when empty', async () => {
+    const { fixture, component } = createFixture();
+    fixture.detectChanges();
+    flushInitialApplications();
+    await Promise.resolve();
+
+    const loading = component.loadPendingLots();
+    httpMock.expectOne(PENDING_LOTS_URL).flush({ success: true, message: null, data: [], errors: null });
+    await loading;
+
+    component.subTab.set('lot-approvals');
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('No lots waiting for approval.');
+    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('auto-approved');
+  });
+
   it('switches to the Lot approvals tab when the URL carries ?tab=lot-approvals', async () => {
     Object.defineProperty(TestBed.inject(ActivatedRoute), 'queryParamMap', {
       value: of(convertToParamMap({ tab: 'lot-approvals' })),

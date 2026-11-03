@@ -19,6 +19,9 @@ import { ManagerLotBookings } from './pages/manager-lot-bookings/manager-lot-boo
 import { ManagerApplications } from './pages/manager-applications/manager-applications';
 import { AdminApprovalQueue } from './pages/admin-approval-queue/admin-approval-queue';
 import { Forbidden } from './pages/forbidden/forbidden';
+import { AdminUsers } from './pages/admin-users/admin-users';
+import { AdminAllLots } from './pages/admin-all-lots/admin-all-lots';
+import { ErrorNotFound } from './pages/error-not-found/error-not-found';
 import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
 import { roleGuard } from './core/guards/role.guard';
@@ -106,5 +109,17 @@ export const routes: Routes = [
     component: AdminApprovalQueue,
     canActivate: [authGuard, roleGuard(UserRole.Admin)],
   },
+  {
+    path: 'admin/users',
+    component: AdminUsers,
+    canActivate: [authGuard, roleGuard(UserRole.Admin)],
+  },
+  {
+    path: 'admin/lots',
+    component: AdminAllLots,
+    canActivate: [authGuard, roleGuard(UserRole.Admin)],
+  },
   { path: '403', component: Forbidden },
+  // Must stay the last route: anything not matched above is a 404.
+  { path: '**', component: ErrorNotFound },
 ];
