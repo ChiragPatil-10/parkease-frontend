@@ -48,13 +48,21 @@
         }
       </div>
 
-      <a
-        href="#"
-        class="mt-4 inline-block text-sm text-link hover:underline"
-        (click)="$event.preventDefault()"
-        title="Coming soon"
-        >Forgot password?</a
+      <button
+        type="button"
+        data-forgot
+        class="mt-4 inline-block cursor-pointer text-sm text-link hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+        [attr.aria-expanded]="forgotShown()"
+        aria-controls="forgot-note"
+        (click)="forgotShown.set(true)"
       >
+        Forgot password?
+      </button>
+      <p id="forgot-note" class="mt-2 text-sm text-muted" role="status" data-forgot-note>
+        @if (forgotShown()) {
+          Password reset is not available yet.
+        }
+      </p>
 
       @if (serverError()) {
         <p class="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
@@ -70,20 +78,6 @@
         {{ loginForm().submitting() ? 'Logging in…' : 'Log in' }}
       </button>
     </form>
-
-    <div class="my-5 flex items-center gap-3">
-      <span class="h-px flex-1 bg-border"></span>
-      <span class="text-xs font-medium text-muted">OR</span>
-      <span class="h-px flex-1 bg-border"></span>
-    </div>
-
-    <button
-      type="button"
-      title="Coming soon"
-      class="w-full rounded-lg border border-border py-2.5 text-sm font-semibold text-ink hover:bg-surface/60"
-    >
-      Continue with Google
-    </button>
 
     <p class="mt-5 text-center text-sm text-muted">
       Don't have an account?

@@ -51,7 +51,8 @@ function blankRow(): BulkSpotRow {
     spotNumber: '',
     floor: FLOOR_OPTIONS[0],
     spotType: SPOT_TYPE_OPTIONS[0],
-    vehicleType: VEHICLE_TYPE_OPTIONS[0],
+    // Compact spots take Four Wheeler only (see COMPATIBLE_VEHICLE_TYPES), so the default row is valid.
+    vehicleType: 'Four Wheeler',
     price: '',
   };
 }
@@ -258,7 +259,7 @@ export class ManagerBulkCreateSpots implements OnInit {
 
     if (err.status === 400) {
       this.serverError.set(
-        body?.message ?? "One of these spots isn't valid \u2014 check the spot type and vehicle type combinations.",
+        body?.message ?? "One of these spots isn't valid - check the spot type and vehicle type combinations.",
       );
       return;
     }

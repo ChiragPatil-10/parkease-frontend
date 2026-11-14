@@ -141,6 +141,16 @@
             </p>
           }
 
+          @if (payNotice(); as notice) {
+            <p
+              role="status"
+              data-pay-notice
+              class="mt-4 rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted"
+            >
+              {{ notice }}
+            </p>
+          }
+
           @if (awaitingPayment()) {
             <section
               class="mt-4 rounded-2xl border border-border bg-card p-6"
@@ -183,7 +193,7 @@
                       Confirming payment…
                     }
                     @default {
-                      Pay now
+                      {{ paidRequest() ? 'Confirm payment' : 'Pay now' }}
                     }
                   }
                 </button>

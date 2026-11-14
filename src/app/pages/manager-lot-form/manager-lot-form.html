@@ -1,6 +1,6 @@
 <div class="min-h-screen bg-surface">
   <p class="px-8 pt-4 text-xs font-semibold tracking-wider text-muted">
-    MANAGER &mdash; CREATE / EDIT LOT
+    MANAGER - CREATE / EDIT LOT
   </p>
 
   <app-manager-nav activeTab="my-lots" />
@@ -30,7 +30,7 @@
           <p class="mt-1 text-sm text-muted" data-lot-status>Status: {{ line }}</p>
         }
         <p class="mt-1 text-sm text-muted">
-          We'll geocode the address automatically &mdash; no need to enter coordinates.
+          We'll geocode the address automatically - no need to enter coordinates.
         </p>
 
         <form [formRoot]="lotForm" class="mt-6">
@@ -207,11 +207,9 @@
               [formField]="lotForm.description"
               class="mt-2 w-full resize-none rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
             ></textarea>
-            @if (lotForm.description().touched() && lotForm.description().invalid()) {
-              <p class="mt-1 text-xs text-red-600">
-                {{ lotForm.description().errors()[0]?.message ?? 'Description is too long.' }}
-              </p>
-            }
+            <p class="mt-1 text-right text-xs text-muted" data-description-counter>
+              {{ lotForm.description().value().length }}/1000
+            </p>
           </div>
 
           @if (serverError()) {

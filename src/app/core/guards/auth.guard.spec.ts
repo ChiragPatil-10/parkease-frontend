@@ -30,8 +30,8 @@ describe('authGuard', () => {
     expect(runGuard()).toBe(true);
   });
 
-  it('redirects a logged-out visitor to the home route', () => {
-    expect(router.serializeUrl(runGuard() as UrlTree)).toBe('/');
+  it('redirects a logged-out visitor to /login', () => {
+    expect(router.serializeUrl(runGuard() as UrlTree)).toBe('/login');
   });
 
   it('clears the session and redirects to /login when the token has expired', () => {

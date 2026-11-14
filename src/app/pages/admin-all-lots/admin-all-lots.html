@@ -2,7 +2,7 @@
   <app-admin-nav activeTab="all-lots" />
 
   <main class="px-4 py-8 md:px-8">
-    <h1 class="font-display text-2xl font-bold text-ink">All lots @if (state() === 'loaded' || state() === 'empty') {&mdash; {{ totalCount() }} total}</h1>
+    <h1 class="font-display text-2xl font-bold text-ink">All lots @if (state() === 'loaded' || state() === 'empty') {- {{ totalCount() }} total}</h1>
 
     @switch (state()) {
       @case ('error') {

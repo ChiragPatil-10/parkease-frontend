@@ -49,9 +49,9 @@ const STATUS_LABEL: Record<BookingStatus, string> = {
 
 const CANCELLED_LABEL: Record<CancelReason, string> = {
   DriverCancelled: 'Cancelled',
-  PaymentTimeout: 'Cancelled \u2014 payment timed out',
-  PaymentFailed: 'Cancelled \u2014 payment failed',
-  SpotUnavailable: 'Cancelled \u2014 spot unavailable',
+  PaymentTimeout: 'Cancelled - payment timed out',
+  PaymentFailed: 'Cancelled - payment failed',
+  SpotUnavailable: 'Cancelled - spot unavailable',
   Other: 'Cancelled',
 };
 
@@ -70,7 +70,6 @@ export interface PaymentCardView {
   pill: string;
   tone: PillTone;
   amount: string;
-  orderId: string | null;
   paidAt: string | null;
   /** Extra line under the rows. */
   note: { text: string; tone: 'muted' | 'red' } | null;
@@ -88,7 +87,6 @@ export function paymentCardView(
     pill: 'No payment taken',
     tone: 'neutral',
     amount: formatAmount(payment?.amount ?? bookingAmount),
-    orderId: null,
     paidAt: null,
     note: null,
     reason: null,
@@ -98,14 +96,13 @@ export function paymentCardView(
   }
 
   const paid = {
-    orderId: payment.gatewayOrderId || null,
     paidAt: payment.paidAt ? formatBookingTime(payment.paidAt, now) : null,
   };
 
   switch (payment.status) {
     case 'Captured':
     case 'Held':
-      return { ...base, ...paid, pill: 'Captured \u2014 paid', tone: 'blue' };
+      return { ...base, ...paid, pill: 'Captured - paid', tone: 'blue' };
     case 'Created':
       return { ...base, pill: 'Awaiting payment' };
     case 'Refunded':

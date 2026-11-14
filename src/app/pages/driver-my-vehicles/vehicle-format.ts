@@ -7,15 +7,21 @@ const VEHICLE_TYPE_LABEL: Record<VehicleType, string> = {
   Heavy: 'Heavy',
 };
 
-/** 2 letters, 2 digits, 1-3 letters, 4 digits, e.g. KA05MJ4471. */
-const STANDARD_PLATE = /^([A-Z]{2})(\d{2})([A-Z]{1,3})(\d{4})$/;
+/** The backend's standard format: 2 letters, 1-2 digits, 0-3 letters, 4 digits (KA05MJ4471, DL1CAB1234). */
+const STANDARD_PLATE = /^([A-Z]{2})(\d{1,2})([A-Z]{0,3})(\d{4})$/;
+
+/** The backend's BH series: 22BH1234AB. */
+const BH_PLATE = /^(\d{2})(BH)(\d{4})([A-Z]{1,2})$/;
 
 const RETURN_TO_PATTERN = /^\/lots\/[A-Za-z0-9-]+$/;
 
-/** Standard plates are shown grouped (KA 05 MJ 4471); anything else is shown exactly as stored. */
+/**
+ * Standard and BH plates are shown grouped (KA 05 MJ 4471, DL 1 CAB 1234, 22 BH 1234 AB);
+ * anything else is shown exactly as stored.
+ */
 export function formatPlate(plate: string): string {
-  const match = STANDARD_PLATE.exec(plate);
-  return match ? match.slice(1).join(' ') : plate;
+  const match = STANDARD_PLATE.exec(plate) ?? BH_PLATE.exec(plate);
+  return match ? match.slice(1).filter((group) => group !== '').join(' ') : plate;
 }
 
 /** Same text as the backend's PlateNumberFormat.InvalidMessage; it is used for every bad plate. */

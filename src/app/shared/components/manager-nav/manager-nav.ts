@@ -3,7 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { NavShell } from '../nav-shell/nav-shell';
 import { AuthService } from '../../../services/auth.service';
 
-export type ManagerNavTab = 'my-lots' | 'spots' | 'lot-bookings' | 'applications';
+export type ManagerNavTab = 'my-lots' | 'spots' | 'lot-bookings';
 
 interface ManagerNavItem {
   tab: ManagerNavTab;
@@ -15,7 +15,6 @@ const NAV_ITEMS: ManagerNavItem[] = [
   { tab: 'my-lots', label: 'My Lots', route: '/manager/lots' },
   { tab: 'spots', label: 'Spots', route: '/manager/spots' },
   { tab: 'lot-bookings', label: 'Lot Bookings', route: '/manager/lot-bookings' },
-  { tab: 'applications', label: 'Applications', route: '/manager/applications' },
 ];
 
 @Component({

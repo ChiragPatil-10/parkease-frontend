@@ -108,7 +108,7 @@ describe('ManagerBulkCreateSpots', () => {
     await flushLot(fixture);
 
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(text).toContain('Add spots \u2014 Whitefield Central Lot');
+    expect(text).toContain('Add spots - Whitefield Central Lot');
   });
 
   it('clears the session and redirects to /login on a 401 while loading the lot', async () => {
@@ -146,7 +146,7 @@ describe('ManagerBulkCreateSpots', () => {
     await flushLot(fixture);
 
     expect(el.querySelector('[data-rate-limited]')).toBeNull();
-    expect(el.textContent).toContain('Add spots \u2014 Whitefield Central Lot');
+    expect(el.textContent).toContain('Add spots - Whitefield Central Lot');
   });
 
   it('shows a not-found message when the lot 404s', async () => {
@@ -163,6 +163,19 @@ describe('ManagerBulkCreateSpots', () => {
   });
 
   describe('client-side validation', () => {
+    it('starts with a compatible default row (Compact with Four Wheeler) and no compatibility error', async () => {
+      const { fixture, component } = createFixture();
+      await flushLot(fixture);
+
+      component.updateRow(0, 'spotNumber', 'A-01');
+      component.updateRow(0, 'price', '40');
+
+      expect(component.rows()[0].spotType).toBe('Compact');
+      expect(component.rows()[0].vehicleType).toBe('Four Wheeler');
+      expect(component.rowErrors()[0].compatibility).toBeUndefined();
+      expect(component.isFormValid()).toBe(true);
+    });
+
     it('flags an incompatible spotType/vehicleType combination and blocks submit', async () => {
       const { fixture, component } = createFixture();
       await flushLot(fixture);

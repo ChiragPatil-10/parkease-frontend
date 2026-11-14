@@ -3,7 +3,7 @@
 
   <main class="px-4 py-8 md:px-8">
     <h1 class="font-display text-2xl font-bold text-ink">
-      Bookings @if (selectedLot(); as lot) {&mdash; {{ lot.name }}}
+      Bookings @if (selectedLot(); as lot) {- {{ lot.name }}}
     </h1>
 
     @if (view() === 'noLots') {

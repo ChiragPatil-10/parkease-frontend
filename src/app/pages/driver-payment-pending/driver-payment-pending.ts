@@ -52,7 +52,7 @@ const STATUS_TEXT: Record<PageState, string> = {
 
 const TITLE: Record<PageState, string> = {
   loading: 'Checking your booking',
-  pending: 'Payment successful \u2014 confirming your booking',
+  pending: 'Payment successful - confirming your booking',
   waiting: 'Waiting for payment',
   confirmed: 'Booking confirmed',
   cancelled: 'This booking was cancelled',

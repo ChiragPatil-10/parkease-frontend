@@ -774,6 +774,28 @@ describe('DriverBookingReview', () => {
       noSecondBooking();
     });
 
+    it('a 429 shows a calm, non-alert notice with Try again that repeats only the verify', async () => {
+      verifyResponse = () => httpError(429);
+      const checkout = await openCheckout();
+
+      checkout.options.handler(SUCCESS);
+      await flush();
+
+      expect(verifyCalls().length).toBe(1);
+      expect(el.querySelector('[role="alert"]')).toBeNull();
+      const notice = el.querySelector('[data-verify-rate-limited]')!;
+      expect(notice.textContent).toContain('because of too many requests');
+      expect(text()).not.toContain('Please try again.');
+      expect(FakeCheckout.instances.length).toBe(1);
+
+      verifyResponse = () => of(envelope({ ...PAYMENT, status: 'Captured' }));
+      buttonByText('Try again')!.click();
+      await flush();
+      expect(verifyCalls().length).toBe(2);
+      expect(FakeCheckout.instances.length).toBe(1);
+      expect(router.navigate).toHaveBeenCalledTimes(1);
+    });
+
     it('retries a network error and recovers when a retry succeeds', async () => {
       let calls = 0;
       verifyResponse = () =>

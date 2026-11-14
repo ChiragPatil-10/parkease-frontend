@@ -100,7 +100,7 @@
           </div>
         } @else if (floors().length === 1) {
           <p class="mt-6 text-xs font-semibold tracking-wide text-muted">
-            PICK A SPOT &mdash; FLOOR {{ floors()[0] }}
+            PICK A SPOT - FLOOR {{ floors()[0] }}
           </p>
         } @else {
           <p class="mt-6 text-xs font-semibold tracking-wide text-muted">PICK A SPOT</p>
@@ -205,7 +205,7 @@
                   }
                 </select>
               } @else if (selectedVehicle(); as vehicle) {
-                <span data-single-vehicle>{{ vehicle.plateNumber }}</span>
+                <span data-single-vehicle>{{ formatPlate(vehicle.plateNumber) }}</span>
               } @else {
                 <span class="text-sm text-muted">No vehicle for this type</span>
                 <a
@@ -251,7 +251,7 @@
               @if (selectedSpot(); as spot) {
                 ₹{{ spot.pricePerHour }}/hr
               } @else {
-                &mdash;
+                -
               }
             </dd>
           </div>
@@ -263,7 +263,7 @@
             @if (estimatedTotal() !== null) {
               ₹{{ estimatedTotal() }}
             } @else {
-              &mdash;
+              -
             }
           </span>
         </div>

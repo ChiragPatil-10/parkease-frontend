@@ -131,6 +131,17 @@ describe('ManagerLots', () => {
     expect(component.error()).toBeNull();
   });
 
+  it('makes exactly one lots request on load', async () => {
+    const { fixture } = createFixture();
+    fixture.detectChanges();
+    httpMock.expectOne(LOTS_URL).flush({ success: true, message: null, data: [OPEN_LOT], errors: null });
+    await Promise.resolve();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    httpMock.expectNone(LOTS_URL);
+  });
+
   it('derives pending, rejected, open and closed from approvalStatus with an isApproved fallback', () => {
     const { component } = createFixture();
 

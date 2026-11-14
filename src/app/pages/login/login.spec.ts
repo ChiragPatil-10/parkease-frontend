@@ -179,6 +179,34 @@ describe('Login sign-up link', () => {
     }).compileComponents();
   });
 
+  it('has no dead links and no Google button or OR divider', () => {
+    const fixture = TestBed.createComponent(Login);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(el.querySelector('a[href="#"]')).toBeNull();
+    expect(el.textContent).not.toContain('Continue with Google');
+    expect(el.textContent).not.toMatch(/OR/);
+  });
+
+  it('Forgot password is a real button that reveals an inline note', () => {
+    const fixture = TestBed.createComponent(Login);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    const button = el.querySelector<HTMLButtonElement>('[data-forgot]')!;
+
+    expect(button.tagName).toBe('BUTTON');
+    expect(button.type).toBe('button');
+    expect(el.querySelector('[data-forgot-note]')?.textContent?.trim()).toBe('');
+
+    button.click();
+    fixture.detectChanges();
+    expect(el.querySelector('[data-forgot-note]')?.textContent?.trim()).toBe(
+      'Password reset is not available yet.',
+    );
+    expect(button.getAttribute('aria-expanded')).toBe('true');
+  });
+
   it('points Sign up at /register', () => {
     const fixture = TestBed.createComponent(Login);
     fixture.detectChanges();

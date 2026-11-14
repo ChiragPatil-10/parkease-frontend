@@ -196,7 +196,7 @@ describe('DriverLotDetail', () => {
       expect(text()).toContain('2nd Cross, ITPL Main Rd');
       expect(text()).toContain('Open 6:00 AM – 11:00 PM');
       expect(text()).toContain('Bangalore');
-      expect(text()).toContain('KA05MJ4471');
+      expect(text()).toContain('KA 05 MJ 4471');
       expect(el.querySelectorAll('button.font-mono').length).toBe(4);
     });
 
@@ -212,7 +212,7 @@ describe('DriverLotDetail', () => {
       const { el } = await open({ vehicles: [BIKE, CAR] });
 
       expect(button(el, 'Two Wheeler').getAttribute('aria-pressed')).toBe('true');
-      expect(el.textContent).toContain('KA01AB1234');
+      expect(el.textContent).toContain('KA 01 AB 1234');
     });
 
     it('defaults to Four Wheeler when the driver has no vehicles', async () => {
@@ -241,7 +241,7 @@ describe('DriverLotDetail', () => {
     it('uses the first ACTIVE vehicle of the type', async () => {
       const { text } = await open({ vehicles: [OLD_CAR, CAR] });
 
-      expect(text()).toContain('KA05MJ4471');
+      expect(text()).toContain('KA 05 MJ 4471');
       expect(text()).not.toContain('OLD0001');
     });
 
@@ -289,7 +289,7 @@ describe('DriverLotDetail', () => {
       const { el, text } = await open({ vehicles: [CAR, BIKE] });
 
       expect(choice(el)).toBeNull();
-      expect(el.querySelector('[data-single-vehicle]')?.textContent).toBe('KA05MJ4471');
+      expect(el.querySelector('[data-single-vehicle]')?.textContent).toBe('KA 05 MJ 4471');
       expect(text()).not.toContain('No vehicle for this type');
     });
 
@@ -375,7 +375,7 @@ describe('DriverLotDetail', () => {
     it('shows the single-floor label when there is one floor', async () => {
       const { text, el } = await open();
 
-      expect(text()).toContain('PICK A SPOT \u2014 FLOOR 1');
+      expect(text()).toContain('PICK A SPOT - FLOOR 1');
       expect(el.querySelector('button[aria-pressed][class*="px-4 py-1.5"]:not(.rounded-full)')).toBeNull();
     });
 
@@ -383,13 +383,39 @@ describe('DriverLotDetail', () => {
       const floor2 = spot({ spotId: 's6', spotNumber: 'B-01', floor: 2 });
       const { el, text } = await open({ spots: [floor2, ...SPOTS] });
 
-      expect(text()).not.toContain('PICK A SPOT \u2014 FLOOR');
+      expect(text()).not.toContain('PICK A SPOT - FLOOR');
       expect(button(el, 'Floor 1').getAttribute('aria-pressed')).toBe('true');
       expect(spotButton(el, 'B-01')).toBeNull();
 
       await click(el, button(el, 'Floor 2'));
       expect(spotButton(el, 'B-01')).toBeTruthy();
       expect(spotButton(el, 'A-01')).toBeNull();
+    });
+
+    it('defaults to the first floor that has spots for the chosen vehicle type', async () => {
+      const heavy = spot({
+        spotId: 'h1',
+        spotNumber: 'H-01',
+        floor: 2,
+        vehicleType: 'Heavy',
+        spotType: 'Large',
+        pricePerHour: 80,
+      });
+      const { el, text } = await open({ spots: [heavy, ...SPOTS] });
+
+      expect(text()).toMatch(/PICK A SPOT .* FLOOR 1/);
+      await click(el, button(el, 'Heavy'));
+
+      expect(text()).toMatch(/PICK A SPOT .* FLOOR 2/);
+      expect(spotButton(el, 'H-01')).toBeTruthy();
+      expect(text()).not.toContain('No spots for this vehicle type');
+    });
+
+    it('lists all floors when the lot has no spots at all for the chosen type', async () => {
+      const { el, text } = await open();
+
+      await click(el, button(el, 'Heavy'));
+      expect(text()).toContain('No spots for this vehicle type');
     });
   });
 

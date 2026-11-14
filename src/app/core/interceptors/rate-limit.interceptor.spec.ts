@@ -39,7 +39,7 @@ describe('rateLimitInterceptor', () => {
 
   it('shows the login message for the login URL and rethrows the error', () => {
     const error = fail('https://gw.example/api/v1/auth/login', 429, { 'Retry-After': '30' });
-    expect(toast.message()).toBe('Too many login attempts \u2014 try again in 30 seconds.');
+    expect(toast.message()).toBe('Too many login attempts. Try again in 30 seconds.');
     expect(toast.visible()).toBe(true);
     expect(error?.status).toBe(429);
   });
@@ -51,14 +51,14 @@ describe('rateLimitInterceptor', () => {
 
   it('shows the login message for both register URLs', () => {
     fail('https://gw.example/api/v1/auth/register/driver', 429, { 'Retry-After': '120' });
-    expect(toast.message()).toBe('Too many login attempts \u2014 try again in 2 minutes.');
+    expect(toast.message()).toBe('Too many login attempts. Try again in 120 seconds.');
     fail('https://gw.example/api/v1/auth/register/manager', 429, { 'Retry-After': '1' });
-    expect(toast.message()).toBe('Too many login attempts \u2014 try again in 1 second.');
+    expect(toast.message()).toBe('Too many login attempts. Try again in 1 second.');
   });
 
   it('shows the general message for any other URL', () => {
     fail('https://gw.example/api/v1/lots/pending', 429, { 'Retry-After': '90' });
-    expect(toast.message()).toBe('Too many requests. Please wait 2 minutes and try again.');
+    expect(toast.message()).toBe('Too many requests. Please wait 90 seconds and try again.');
   });
 
   it('treats a non-numeric Retry-After as missing', () => {

@@ -113,6 +113,30 @@ describe('ManagerLotForm', () => {
     expect(component.lotForm.closeTime().value()).toBe('23:00');
   });
 
+  it('shows the stored city capitalised in edit mode', async () => {
+    const { component } = createFixture({ id: LOT_ID });
+    httpMock
+      .expectOne(BY_ID_URL)
+      .flush({ success: true, message: null, data: { ...EXISTING_LOT, city: 'bangalore' }, errors: null });
+    await Promise.resolve();
+
+    expect(component.lotForm.city().value()).toBe('Bangalore');
+  });
+
+  it('limits the description to 1000 characters and shows a live counter without a dead message', () => {
+    const { fixture, component } = createFixture();
+    const el = fixture.nativeElement as HTMLElement;
+    const textarea = el.querySelector<HTMLTextAreaElement>('#description')!;
+
+    expect(textarea.getAttribute('maxlength')).toBe('1000');
+    expect(el.querySelector('[data-description-counter]')?.textContent?.trim()).toBe('0/1000');
+
+    component.lotForm.description().value.set('x'.repeat(250));
+    fixture.detectChanges();
+    expect(el.querySelector('[data-description-counter]')?.textContent?.trim()).toBe('250/1000');
+    expect(el.textContent).not.toContain('Description is too long');
+  });
+
   it('shows a read-only status line in edit mode', async () => {
     const { component } = createFixture({ id: LOT_ID });
     httpMock

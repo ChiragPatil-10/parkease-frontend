@@ -193,10 +193,8 @@ describe('ManagerSpots', () => {
 
     // Selecting a floor whose latest fetch contains no matching spots should trigger the empty state,
     // driven off the real filtered-to-zero-length array rather than any mock data.
-    void component.selectFloor(2);
-    const secondSpotsReq = httpMock.expectOne(spotsUrl(LOT_1.lotId));
-    secondSpotsReq.flush({ success: true, message: null, data: SPOTS_FLOOR_1_AND_2, errors: null });
-    await flushAsync();
+    component.selectFloor(2);
+    httpMock.expectNone(spotsUrl(LOT_1.lotId));
     fixture.detectChanges();
 
     expect(component.selectedFloor()).toBe(2);
@@ -313,7 +311,23 @@ describe('ManagerSpots', () => {
     expect(el.textContent).toContain('A-01');
   });
 
-  it('a 429 on a floor change keeps the spots on screen with no banner or retry state', async () => {
+  it('makes one lots request and one spots request on load', async () => {
+    const { fixture } = createFixture();
+    fixture.detectChanges();
+
+    httpMock.expectOne(LOTS_URL).flush({ success: true, message: null, data: [LOT_1], errors: null });
+    await flushAsync();
+    httpMock
+      .expectOne(spotsUrl(LOT_1.lotId))
+      .flush({ success: true, message: null, data: SPOTS_FLOOR_1_AND_2, errors: null });
+    await flushAsync();
+    fixture.detectChanges();
+
+    httpMock.expectNone(LOTS_URL);
+    httpMock.expectNone(spotsUrl(LOT_1.lotId));
+  });
+
+  it('changing floor makes no request and keeps the spots on screen', async () => {
     const { fixture, component } = createFixture();
     fixture.detectChanges();
 
@@ -324,11 +338,8 @@ describe('ManagerSpots', () => {
       .flush({ success: true, message: null, data: SPOTS_FLOOR_1_AND_2, errors: null });
     await flushAsync();
 
-    void component.selectFloor(3);
-    httpMock
-      .expectOne(spotsUrl(LOT_1.lotId))
-      .flush(null, { status: 429, statusText: 'Too Many Requests' });
-    await flushAsync();
+    component.selectFloor(3);
+    httpMock.expectNone(spotsUrl(LOT_1.lotId));
     fixture.detectChanges();
 
     const el = fixture.nativeElement as HTMLElement;

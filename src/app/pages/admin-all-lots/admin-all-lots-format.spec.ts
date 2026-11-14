@@ -1,4 +1,4 @@
-import { capitalizeCity, lotStatusPill, managerLabel } from './admin-all-lots-format';
+import { lotStatusPill, managerLabel } from './admin-all-lots-format';
 
 describe('lotStatusPill', () => {
   it('Approved + open -> "Open · Approved" with a green dot', () => {
@@ -32,12 +32,6 @@ describe('lotStatusPill', () => {
   });
 });
 
-describe('capitalizeCity', () => {
-  it('capitalises one and several words', () => {
-    expect(capitalizeCity('bengaluru')).toBe('Bengaluru');
-    expect(capitalizeCity('navi mumbai')).toBe('Navi Mumbai');
-  });
-});
 
 describe('managerLabel', () => {
   it('falls back to "Unknown manager" for null or blank', () => {

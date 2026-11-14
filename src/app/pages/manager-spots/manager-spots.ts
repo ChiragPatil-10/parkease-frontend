@@ -110,13 +110,9 @@ export class ManagerSpots implements OnInit {
     await this.loadSpots(lotId, true);
   }
 
-  protected async selectFloor(floor: number): Promise<void> {
+  /** Floors are filtered on the client from the spots already loaded, so no request is made. */
+  protected selectFloor(floor: number): void {
     this.selectedFloor.set(floor);
-    const lotId = this.selectedLotId();
-    if (!lotId) {
-      return;
-    }
-    await this.loadSpots(lotId, false);
   }
 
   private async loadSpots(lotId: string, selectDefaultFloor: boolean): Promise<void> {
