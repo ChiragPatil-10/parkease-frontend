@@ -10,6 +10,7 @@ import { ManagerLots } from './manager-lots';
 import { PARKINGLOT_API } from '../../constants/parkinglot.constants';
 import { UserRole } from '../../models/auth/user-role.enum';
 import { environment } from '../../../environments/environment';
+import { ToastService } from '../../shared/components/toast/toast.service';
 
 const SESSION_STORAGE_KEY = 'parkease.session';
 const MANAGER_ID = 'mgr-1';
@@ -65,6 +66,18 @@ const PENDING_LOT = {
   createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
 };
 
+const REJECTED_LOT = {
+  ...OPEN_LOT,
+  lotId: 'lot-rejected',
+  name: 'Rejected Garage',
+  isApproved: false,
+  isOpen: false,
+  approvalStatus: 'Rejected',
+  approvalFeedback: 'Please add a clearer address.',
+};
+
+const TOGGLE_URL = (id: string) => `${environment.apiBaseUrl}${PARKINGLOT_API.toggleOpen(id)}`;
+
 describe('ManagerLots', () => {
   let httpMock: HttpTestingController;
   let router: Router;
@@ -99,6 +112,7 @@ describe('ManagerLots', () => {
       error: ManagerLots['error'];
       statusFor: ManagerLots['statusFor'];
       submittedTextFor: ManagerLots['submittedTextFor'];
+      feedbackFor: ManagerLots['feedbackFor'];
     };
     return { fixture, component };
   }
@@ -117,12 +131,19 @@ describe('ManagerLots', () => {
     expect(component.error()).toBeNull();
   });
 
-  it('derives Open/Closed/Awaiting approval from isApproved and isOpen', () => {
+  it('derives pending, rejected, open and closed from approvalStatus with an isApproved fallback', () => {
     const { component } = createFixture();
 
     expect(component.statusFor(OPEN_LOT)).toBe('open');
     expect(component.statusFor({ ...OPEN_LOT, isOpen: false })).toBe('closed');
-    expect(component.statusFor(PENDING_LOT)).toBe('awaiting-approval');
+    expect(component.statusFor(PENDING_LOT)).toBe('pending');
+    expect(component.statusFor({ ...OPEN_LOT, approvalStatus: 'Pending', isApproved: false })).toBe(
+      'pending',
+    );
+    expect(component.statusFor(REJECTED_LOT)).toBe('rejected');
+    expect(component.statusFor({ ...OPEN_LOT, approvalStatus: 'Approved', isOpen: false })).toBe(
+      'closed',
+    );
   });
 
   it('shows a submitted-time subtext for lots awaiting approval', () => {
@@ -258,5 +279,124 @@ describe('ManagerLots', () => {
     await Promise.resolve();
 
     expect(component.error()).toBe("Couldn't reach the server. Check your connection and try again.");
+  });
+
+  async function loadWith(lots: unknown[]) {
+    const ctx = createFixture();
+    ctx.fixture.detectChanges();
+    httpMock.expectOne(LOTS_URL).flush({ success: true, message: null, data: lots, errors: null });
+    await Promise.resolve();
+    ctx.fixture.detectChanges();
+    return ctx;
+  }
+
+  function dialogButton(label: string): HTMLButtonElement {
+    return Array.from(document.querySelectorAll('app-confirm-dialog button')).find(
+      (b) => b.textContent?.trim() === label,
+    ) as HTMLButtonElement;
+  }
+
+  it('shows the admin feedback and an edit hint on a rejected lot, but no open button', async () => {
+    const { fixture, component } = await loadWith([REJECTED_LOT]);
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(el.querySelector('[data-state-pill]')?.textContent).toContain('Rejected');
+    expect(el.querySelector('[data-feedback]')?.textContent).toContain(
+      'Please add a clearer address.',
+    );
+    expect(el.textContent).toContain('send it for review again');
+    expect(el.querySelector('[data-toggle-open]')).toBeNull();
+    expect(el.querySelector('[data-view-bookings]')).toBeNull();
+    expect(component.feedbackFor({ ...REJECTED_LOT, approvalStatus: 'Pending' })).toBeNull();
+  });
+
+  it('shows pending text without an open button', async () => {
+    const { fixture } = await loadWith([PENDING_LOT]);
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(el.querySelector('[data-state-pill]')?.textContent).toContain('Pending approval');
+    expect(el.textContent).toContain('Pending admin approval');
+    expect(el.querySelector('[data-toggle-open]')).toBeNull();
+  });
+
+  it('opens a closed approved lot straight away and updates the card from the response', async () => {
+    const closed = { ...OPEN_LOT, isOpen: false };
+    const { fixture, component } = await loadWith([closed]);
+    const el = fixture.nativeElement as HTMLElement;
+    const button = el.querySelector<HTMLButtonElement>('[data-toggle-open]')!;
+    expect(button.textContent).toContain('Open lot');
+
+    button.click();
+    fixture.detectChanges();
+    expect(button.disabled).toBe(true);
+    const req = httpMock.expectOne(TOGGLE_URL(closed.lotId));
+    expect(req.request.method).toBe('PUT');
+    req.flush({ success: true, message: null, data: { ...closed, isOpen: true }, errors: null });
+    await Promise.resolve();
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(component.lots()[0].isOpen).toBe(true);
+    expect(el.querySelector('[data-state-pill]')?.textContent).toContain('Open');
+    expect(el.querySelector<HTMLButtonElement>('[data-toggle-open]')!.textContent).toContain(
+      'Close lot',
+    );
+    expect(TestBed.inject(ToastService).message()).toContain('is now open');
+  });
+
+  it('asks before closing, and cancelling the dialog sends nothing', async () => {
+    const { fixture } = await loadWith([OPEN_LOT]);
+    const el = fixture.nativeElement as HTMLElement;
+
+    el.querySelector<HTMLButtonElement>('[data-toggle-open]')!.click();
+    fixture.detectChanges();
+    expect(document.querySelector('app-confirm-dialog')).toBeTruthy();
+
+    dialogButton('Cancel').click();
+    fixture.detectChanges();
+    httpMock.expectNone(TOGGLE_URL(OPEN_LOT.lotId));
+    expect(document.querySelector('app-confirm-dialog')).toBeNull();
+  });
+
+  it('closes the lot after confirming', async () => {
+    const { fixture, component } = await loadWith([OPEN_LOT]);
+    const el = fixture.nativeElement as HTMLElement;
+
+    el.querySelector<HTMLButtonElement>('[data-toggle-open]')!.click();
+    fixture.detectChanges();
+    dialogButton('Close lot').click();
+
+    httpMock
+      .expectOne(TOGGLE_URL(OPEN_LOT.lotId))
+      .flush({ success: true, message: null, data: { ...OPEN_LOT, isOpen: false }, errors: null });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(component.lots()[0].isOpen).toBe(false);
+    expect(TestBed.inject(ToastService).message()).toContain('is now closed');
+  });
+
+  it('shows an error toast when the toggle fails', async () => {
+    const closed = { ...OPEN_LOT, isOpen: false };
+    const { fixture } = await loadWith([closed]);
+    (fixture.nativeElement as HTMLElement)
+      .querySelector<HTMLButtonElement>('[data-toggle-open]')!
+      .click();
+
+    httpMock
+      .expectOne(TOGGLE_URL(closed.lotId))
+      .flush(null, { status: 500, statusText: 'Server Error' });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(TestBed.inject(ToastService).message()).toBe(
+      "Couldn't update the lot. Please try again.",
+    );
+  });
+
+  it('links View bookings to the bookings page with the lot filter', async () => {
+    const { fixture } = await loadWith([OPEN_LOT]);
+    const link = (fixture.nativeElement as HTMLElement).querySelector('[data-view-bookings]')!;
+    expect(link.getAttribute('href')).toBe(`/manager/lot-bookings?lotId=${OPEN_LOT.lotId}`);
   });
 });

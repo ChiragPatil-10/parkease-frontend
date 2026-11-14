@@ -3,6 +3,7 @@ export const PARKINGLOT_API = {
   all: '/api/v1/lots/all',
   approve: (lotId: string) => `/api/v1/lots/${lotId}/approve`,
   reject: (lotId: string) => `/api/v1/lots/${lotId}/reject`,
+  toggleOpen: (lotId: string) => `/api/v1/lots/${lotId}/toggle-open`,
   byManager: (managerId: string) => `/api/v1/lots/manager/${managerId}`,
   create: '/api/v1/lots',
   nearby: '/api/v1/lots/nearby',

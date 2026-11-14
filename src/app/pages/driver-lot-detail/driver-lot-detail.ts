@@ -11,6 +11,7 @@ import { VehicleService } from '../../services/vehicle.service';
 import { LotResponse } from '../../models/lot.model';
 import { SpotResponse, SpotStatus, VehicleType } from '../../models/spot.model';
 import { VehicleResponse } from '../../models/vehicle/vehicle.model';
+import { formatPlate, vehicleName } from '../driver-my-vehicles/vehicle-format';
 
 interface VehicleTypeOption {
   label: string;
@@ -131,10 +132,21 @@ export class DriverLotDetail implements OnInit {
   });
   protected readonly lotClosed = computed(() => this.lot()?.isOpen === false);
 
-  protected readonly selectedVehicle = computed(
-    () =>
-      this.vehicles().find((v) => v.isActive && v.vehicleType === this.selectedType()) ?? null,
+  /** Active vehicles of the chosen type, in the order the API returned them. */
+  protected readonly vehiclesOfType = computed(() =>
+    this.vehicles().filter((v) => v.isActive && v.vehicleType === this.selectedType()),
   );
+  private readonly chosenVehicleId = signal<string | null>(null);
+
+  /** The driver's pick when it still matches the chosen type, otherwise the first one. */
+  protected readonly selectedVehicle = computed(() => {
+    const options = this.vehiclesOfType();
+    const chosen = this.chosenVehicleId();
+    return options.find((v) => v.vehicleId === chosen) ?? options[0] ?? null;
+  });
+
+  protected readonly formatPlate = formatPlate;
+  protected readonly vehicleName = vehicleName;
 
   protected readonly floors = computed(() =>
     Array.from(new Set(this.spots().map((spot) => spot.floor))).sort((a, b) => a - b),
@@ -204,6 +216,10 @@ export class DriverLotDetail implements OnInit {
     this.typeChosenByUser = true;
     this.selectedType.set(type);
     this.selectedSpotId.set(null);
+  }
+
+  protected chooseVehicle(vehicleId: string): void {
+    this.chosenVehicleId.set(vehicleId);
   }
 
   protected selectFloor(floor: number): void {

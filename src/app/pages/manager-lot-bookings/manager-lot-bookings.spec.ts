@@ -578,6 +578,7 @@ describe('ManagerLotBookings', () => {
         'Start time',
         'Amount',
         'Status',
+        'Reason',
       ]);
       expect(el.querySelector('ul[data-cards]')?.className).toContain('md:hidden');
     });
@@ -638,6 +639,25 @@ describe('ManagerLotBookings', () => {
       ]);
       for (const p of pills) expect(p.querySelector('span')?.getAttribute('aria-hidden')).toBe('true');
       expect(el.textContent).not.toContain('PaymentTimeout');
+    });
+
+    it('shows a reason for cancelled bookings only, in the table and on the cards', async () => {
+      const { el, settle } = await render();
+      respond(last(), [
+        row(1, { status: 'Confirmed' }),
+        row(2, { status: 'Cancelled', cancelReason: 'PaymentTimeout' }),
+        row(3, { status: 'Cancelled', cancelReason: 'DriverCancelled' }),
+        row(4, { status: 'Cancelled', cancelReason: null }),
+      ]);
+      await settle();
+      const table = Array.from(el.querySelectorAll('tbody [data-reason]')).map((c) =>
+        c.textContent?.trim(),
+      );
+      expect(table).toEqual(['', 'Payment timed out', 'Driver cancelled', '']);
+      const cards = Array.from(el.querySelectorAll('ul[data-cards] [data-reason]')).map((c) =>
+        c.textContent?.trim(),
+      );
+      expect(cards).toEqual(['Payment timed out', 'Driver cancelled']);
     });
 
     it('has no clickable rows or actions', async () => {

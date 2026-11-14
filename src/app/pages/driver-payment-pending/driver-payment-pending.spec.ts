@@ -27,6 +27,8 @@ describe('DriverPaymentPending', () => {
   let bookingResult: () => Observable<unknown>;
   let lotResult: () => Observable<unknown>;
   let spotResult: () => Observable<unknown>;
+  let paymentResult: () => Observable<unknown>;
+  let paymentCalls: number;
   let bookingCalls: number;
   let auth: AuthService;
   let router: Router;
@@ -56,6 +58,10 @@ describe('DriverPaymentPending', () => {
                 bookingCalls++;
                 return bookingResult();
               }
+              if (path.startsWith('/api/payments/')) {
+                paymentCalls++;
+                return paymentResult();
+              }
               return path.includes('/lots/') ? lotResult() : spotResult();
             },
           },
@@ -76,6 +82,8 @@ describe('DriverPaymentPending', () => {
     vi.useFakeTimers();
     vi.setSystemTime(NOW);
     bookingCalls = 0;
+    paymentCalls = 0;
+    paymentResult = () => of(envelope({ paymentId: 'pay-1', status: 'Captured' }));
     bookingResult = () => of(envelope(booking('Pending')));
     lotResult = () => of(envelope({ lotId: 'lot-1', name: 'Whitefield Central' }));
     spotResult = () => of(envelope({ spotId: 'spot-1', spotNumber: 'A-02' }));
@@ -323,6 +331,83 @@ describe('DriverPaymentPending', () => {
       const calls = bookingCalls;
       await flush(120_000);
       expect(bookingCalls).toBe(calls);
+    });
+  });
+
+  describe('unpaid Pending booking', () => {
+    const unpaid = (due: string | null = '2026-10-24T10:12:00Z') => {
+      bookingResult = () => of(envelope({ ...booking('Pending', due), createdAt: '2026-10-24T09:57:00Z' }));
+    };
+
+    it.each([
+      ['a Created payment', () => of(envelope({ paymentId: 'pay-1', status: 'Created' }))],
+      ['no payment record yet (404)', () => httpError(404)],
+      ['a failed payment lookup', () => httpError(500)],
+    ])('says "Waiting for payment" and never "Payment successful" for %s', async (_name, result) => {
+      unpaid();
+      paymentResult = result;
+      await setup();
+
+      expect(h1().textContent?.trim()).toBe('Waiting for payment');
+      expect(text()).not.toContain('Payment successful');
+      expect(text()).toContain('Time left to pay: 12:00');
+      const link = el.querySelector('[data-open-booking]') as HTMLAnchorElement;
+      expect(link.getAttribute('href')).toBe('/bookings/bk-1');
+    });
+
+    it('does not redirect and keeps polling the booking', async () => {
+      unpaid();
+      paymentResult = () => of(envelope({ paymentId: 'pay-1', status: 'Created' }));
+      await setup();
+      const navigate = vi.spyOn(router, 'navigate');
+      const before = bookingCalls;
+      await flush(4000);
+
+      expect(navigate).not.toHaveBeenCalled();
+      expect(bookingCalls).toBeGreaterThan(before);
+    });
+
+    it('counts down and shows "Payment time is up" after the deadline', async () => {
+      unpaid();
+      paymentResult = () => of(envelope({ paymentId: 'pay-1', status: 'Created' }));
+      await setup();
+      await flush(60_000);
+      expect(text()).toContain('Time left to pay: 11:00');
+
+      await flush(11 * 60_000);
+      expect(text()).toContain('Payment time is up');
+      expect(h1().textContent?.trim()).toBe('Waiting for payment');
+    });
+
+    it('falls back to created time plus 15 minutes when there is no due time', async () => {
+      unpaid(null);
+      paymentResult = () => of(envelope({ paymentId: 'pay-1', status: 'Created' }));
+      await setup();
+      expect(text()).toContain('Time left to pay: 12:00');
+    });
+
+    it('switches to the confirmed view when the booking gets confirmed', async () => {
+      unpaid();
+      paymentResult = () => of(envelope({ paymentId: 'pay-1', status: 'Created' }));
+      await setup();
+      bookingResult = () => of(envelope(booking('Confirmed')));
+      await flush(2000);
+      expect(h1().textContent?.trim()).toBe('Booking confirmed');
+    });
+
+    it('shows "Payment successful" for a Pending booking whose payment is Captured', async () => {
+      unpaid();
+      await setup();
+      expect(h1().textContent).toContain('Payment successful');
+      expect(el.querySelector('[data-open-booking]')).toBeNull();
+    });
+
+    it('never shows "Payment successful" while the first check is still running', async () => {
+      const never = new Observable<unknown>(() => undefined);
+      bookingResult = () => never;
+      await setup();
+      expect(h1().textContent?.trim()).toBe('Checking your booking');
+      expect(text()).not.toContain('Payment successful');
     });
   });
 

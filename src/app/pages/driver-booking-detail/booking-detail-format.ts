@@ -134,3 +134,30 @@ export function paymentCardView(
       return base;
   }
 }
+
+/** The backend cancels an unpaid booking this long after it was created. */
+export const PAYMENT_WINDOW_MS = 15 * 60_000;
+
+/**
+ * When an unpaid booking times out, as epoch ms: paymentDueAt when the API sends a valid one,
+ * otherwise createdAt plus 15 minutes. Null when neither is usable.
+ */
+export function paymentDeadlineMs(
+  paymentDueAt: string | null | undefined,
+  createdAt: string | null | undefined,
+): number | null {
+  const due = paymentDueAt ? Date.parse(paymentDueAt) : NaN;
+  if (!Number.isNaN(due)) {
+    return due;
+  }
+  const created = createdAt ? Date.parse(createdAt) : NaN;
+  return Number.isNaN(created) ? null : created + PAYMENT_WINDOW_MS;
+}
+
+/** "14:32" for 14 minutes 32 seconds; never negative. */
+export function formatCountdown(ms: number): string {
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const minutes = Math.floor(total / 60);
+  const seconds = total % 60;
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}

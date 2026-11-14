@@ -31,6 +31,13 @@ export const APPROVAL_TABS: { id: ApprovalSubTab; label: string }[] = [
   { id: 'lot-approvals', label: 'Lot approvals' },
 ];
 
+const FEEDBACK_MAX = 500;
+
+interface PendingApplicationReject {
+  application: ManagerApplicationDto;
+  opener: HTMLElement | null;
+}
+
 interface PendingReject {
   lot: LotResponse;
   opener: HTMLElement | null;
@@ -76,6 +83,9 @@ export class AdminApprovalQueue implements OnInit {
   protected readonly actingLotId = signal<string | null>(null);
   protected readonly actingKind = signal<LotActionKind | null>(null);
   protected readonly pendingReject = signal<PendingReject | null>(null);
+  protected readonly feedbackMax = FEEDBACK_MAX;
+  protected readonly applicationFeedbackDrafts = signal<Record<string, string>>({});
+  protected readonly pendingApplicationReject = signal<PendingApplicationReject | null>(null);
 
   ngOnInit(): void {
     void this.loadApplications(1);
@@ -170,9 +180,40 @@ export class AdminApprovalQueue implements OnInit {
     );
   }
 
+  protected updateApplicationFeedback(applicationId: string, value: string): void {
+    this.applicationFeedbackDrafts.update((current) => ({ ...current, [applicationId]: value }));
+  }
+
+  /** Reject asks first; nothing is sent until the dialog is confirmed. */
+  protected requestApplicationReject(application: ManagerApplicationDto, event: Event): void {
+    if (this.actingApplicationId() !== null) {
+      return;
+    }
+    this.pendingApplicationReject.set({
+      application,
+      opener: event.currentTarget as HTMLElement,
+    });
+  }
+
+  protected cancelApplicationReject(): void {
+    this.pendingApplicationReject.set(null);
+  }
+
+  protected async confirmApplicationReject(): Promise<void> {
+    const pending = this.pendingApplicationReject();
+    if (!pending) {
+      return;
+    }
+    this.pendingApplicationReject.set(null);
+    await this.rejectApplication(pending.application.applicationId);
+  }
+
   protected async rejectApplication(applicationId: string): Promise<void> {
     await this.runApplicationAction(
-      this.authService.rejectManagerApplication(applicationId),
+      this.authService.rejectManagerApplication(
+        applicationId,
+        this.applicationFeedbackDrafts()[applicationId],
+      ),
       applicationId,
       'Application rejected.',
     );

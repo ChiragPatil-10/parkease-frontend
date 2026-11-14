@@ -26,9 +26,8 @@ import { VehicleType } from '../../../models/spot.model';
 import { CreateVehicleRequest, VehicleResponse } from '../../../models/vehicle/vehicle.model';
 import { DialogBehavior } from '../dialog-behavior.directive';
 import { backendMessage, genericErrorMessage, isRateLimited } from '../vehicle-errors';
-import { normalizePlate } from '../vehicle-format';
+import { PLATE_INVALID_MESSAGE, isValidPlate, normalizePlate } from '../vehicle-format';
 
-const PLATE_MAX = 20;
 const NAME_MAX = 50;
 
 interface VehicleTypeOption {
@@ -91,15 +90,10 @@ export class AddVehicleModal {
   protected readonly vehicleForm = form(
     this.vehicle,
     (path) => {
-      validate(path.plate, (ctx) => {
-        const plate = normalizePlate(ctx.value());
-        if (plate.length === 0) {
-          return { kind: 'required', message: 'Plate number is required.' };
-        }
-        return plate.length > PLATE_MAX
-          ? { kind: 'maxLength', message: `Plate number must be ${PLATE_MAX} characters or fewer.` }
-          : undefined;
-      });
+      // One rule and one message for empty, too long and wrongly shaped plates, like the backend.
+      validate(path.plate, (ctx) =>
+        isValidPlate(ctx.value()) ? undefined : { kind: 'plate', message: PLATE_INVALID_MESSAGE },
+      );
 
       validate(path.make, (ctx) =>
         ctx.value().trim().length === 0

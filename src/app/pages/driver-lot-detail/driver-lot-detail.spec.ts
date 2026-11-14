@@ -254,6 +254,55 @@ describe('DriverLotDetail', () => {
     });
   });
 
+  describe('vehicle chooser', () => {
+    const CAR_2 = vehicle({ vehicleId: 'v-car2', plateNumber: 'MH12AB1234', make: 'Honda', model: 'City' });
+    const choice = (el: HTMLElement) =>
+      el.querySelector<HTMLSelectElement>('[data-vehicle-choice]');
+
+    it('shows a select with every active vehicle of the type, first one selected', async () => {
+      const { el } = await open({ vehicles: [CAR, CAR_2, OLD_CAR, BIKE] });
+
+      const select = choice(el)!;
+      expect(select).toBeTruthy();
+      expect(Array.from(select.options).map((o) => o.value)).toEqual(['v-car', 'v-car2']);
+      expect(select.value).toBe('v-car');
+      expect(select.options[0].textContent).toContain('KA 05 MJ 4471');
+      expect(el.querySelector('label[for="vehicleChoice"]')).toBeTruthy();
+    });
+
+    it('passes the chosen vehicle to the booking page', async () => {
+      const { el } = await open({ vehicles: [CAR, CAR_2] });
+      const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
+      const select = choice(el)!;
+      select.value = 'v-car2';
+      select.dispatchEvent(new Event('change'));
+      await click(el, spotButton(el, 'A-01'));
+      await click(el, continueButton(el));
+
+      expect(navigate).toHaveBeenCalledWith(['/lots', 'lot-1', 'book'], {
+        queryParams: { spotId: 's1', vehicleId: 'v-car2', hours: 3 },
+      });
+    });
+
+    it('shows a single vehicle as plain text with no select', async () => {
+      const { el, text } = await open({ vehicles: [CAR, BIKE] });
+
+      expect(choice(el)).toBeNull();
+      expect(el.querySelector('[data-single-vehicle]')?.textContent).toBe('KA05MJ4471');
+      expect(text()).not.toContain('No vehicle for this type');
+    });
+
+    it('keeps the add-a-vehicle message when the type has no active vehicle', async () => {
+      const { el, text } = await open({ vehicles: [BIKE, OLD_CAR] });
+
+      await click(el, button(el, 'Four Wheeler'));
+      expect(choice(el)).toBeNull();
+      expect(text()).toContain('No vehicle for this type');
+      expect(text()).toContain('Add a vehicle');
+    });
+  });
+
   describe('chip filter and selection', () => {
     it('filters the grid by the chosen vehicle type', async () => {
       const { el } = await open();

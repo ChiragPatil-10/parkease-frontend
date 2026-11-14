@@ -113,6 +113,18 @@ describe('ManagerLotForm', () => {
     expect(component.lotForm.closeTime().value()).toBe('23:00');
   });
 
+  it('shows a read-only status line in edit mode', async () => {
+    const { component } = createFixture({ id: LOT_ID });
+    httpMock
+      .expectOne(BY_ID_URL)
+      .flush({ success: true, message: null, data: { ...EXISTING_LOT, isOpen: false }, errors: null });
+    await Promise.resolve();
+
+    expect((component as unknown as { statusLine(): string | null }).statusLine()).toBe(
+      'Approved, Closed',
+    );
+  });
+
   it('redirects to the dashboard with a message when the lot is not found (404)', async () => {
     const { component } = createFixture({ id: LOT_ID });
 

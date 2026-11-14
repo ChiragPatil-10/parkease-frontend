@@ -284,11 +284,45 @@ describe('DriverMyVehicles', () => {
     it('validates required fields and shows messages without calling the API', async () => {
       await submit();
       noCreateRequest();
-      expect(text()).toContain('Plate number is required.');
+      expect(text()).toContain('Enter a valid vehicle number, for example KA05AB1234.');
       expect(text()).toContain('Choose a vehicle type.');
       expect(text()).toContain('Make is required.');
       expect(text()).toContain('Model is required.');
       expect(one('#plate').getAttribute('aria-invalid')).toBe('true');
+    });
+
+    it('rejects "AB12" with the backend message and sends nothing', async () => {
+      fill('AB12', 'Tata', 'Prima');
+      choose('Four Wheeler');
+      harness.detectChanges();
+      await submit();
+      noCreateRequest();
+      expect(text()).toContain('Enter a valid vehicle number, for example KA05AB1234.');
+      expect(one('#plate').getAttribute('aria-invalid')).toBe('true');
+    });
+
+    it('accepts a BH series plate and sends it normalised', async () => {
+      fill('22 bh 1234 ab', 'Tata', 'Prima');
+      choose('Four Wheeler');
+      harness.detectChanges();
+      await submit();
+      const req = createRequest();
+      expect(req.request.body.plateNumber).toBe('22BH1234AB');
+      req.flush(failure('x'), { status: 500, statusText: 'err' });
+      await settle();
+    });
+
+    it('shows the backend 400 message when it still comes back', async () => {
+      fill();
+      choose('Four Wheeler');
+      harness.detectChanges();
+      await submit();
+      createRequest().flush(failure('Enter a valid vehicle number, for example KA05AB1234.'), {
+        status: 400,
+        statusText: 'Bad Request',
+      });
+      await settle();
+      expect(text()).toContain('Enter a valid vehicle number, for example KA05AB1234.');
     });
 
     it('rejects a plate over 20 characters and make/model over 50', async () => {
@@ -297,18 +331,18 @@ describe('DriverMyVehicles', () => {
       harness.detectChanges();
       await submit();
       noCreateRequest();
-      expect(text()).toContain('Plate number must be 20 characters or fewer.');
+      expect(text()).toContain('Enter a valid vehicle number, for example KA05AB1234.');
       expect(text()).toContain('Make must be 50 characters or fewer.');
       expect(text()).toContain('Model must be 50 characters or fewer.');
     });
 
-    it('accepts boundary lengths (plate counted after removing spaces and dashes)', async () => {
-      fill(`${'A'.repeat(10)} - ${'B'.repeat(10)}`, 'M'.repeat(50), 'X'.repeat(50));
+    it('accepts a make and model of exactly 50 characters', async () => {
+      fill('KA05MJ4471', 'M'.repeat(50), 'X'.repeat(50));
       choose('Four Wheeler');
       harness.detectChanges();
       await submit();
       const req = createRequest();
-      expect(req.request.body.plateNumber).toBe('A'.repeat(10) + 'B'.repeat(10));
+      expect(req.request.body.make).toBe('M'.repeat(50));
       req.flush(failure('x'), { status: 500, statusText: 'err' });
       await settle();
     });

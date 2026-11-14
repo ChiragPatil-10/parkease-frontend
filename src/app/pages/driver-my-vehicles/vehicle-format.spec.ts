@@ -1,6 +1,8 @@
 import { VehicleResponse } from '../../models/vehicle/vehicle.model';
 import {
+  PLATE_INVALID_MESSAGE,
   formatPlate,
+  isValidPlate,
   normalizePlate,
   parseReturnTo,
   vehicleDetail,
@@ -41,6 +43,40 @@ describe('vehicle-format', () => {
 
   it('normalizes a plate by removing spaces and dashes and uppercasing', () => {
     expect(normalizePlate(' ka 05-mj 4471 ')).toBe('KA05MJ4471');
+  });
+
+  describe('isValidPlate (same rules as the backend)', () => {
+    it.each([
+      'KA05MJ4471',
+      'ka 05-mj 4471',
+      'KA05PE3601',
+      'MH12AB1234',
+      'DL1CAB1234',
+      'KA051234',
+      '22BH1234AB',
+      '22 bh 1234 a',
+    ])('accepts %s', (plate) => {
+      expect(isValidPlate(plate)).toBe(true);
+    });
+
+    it.each(['', '   ', 'AB12', 'KA05MJ44', '1234567890', 'KA05MJ4471X', 'K505MJ4471', '22BH1234ABC'])(
+      'rejects "%s"',
+      (plate) => {
+        expect(isValidPlate(plate)).toBe(false);
+      },
+    );
+
+    it('rejects a raw value longer than 20 characters even if it is valid once cleaned', () => {
+      expect(isValidPlate('K A 0 5 M J 4 4 7 1       ')).toBe(false);
+    });
+
+    it('uses the backend message text', () => {
+      expect(PLATE_INVALID_MESSAGE).toBe('Enter a valid vehicle number, for example KA05AB1234.');
+    });
+
+    it('still groups valid standard plates for display', () => {
+      expect(formatPlate('KA05MJ4471')).toBe('KA 05 MJ 4471');
+    });
   });
 
   it('builds the name and second line, adding Electric only when electric', () => {

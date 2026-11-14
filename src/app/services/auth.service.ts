@@ -10,6 +10,7 @@ import {
   ManagerApplicationDto,
   RegisterDriverRequest,
   RegisterManagerRequest,
+  RejectManagerRequest,
 } from '../models/auth/auth.model';
 import { ApplicationStatus } from '../models/auth/application-status.enum';
 import { AuthUser } from '../models/auth/user.model';
@@ -62,8 +63,14 @@ export class AuthService {
     return this.api.put(AUTH_API.approveManager(applicationId), {});
   }
 
-  rejectManagerApplication(applicationId: string): Observable<ApiResponse<unknown>> {
-    return this.api.put(AUTH_API.rejectManager(applicationId), {});
+  /** Sends { feedback } with the trimmed text (max 500), or {} when it is empty. */
+  rejectManagerApplication(
+    applicationId: string,
+    feedback?: string,
+  ): Observable<ApiResponse<unknown>> {
+    const trimmed = feedback?.trim();
+    const body: RejectManagerRequest = trimmed ? { feedback: trimmed } : {};
+    return this.api.put(AUTH_API.rejectManager(applicationId), body);
   }
 
   /** Home route for a role: where to land after login/registration, and where logged-in users are bounced to from guest pages. */

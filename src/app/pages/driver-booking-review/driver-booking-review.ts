@@ -16,6 +16,7 @@ import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { BookingService } from '../../services/booking.service';
 import { ParkingLotService } from '../../services/parkinglot.service';
+import { PaymentCheckoutService } from '../../services/payment-checkout.service';
 import { PaymentService } from '../../services/payment.service';
 import { RazorpayLoader } from '../../services/razorpay-loader.service';
 import { SpotService } from '../../services/spot.service';
@@ -54,10 +55,11 @@ interface BookingDetail {
 const PAYMENT_POLL_INTERVAL_MS = 1000;
 const PAYMENT_POLL_WINDOW_SECONDS = 15;
 const BOOKING_POLL_INTERVAL_MS = 2000;
+const START_LABEL_REFRESH_MS = 30_000;
+/** A start computed for an earlier attempt is reused for this long; the backend allows 2 minutes of lateness. */
+const START_REUSE_MS = 60_000;
 const CREATE_RETRY_DELAY_MS = 1000;
 const CREATE_MAX_RETRIES = 3;
-const VERIFY_RETRY_DELAY_MS = 1000;
-const VERIFY_MAX_RETRIES = 3;
 
 const PROCESSING_MESSAGE = /already being processed/i;
 const SPOT_UNAVAILABLE_MESSAGE = /spot is not available/i;
@@ -65,11 +67,6 @@ const CANCELLED_MESSAGE = /cancel/i;
 
 function isHttpStatus(err: unknown, ...statuses: number[]): boolean {
   return err instanceof HttpErrorResponse && statuses.includes(err.status);
-}
-
-/** 502 means Razorpay was unreachable and nothing changed; status 0 is a network error. Both are safe to repeat. */
-function isRetryableVerifyError(err: unknown): boolean {
-  return isHttpStatus(err, 0, 502);
 }
 
 function serverMessage(err: unknown): string {
@@ -100,6 +97,7 @@ export class DriverBookingReview implements OnInit, OnDestroy {
   private readonly vehicleService = inject(VehicleService);
   private readonly bookingService = inject(BookingService);
   private readonly paymentService = inject(PaymentService);
+  private readonly checkoutService = inject(PaymentCheckoutService);
   private readonly razorpay = inject(RazorpayLoader);
 
   private readonly payButton = viewChild<ElementRef<HTMLButtonElement>>('payButton');
@@ -163,6 +161,9 @@ export class DriverBookingReview implements OnInit, OnDestroy {
   private pollSession = 0;
   private destroyed = false;
   private readonly timers = new Set<ReturnType<typeof setTimeout>>();
+  private startClock: ReturnType<typeof setInterval> | null = null;
+  /** The start sent with the booking request; once set, the label shows exactly this value. */
+  private attemptStart: { iso: string; label: string; computedAt: number } | null = null;
 
   ngOnInit(): void {
     const lotId = this.route.snapshot.paramMap.get('lotId') ?? '';
@@ -177,12 +178,14 @@ export class DriverBookingReview implements OnInit, OnDestroy {
       return;
     }
     this.hours.set(hours);
+    this.startLabelClock();
     void this.load(lotId, spotId, vehicleId);
   }
 
   ngOnDestroy(): void {
     this.destroyed = true;
     this.pollSession++;
+    this.stopStartLabelClock();
     this.timers.forEach((id) => clearTimeout(id));
     this.timers.clear();
   }
@@ -225,7 +228,9 @@ export class DriverBookingReview implements OnInit, OnDestroy {
 
   private async load(lotId: string, spotId: string, vehicleId: string): Promise<void> {
     this.view.set('loading');
-    this.startTimeLabel.set(formatStartTime(new Date()));
+    if (!this.attemptStart) {
+      this.startTimeLabel.set(formatStartTime(new Date()));
+    }
     try {
       const [lotRes, spotRes, vehiclesRes] = await Promise.all([
         firstValueFrom(this.lotService.getLotById(lotId)),
@@ -256,6 +261,42 @@ export class DriverBookingReview implements OnInit, OnDestroy {
     }
   }
 
+  /** Keeps the label in step with the next quarter hour until a booking attempt freezes it. */
+  private startLabelClock(): void {
+    this.stopStartLabelClock();
+    this.startClock = setInterval(() => {
+      if (!this.attemptStart) {
+        this.startTimeLabel.set(formatStartTime(new Date()));
+      }
+    }, START_LABEL_REFRESH_MS);
+  }
+
+  private stopStartLabelClock(): void {
+    if (this.startClock !== null) {
+      clearInterval(this.startClock);
+      this.startClock = null;
+    }
+  }
+
+  /**
+   * Start time for the create request, computed right before sending. The same value is shown in
+   * the label and reused by retries of this attempt, so the body under one idempotency key stays
+   * identical. It is recomputed only if it has become older than START_REUSE_MS.
+   */
+  private startForAttempt(): string {
+    const now = Date.now();
+    if (!this.attemptStart || now - this.attemptStart.computedAt > START_REUSE_MS) {
+      const date = new Date(now);
+      this.attemptStart = {
+        iso: toBookingStartTime(date),
+        label: formatStartTime(date),
+        computedAt: now,
+      };
+    }
+    this.startTimeLabel.set(this.attemptStart.label);
+    return this.attemptStart.iso;
+  }
+
   private async createBooking(
     spot: SpotResponse,
     lot: LotResponse,
@@ -265,7 +306,7 @@ export class DriverBookingReview implements OnInit, OnDestroy {
       lotId: lot.lotId,
       spotId: spot.spotId,
       vehicleId: vehicle.vehicleId,
-      startTime: toBookingStartTime(new Date()),
+      startTime: this.startForAttempt(),
       totalAmount: this.amount(),
       idempotencyKey: this.idempotencyKey,
     };
@@ -379,42 +420,22 @@ export class DriverBookingReview implements OnInit, OnDestroy {
     if (orderId === null) {
       return;
     }
-    const Razorpay = await this.razorpay.load();
-    if (this.destroyed) {
-      return;
-    }
-    let completed = false;
-    const checkout = new Razorpay({
-      key: this.checkoutKey(),
-      order_id: orderId,
-      name: 'ParkEase',
-      notes: { bookingId },
-      prefill: {},
-      // The signature is checked by the backend; navigation waits for that to succeed.
-      handler: (response) => {
-        completed = true;
-        this.paid.set({
-          bookingId,
-          razorpayPaymentId: response.razorpay_payment_id,
-          razorpayOrderId: response.razorpay_order_id,
-          razorpaySignature: response.razorpay_signature,
-        });
+    await this.checkoutService.openCheckout({
+      bookingId,
+      orderId,
+      keyId: this.checkoutKey(),
+      isActive: () => !this.destroyed,
+      onPaid: (request) => {
+        this.paid.set(request);
         void this.verify();
       },
-      modal: {
-        ondismiss: () => {
-          if (!completed && this.notice() !== 'payment-failed') {
-            this.finish('dismissed');
-          }
-        },
+      onDismissed: () => {
+        if (this.notice() !== 'payment-failed') {
+          this.finish('dismissed');
+        }
       },
+      onFailed: () => this.finish('payment-failed'),
     });
-    checkout.on('payment.failed', () => {
-      if (!completed) {
-        this.finish('payment-failed');
-      }
-    });
-    checkout.open();
   }
 
   private checkoutKey(): string {
@@ -432,28 +453,15 @@ export class DriverBookingReview implements OnInit, OnDestroy {
     this.notice.set(null);
 
     try {
-      for (let attempt = 0; ; attempt++) {
-        try {
-          await firstValueFrom(this.paymentService.verifyPayment(request));
-          if (this.destroyed) {
-            return;
-          }
-          this.running.set(false);
-          this.confirming.set(false);
-          this.router
-            .navigate(['/bookings', request.bookingId, 'payment'], { replaceUrl: true })
-            .catch(() => undefined);
-          return;
-        } catch (err) {
-          if (!isRetryableVerifyError(err) || attempt >= VERIFY_MAX_RETRIES) {
-            throw err;
-          }
-          await this.sleep(VERIFY_RETRY_DELAY_MS);
-          if (this.destroyed) {
-            return;
-          }
-        }
+      const verified = await this.checkoutService.verify(request, () => !this.destroyed);
+      if (!verified) {
+        return;
       }
+      this.running.set(false);
+      this.confirming.set(false);
+      this.router
+        .navigate(['/bookings', request.bookingId, 'payment'], { replaceUrl: true })
+        .catch(() => undefined);
     } catch (err) {
       this.confirming.set(false);
       this.handleVerifyError(err);

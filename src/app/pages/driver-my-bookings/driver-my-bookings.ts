@@ -123,6 +123,7 @@ export class DriverMyBookings implements OnInit {
         badge: booking.spotNumber ?? this.spotNumbers()[booking.spotId] ?? '?',
         title: booking.lotName ?? this.lotNames()[booking.lotId] ?? 'Booking',
         startTime: formatBookingTime(booking.startTime),
+        amount: formatAmount(booking.totalAmount),
         plate: plate ? formatPlate(plate) : null,
         ui: this.rowUi()[booking.bookingId] ?? IDLE,
       };

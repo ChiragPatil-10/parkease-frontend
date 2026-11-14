@@ -39,4 +39,11 @@ export interface ManagerApplicationDto {
   parkingAddress: string;
   status: ApplicationStatus;
   createdAt: string;
+  /** Admin feedback on a rejected application; null otherwise. Not shown on the admin tab yet. */
+  feedback?: string | null;
+}
+
+/** Body of PUT /admin/reject-manager/{id}; {} when there is no feedback. Maximum 500 characters. */
+export interface RejectManagerRequest {
+  feedback?: string;
 }

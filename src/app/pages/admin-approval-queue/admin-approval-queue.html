@@ -75,11 +75,21 @@
                       {{ application.parkingAddress }} · {{ appliedTextFor(application) }} · {{ application.email }}
                     </p>
 
+                    <label class="sr-only" [for]="'app-feedback-' + application.applicationId"
+                      >Feedback for {{ application.fullName }}</label
+                    >
                     <textarea
+                      [id]="'app-feedback-' + application.applicationId"
                       rows="1"
+                      [attr.maxlength]="feedbackMax"
                       placeholder="Optional feedback for the applicant (shown if rejected)…"
+                      [value]="applicationFeedbackDrafts()[application.applicationId] ?? ''"
+                      (input)="updateApplicationFeedback(application.applicationId, $any($event.target).value)"
                       class="mt-4 w-full resize-none rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
                     ></textarea>
+                    <p class="mt-1 text-right text-xs text-muted" data-application-counter>
+                      {{ (applicationFeedbackDrafts()[application.applicationId] ?? '').length }}/{{ feedbackMax }}
+                    </p>
                   </div>
 
                   <div class="flex shrink-0 flex-col gap-2 max-md:w-full">
@@ -95,7 +105,7 @@
                     <button
                       type="button"
                       data-reject-application
-                      (click)="rejectApplication(application.applicationId)"
+                      (click)="requestApplicationReject(application, $event)"
                       [disabled]="actingApplicationId() === application.applicationId"
                       class="min-h-11 cursor-pointer rounded-lg border border-red-700 px-5 py-2 text-sm font-semibold text-red-700 transition-colors hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700 disabled:cursor-not-allowed disabled:opacity-60"
                     >
@@ -203,6 +213,18 @@
     }
   </main>
 </div>
+
+@if (pendingApplicationReject(); as pendingApp) {
+  <app-confirm-dialog
+    title="Reject this application?"
+    message="The applicant will get an email."
+    confirmLabel="Reject"
+    [destructive]="true"
+    [opener]="pendingApp.opener"
+    (closed)="cancelApplicationReject()"
+    (confirmed)="confirmApplicationReject()"
+  />
+}
 
 @if (pendingReject(); as pending) {
   <app-confirm-dialog

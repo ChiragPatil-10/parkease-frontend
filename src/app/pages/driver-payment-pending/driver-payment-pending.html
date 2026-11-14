@@ -1,6 +1,6 @@
 <main class="flex min-h-screen items-center justify-center bg-surface px-4 py-8">
   <div class="w-full max-w-115 rounded-2xl border border-border bg-card p-10 text-center max-sm:p-6">
-    @if (state() === 'pending') {
+    @if (state() === 'pending' || state() === 'loading') {
       <svg
         class="spinner mx-auto h-14 w-14 text-accent"
         viewBox="0 0 24 24"
@@ -37,6 +37,19 @@
     </h1>
 
     @switch (state()) {
+      @case ('loading') {
+        <p class="mt-4 text-sm text-muted">One moment while we check this booking.</p>
+      }
+      @case ('waiting') {
+        <p class="mt-4 text-sm text-muted">
+          This booking has not been paid yet. Open the booking to pay or cancel it.
+        </p>
+        @if (countdownText(); as countdown) {
+          <p class="mt-3 font-mono text-sm font-semibold text-ink" data-countdown>
+            {{ countdown }}
+          </p>
+        }
+      }
       @case ('pending') {
         <p class="mt-4 text-sm text-muted">
           Hang tight while we verify your payment. This usually takes a few seconds, occasionally
@@ -98,6 +111,13 @@
         <span class="h-1.5 w-1.5 rounded-full bg-muted" aria-hidden="true"></span>
         Pending
       </span>
+    } @else if (state() === 'waiting') {
+      <span
+        class="mt-4 inline-flex items-center gap-2 rounded-full bg-surface px-3 py-1.5 text-xs text-muted"
+      >
+        <span class="h-1.5 w-1.5 rounded-full bg-muted" aria-hidden="true"></span>
+        Not paid yet
+      </span>
     } @else if (state() === 'confirmed') {
       <span
         class="mt-4 inline-flex items-center gap-2 rounded-full bg-surface px-3 py-1.5 text-xs text-ink"
@@ -108,6 +128,15 @@
     }
 
     @switch (state()) {
+      @case ('waiting') {
+        <a
+          data-open-booking
+          [routerLink]="['/bookings', bookingId]"
+          class="mt-6 flex w-full items-center justify-center rounded-lg bg-accent px-4 py-3 text-sm font-semibold text-ink transition-colors hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+        >
+          Open booking to pay or cancel
+        </a>
+      }
       @case ('confirmed') {
         <a
           [routerLink]="['/bookings', bookingId]"
