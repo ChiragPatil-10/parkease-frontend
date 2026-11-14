@@ -94,3 +94,76 @@ describe('AuthService admin user calls', () => {
     expect(Object.keys(AUTH_API)).not.toContain('deleteUser');
   });
 });
+
+describe('AuthService password and profile calls', () => {
+  let service: AuthService;
+  let httpMock: HttpTestingController;
+  const url = (path: string) => `${environment.apiBaseUrl}${path}`;
+  const ok = { success: true, message: null, data: {}, errors: null };
+
+  beforeEach(() => {
+    localStorage.clear();
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
+    service = TestBed.inject(AuthService);
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => httpMock.verify());
+
+  it('forgotPassword posts the email', () => {
+    service.forgotPassword({ email: 'a@b.com' }).subscribe();
+    const req = httpMock.expectOne(url(AUTH_API.forgotPassword));
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ email: 'a@b.com' });
+    req.flush(ok);
+  });
+
+  it('resetPassword posts the token and the new password', () => {
+    service.resetPassword({ token: 't', newPassword: 'NewPass123' }).subscribe();
+    const req = httpMock.expectOne(url(AUTH_API.resetPassword));
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ token: 't', newPassword: 'NewPass123' });
+    req.flush(ok);
+  });
+
+  it('getProfile gets the profile', () => {
+    service.getProfile().subscribe();
+    const req = httpMock.expectOne(url(AUTH_API.profile));
+    expect(req.request.method).toBe('GET');
+    req.flush(ok);
+  });
+
+  it('updateProfile puts the body as given', () => {
+    service.updateProfile({ fullName: 'A', phone: '' }).subscribe();
+    const req = httpMock.expectOne(url(AUTH_API.profile));
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({ fullName: 'A', phone: '' });
+    req.flush(ok);
+  });
+
+  it('changePassword puts the old and new password', () => {
+    service.changePassword({ oldPassword: 'Old1aaaa', newPassword: 'New1aaaa' }).subscribe();
+    const req = httpMock.expectOne(url(AUTH_API.password));
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({ oldPassword: 'Old1aaaa', newPassword: 'New1aaaa' });
+    req.flush(ok);
+  });
+
+  it('updateSessionUser merges the user fields and keeps the tokens', () => {
+    storeSession(UserRole.Driver);
+    service.updateSessionUser({ fullName: 'Renamed', phone: '12345' });
+    const session = service.getSession()!;
+    expect(session.user.fullName).toBe('Renamed');
+    expect(session.user.phone).toBe('12345');
+    expect(session.user.email).toBe('test@example.com');
+    expect(session.accessToken).toBeTruthy();
+    expect(session.refreshToken).toBe('refresh-1');
+  });
+
+  it('updateSessionUser does nothing without a session', () => {
+    service.updateSessionUser({ fullName: 'Renamed' });
+    expect(localStorage.getItem(SESSION_STORAGE_KEY)).toBeNull();
+  });
+});

@@ -7,6 +7,16 @@
       Log in to find, book, and manage your spot.
     </p>
 
+    @if (notice(); as message) {
+      <p
+        role="status"
+        data-login-notice
+        class="mt-5 rounded-lg border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-800"
+      >
+        {{ message }}
+      </p>
+    }
+
     <form [formRoot]="loginForm" class="mt-6">
       <div>
         <label
@@ -48,21 +58,13 @@
         }
       </div>
 
-      <button
-        type="button"
+      <a
+        routerLink="/forgot-password"
         data-forgot
-        class="mt-4 inline-block cursor-pointer text-sm text-link hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-        [attr.aria-expanded]="forgotShown()"
-        aria-controls="forgot-note"
-        (click)="forgotShown.set(true)"
+        class="mt-4 inline-block text-sm text-link hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
       >
         Forgot password?
-      </button>
-      <p id="forgot-note" class="mt-2 text-sm text-muted" role="status" data-forgot-note>
-        @if (forgotShown()) {
-          Password reset is not available yet.
-        }
-      </p>
+      </a>
 
       @if (serverError()) {
         <p class="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">

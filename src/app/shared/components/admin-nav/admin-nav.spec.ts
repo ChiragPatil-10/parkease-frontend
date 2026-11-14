@@ -17,7 +17,7 @@ describe('AdminNav', () => {
     return fixture.nativeElement as HTMLElement;
   }
 
-  it('links all four items to real routes', () => {
+  it('links all items to real routes, with Profile last', () => {
     const el = create('manager-applications');
     const links = Array.from(el.querySelectorAll('a'));
 
@@ -26,12 +26,14 @@ describe('AdminNav', () => {
       'Manager Applications',
       'Lot Approvals',
       'All Lots',
+      'Profile',
     ]);
     expect(links.map((a) => a.getAttribute('href'))).toEqual([
       '/admin/users',
       '/admin/approvals?tab=manager-applications',
       '/admin/approvals?tab=lot-approvals',
       '/admin/lots',
+      '/profile',
     ]);
   });
 
@@ -41,6 +43,11 @@ describe('AdminNav', () => {
 
     expect(links[2].classList.contains('font-semibold')).toBe(true);
     expect(links[1].classList.contains('font-semibold')).toBe(false);
+  });
+
+  it('highlights Profile only on the profile tab', () => {
+    const profile = Array.from(create('profile').querySelectorAll('a')).filter((a) => a.classList.contains('font-semibold'));
+    expect(profile.map((a) => a.textContent?.trim())).toEqual(['Profile']);
   });
 
   it('highlights nothing when no tab is active', () => {

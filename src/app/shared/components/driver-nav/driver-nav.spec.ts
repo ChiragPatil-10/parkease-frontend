@@ -43,4 +43,18 @@ describe('DriverNav items', () => {
     TestBed.resetTestingModule();
     expect(item(render('notifications'), 'Notifications').classList).toContain('text-ink');
   });
+
+  it('puts Profile just before Log out, linking to /profile', () => {
+    const el = render('profile');
+    const items = Array.from(el.querySelectorAll<HTMLElement>('nav > *'));
+    const profile = items[items.length - 2];
+    expect(profile.textContent?.trim()).toBe('Profile');
+    expect(profile.getAttribute('href')).toBe('/profile');
+    expect(profile.classList).toContain('text-ink');
+    expect(items[items.length - 1].textContent?.trim()).toBe('Log out');
+  });
+
+  it('styles Profile as muted on other tabs', () => {
+    expect(item(render('my-bookings'), 'Profile').classList).toContain('text-muted');
+  });
 });

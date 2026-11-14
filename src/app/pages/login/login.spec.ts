@@ -1,10 +1,11 @@
+import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
-import { Router, provideRouter } from '@angular/router';
+import { Router, RouterOutlet, provideRouter } from '@angular/router';
 import { submit } from '@angular/forms/signals';
 import { vi } from 'vitest';
 import { Login } from './login';
@@ -189,22 +190,22 @@ describe('Login sign-up link', () => {
     expect(el.textContent).not.toMatch(/OR/);
   });
 
-  it('Forgot password is a real button that reveals an inline note', () => {
+  it('Forgot password is a real link to /forgot-password', () => {
     const fixture = TestBed.createComponent(Login);
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
-    const button = el.querySelector<HTMLButtonElement>('[data-forgot]')!;
+    const link = el.querySelector<HTMLAnchorElement>('[data-forgot]')!;
 
-    expect(button.tagName).toBe('BUTTON');
-    expect(button.type).toBe('button');
-    expect(el.querySelector('[data-forgot-note]')?.textContent?.trim()).toBe('');
+    expect(link.tagName).toBe('A');
+    expect(link.getAttribute('href')).toBe('/forgot-password');
+    expect(link.textContent?.trim()).toBe('Forgot password?');
+    expect(el.textContent).not.toContain('not available yet');
+  });
 
-    button.click();
+  it('shows no notice on a normal visit', () => {
+    const fixture = TestBed.createComponent(Login);
     fixture.detectChanges();
-    expect(el.querySelector('[data-forgot-note]')?.textContent?.trim()).toBe(
-      'Password reset is not available yet.',
-    );
-    expect(button.getAttribute('aria-expanded')).toBe('true');
+    expect((fixture.nativeElement as HTMLElement).querySelector('[data-login-notice]')).toBeNull();
   });
 
   it('points Sign up at /register', () => {
@@ -215,5 +216,63 @@ describe('Login sign-up link', () => {
     ).find((a) => a.textContent?.trim() === 'Sign up');
 
     expect(link?.getAttribute('href')).toBe('/register');
+  });
+});
+
+describe('Login one-time notice', () => {
+  @Component({ imports: [RouterOutlet], template: '<router-outlet />' })
+  class Host {}
+
+  let router: Router;
+
+  beforeEach(async () => {
+    localStorage.clear();
+    await TestBed.configureTestingModule({
+      imports: [Host],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([{ path: 'login', component: Login }]),
+      ],
+    }).compileComponents();
+    router = TestBed.inject(Router);
+  });
+
+  async function arrive(state?: Record<string, unknown>): Promise<HTMLElement> {
+    const fixture = TestBed.createComponent(Host);
+    fixture.detectChanges();
+    await router.navigateByUrl('/login', state ? { state } : undefined);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    return fixture.nativeElement as HTMLElement;
+  }
+
+  const noticeText = (el: HTMLElement) =>
+    el.querySelector('[data-login-notice]')?.textContent?.trim() ?? null;
+
+  it('shows the reset message for the password-reset key', async () => {
+    expect(noticeText(await arrive({ loginNotice: 'password-reset' }))).toBe(
+      'Password reset. Sign in with your new password.',
+    );
+  });
+
+  it('shows the changed message for the password-changed key', async () => {
+    expect(noticeText(await arrive({ loginNotice: 'password-changed' }))).toBe(
+      'Password changed. Sign in with your new password.',
+    );
+  });
+
+  it('ignores unknown keys and free text', async () => {
+    expect(noticeText(await arrive({ loginNotice: 'Your account is hacked' }))).toBeNull();
+  });
+
+  it('shows nothing when there is no navigation state', async () => {
+    expect(noticeText(await arrive())).toBeNull();
+  });
+
+  it('wipes the key from history state so a refresh shows nothing', async () => {
+    await arrive({ loginNotice: 'password-reset' });
+    expect((history.state as Record<string, unknown> | null)?.['loginNotice']).toBeUndefined();
   });
 });

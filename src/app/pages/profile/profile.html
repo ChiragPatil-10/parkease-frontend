@@ -1,0 +1,331 @@
+<div class="min-h-screen bg-surface">
+  @switch (role) {
+    @case (Role.Driver) {
+      <app-driver-nav activeTab="profile" />
+    }
+    @case (Role.Manager) {
+      <app-manager-nav activeTab="profile" />
+    }
+    @case (Role.Admin) {
+      <app-admin-nav activeTab="profile" />
+    }
+  }
+
+  <main class="mx-auto w-full max-w-2xl px-4 py-8 md:px-8">
+    <h1 class="font-display text-2xl font-bold text-ink">Profile</h1>
+
+    @if (loading()) {
+      <p class="mt-6 text-sm text-muted" role="status">Loading your profile…</p>
+    } @else if (loadRateLimited()) {
+      <div class="mt-6" data-rate-limited>
+        <p class="text-sm text-muted" role="status">Couldn't load this right now.</p>
+        <button
+          type="button"
+          data-retry
+          (click)="retryLoad()"
+          class="mt-2 min-h-11 cursor-pointer rounded-lg border border-border bg-card px-5 py-2.5 text-sm text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+        >
+          Retry
+        </button>
+      </div>
+    } @else if (loadError(); as error) {
+      <div
+        role="alert"
+        data-load-error
+        class="mt-6 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-600"
+      >
+        <p>{{ error }}</p>
+        <button
+          type="button"
+          data-retry
+          (click)="retryLoad()"
+          class="mt-2 min-h-11 cursor-pointer rounded-lg border border-border bg-card px-5 py-2.5 text-sm text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+        >
+          Retry
+        </button>
+      </div>
+    } @else if (profile(); as user) {
+      <section
+        aria-labelledby="profile-heading"
+        class="mt-6 rounded-xl border border-border bg-card p-5 md:p-6"
+      >
+        <h2 id="profile-heading" class="font-display text-lg font-bold text-ink">Your details</h2>
+
+        <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+          <div class="min-w-0">
+            <dt class="text-xs font-semibold tracking-wide text-muted">EMAIL</dt>
+            <dd class="mt-1 break-words text-ink" data-email>{{ user.email }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold tracking-wide text-muted">ROLE</dt>
+            <dd class="mt-1 text-ink" data-role>{{ user.role }}</dd>
+          </div>
+        </dl>
+
+        <div
+          #profileStatus
+          tabindex="-1"
+          role="status"
+          aria-live="polite"
+          class="focus:outline-none"
+          data-profile-status
+        >
+          @if (profileRateLimited(); as notice) {
+            <p
+              data-profile-rate-limited
+              class="mt-4 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink"
+            >
+              {{ notice }}
+            </p>
+          }
+          @if (profileError(); as error) {
+            <p
+              data-profile-error
+              class="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600"
+            >
+              {{ error }}
+            </p>
+          }
+        </div>
+
+        <form [formRoot]="profileForm" class="mt-4">
+          <div>
+            <label for="full-name" class="block text-xs font-semibold tracking-wide text-muted"
+              >FULL NAME</label
+            >
+            <input
+              id="full-name"
+              type="text"
+              autocomplete="name"
+              [formField]="profileForm.fullName"
+              [attr.aria-invalid]="
+                (profileForm.fullName().touched() && profileForm.fullName().invalid()) ||
+                fullNameServerError()
+                  ? 'true'
+                  : null
+              "
+              aria-describedby="full-name-error"
+              class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none"
+            />
+            <p id="full-name-error" class="mt-1 text-xs text-red-600" data-full-name-error>
+              @if (profileForm.fullName().touched() && profileForm.fullName().invalid()) {
+                {{ profileForm.fullName().errors()[0]?.message }}
+              } @else if (fullNameServerError(); as message) {
+                {{ message }}
+              }
+            </p>
+          </div>
+
+          <div class="mt-4">
+            <label for="phone" class="block text-xs font-semibold tracking-wide text-muted"
+              >PHONE</label
+            >
+            <input
+              id="phone"
+              type="tel"
+              autocomplete="tel"
+              placeholder="+91 98765 43210"
+              [formField]="profileForm.phone"
+              [attr.aria-invalid]="
+                (profileForm.phone().touched() && profileForm.phone().invalid()) ||
+                phoneServerError()
+                  ? 'true'
+                  : null
+              "
+              aria-describedby="phone-error"
+              class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+            />
+            <p id="phone-error" class="mt-1 text-xs text-red-600" data-phone-error>
+              @if (profileForm.phone().touched() && profileForm.phone().invalid()) {
+                {{ profileForm.phone().errors()[0]?.message }}
+              } @else if (phoneServerError(); as message) {
+                {{ message }}
+              }
+            </p>
+          </div>
+
+          <button
+            type="submit"
+            data-save
+            [disabled]="profileForm().submitting() || unchanged() || profileForm().invalid()"
+            class="mt-4 min-h-11 w-full cursor-pointer rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+          >
+            {{ profileForm().submitting() ? 'Saving…' : 'Save changes' }}
+          </button>
+        </form>
+      </section>
+
+      <section
+        aria-labelledby="password-heading"
+        class="mt-6 rounded-xl border border-border bg-card p-5 md:p-6"
+      >
+        <h2 id="password-heading" class="font-display text-lg font-bold text-ink">
+          Change password
+        </h2>
+        <p class="mt-1 text-sm text-muted">
+          You will be signed out on every device and asked to sign in again.
+        </p>
+
+        <div
+          #passwordStatus
+          tabindex="-1"
+          role="status"
+          aria-live="polite"
+          class="focus:outline-none"
+          data-password-status
+        >
+          @if (passwordRateLimited(); as notice) {
+            <p
+              data-password-rate-limited
+              class="mt-4 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink"
+            >
+              {{ notice }}
+            </p>
+          }
+          @if (passwordError(); as error) {
+            <p
+              data-password-error
+              class="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600"
+            >
+              {{ error }}
+            </p>
+          }
+        </div>
+
+        <form [formRoot]="passwordForm" class="mt-4">
+          <div>
+            <label for="old-password" class="block text-xs font-semibold tracking-wide text-muted"
+              >OLD PASSWORD</label
+            >
+            <div class="relative mt-2">
+              <input
+                id="old-password"
+                [type]="showOld() ? 'text' : 'password'"
+                autocomplete="current-password"
+                [formField]="passwordForm.oldPassword"
+                [attr.aria-invalid]="
+                  (passwordForm.oldPassword().touched() && passwordForm.oldPassword().invalid()) ||
+                  oldPasswordServerError()
+                    ? 'true'
+                    : null
+                "
+                aria-describedby="old-password-error"
+                class="w-full rounded-lg border border-border py-2.5 pl-3 pr-16 text-sm text-ink focus:border-accent focus:outline-none"
+              />
+              <button
+                type="button"
+                data-toggle-old
+                class="absolute inset-y-0 right-0 min-w-11 cursor-pointer px-3 text-xs font-semibold text-link focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                [attr.aria-pressed]="showOld()"
+                aria-controls="old-password"
+                (click)="toggleOld()"
+              >
+                {{ showOld() ? 'Hide' : 'Show' }}
+                <span class="sr-only"> old password</span>
+              </button>
+            </div>
+            <p id="old-password-error" class="mt-1 text-xs text-red-600" data-old-password-error>
+              @if (passwordForm.oldPassword().touched() && passwordForm.oldPassword().invalid()) {
+                {{ passwordForm.oldPassword().errors()[0]?.message }}
+              } @else if (oldPasswordServerError(); as message) {
+                {{ message }}
+              }
+            </p>
+          </div>
+
+          <div class="mt-4">
+            <label for="new-password" class="block text-xs font-semibold tracking-wide text-muted"
+              >NEW PASSWORD</label
+            >
+            <div class="relative mt-2">
+              <input
+                id="new-password"
+                [type]="showNew() ? 'text' : 'password'"
+                autocomplete="new-password"
+                [formField]="passwordForm.newPassword"
+                [attr.aria-invalid]="
+                  (passwordForm.newPassword().touched() && passwordForm.newPassword().invalid()) ||
+                  newPasswordServerError()
+                    ? 'true'
+                    : null
+                "
+                aria-describedby="new-password-hint new-password-error"
+                class="w-full rounded-lg border border-border py-2.5 pl-3 pr-16 text-sm text-ink focus:border-accent focus:outline-none"
+              />
+              <button
+                type="button"
+                data-toggle-new
+                class="absolute inset-y-0 right-0 min-w-11 cursor-pointer px-3 text-xs font-semibold text-link focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                [attr.aria-pressed]="showNew()"
+                aria-controls="new-password"
+                (click)="toggleNew()"
+              >
+                {{ showNew() ? 'Hide' : 'Show' }}
+                <span class="sr-only"> new password</span>
+              </button>
+            </div>
+            <p id="new-password-hint" class="mt-1 text-xs text-muted">{{ passwordHint }}</p>
+            <p id="new-password-error" class="mt-1 text-xs text-red-600" data-new-password-error>
+              @if (passwordForm.newPassword().touched() && passwordForm.newPassword().invalid()) {
+                {{ passwordForm.newPassword().errors()[0]?.message }}
+              } @else if (newPasswordServerError(); as message) {
+                {{ message }}
+              }
+            </p>
+          </div>
+
+          <div class="mt-4">
+            <label
+              for="confirm-password"
+              class="block text-xs font-semibold tracking-wide text-muted"
+              >CONFIRM NEW PASSWORD</label
+            >
+            <div class="relative mt-2">
+              <input
+                id="confirm-password"
+                [type]="showConfirm() ? 'text' : 'password'"
+                autocomplete="new-password"
+                [formField]="passwordForm.confirmPassword"
+                [attr.aria-invalid]="
+                  passwordForm.confirmPassword().touched() &&
+                  passwordForm.confirmPassword().invalid()
+                    ? 'true'
+                    : null
+                "
+                aria-describedby="confirm-password-error"
+                class="w-full rounded-lg border border-border py-2.5 pl-3 pr-16 text-sm text-ink focus:border-accent focus:outline-none"
+              />
+              <button
+                type="button"
+                data-toggle-confirm
+                class="absolute inset-y-0 right-0 min-w-11 cursor-pointer px-3 text-xs font-semibold text-link focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                [attr.aria-pressed]="showConfirm()"
+                aria-controls="confirm-password"
+                (click)="toggleConfirm()"
+              >
+                {{ showConfirm() ? 'Hide' : 'Show' }}
+                <span class="sr-only"> confirm password</span>
+              </button>
+            </div>
+            <p id="confirm-password-error" class="mt-1 text-xs text-red-600" data-confirm-error>
+              @if (
+                passwordForm.confirmPassword().touched() && passwordForm.confirmPassword().invalid()
+              ) {
+                {{ passwordForm.confirmPassword().errors()[0]?.message }}
+              }
+            </p>
+          </div>
+
+          <button
+            type="submit"
+            data-change-password
+            [disabled]="passwordForm().submitting() || passwordForm().invalid()"
+            class="mt-4 min-h-11 w-full cursor-pointer rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+          >
+            {{ passwordForm().submitting() ? 'Changing…' : 'Change password' }}
+          </button>
+        </form>
+      </section>
+    }
+  </main>
+</div>

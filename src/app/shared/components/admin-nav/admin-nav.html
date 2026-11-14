@@ -22,5 +22,15 @@
         </span>
       }
     }
+    <a
+      routerLink="/profile"
+      data-profile
+      class="cursor-pointer max-md:flex max-md:min-h-11 max-md:items-center"
+      [class.font-semibold]="activeTab() === 'profile'"
+      [class.text-ink]="activeTab() === 'profile'"
+      [class.text-muted]="activeTab() !== 'profile'"
+    >
+      Profile
+    </a>
     <button type="button" class="cursor-pointer text-muted max-md:flex max-md:min-h-11 max-md:items-center" (click)="logOut()">Log out</button>
 </app-nav-shell>

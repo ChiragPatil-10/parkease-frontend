@@ -6,4 +6,6 @@ export interface AuthUser {
   email: string;
   role: UserRole;
   profilePicUrl: string | null;
+  /** Absent in sessions stored before the profile page existed. */
+  phone?: string | null;
 }

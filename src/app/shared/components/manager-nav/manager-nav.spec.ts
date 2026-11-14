@@ -27,6 +27,7 @@ describe('ManagerNav', () => {
       '/manager/lots',
       '/manager/spots',
       '/manager/lot-bookings',
+      '/profile',
     ]);
   });
 
@@ -40,5 +41,14 @@ describe('ManagerNav', () => {
     expect(active?.classList.contains('text-ink')).toBe(true);
     expect(inactive?.classList.contains('font-semibold')).toBe(false);
     expect(inactive?.classList.contains('text-muted')).toBe(true);
+  });
+
+  it('puts Profile just before Log out and highlights it only on the profile tab', () => {
+    const el = create('profile').nativeElement as HTMLElement;
+    const items = Array.from(el.querySelectorAll('nav > *'));
+    expect(items[items.length - 2].textContent?.trim()).toBe('Profile');
+    expect(items[items.length - 1].textContent?.trim()).toBe('Log out');
+    expect(items[items.length - 2].classList.contains('font-semibold')).toBe(true);
+    expect(items[0].classList.contains('font-semibold')).toBe(false);
   });
 });

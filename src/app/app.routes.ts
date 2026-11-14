@@ -109,6 +109,21 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/admin-all-lots/admin-all-lots').then((m) => m.AdminAllLots),
     canActivate: [authGuard, roleGuard(UserRole.Admin)],
   },
+  {
+    path: 'forgot-password',
+    loadComponent: () =>
+      import('./pages/forgot-password/forgot-password').then((m) => m.ForgotPassword),
+  },
+  {
+    path: 'reset-password',
+    loadComponent: () =>
+      import('./pages/reset-password/reset-password').then((m) => m.ResetPassword),
+  },
+  {
+    path: 'profile',
+    loadComponent: () => import('./pages/profile/profile').then((m) => m.Profile),
+    canActivate: [authGuard],
+  },
   { path: '403', component: Forbidden },
   // Must stay the last route: anything not matched above is a 404.
   {

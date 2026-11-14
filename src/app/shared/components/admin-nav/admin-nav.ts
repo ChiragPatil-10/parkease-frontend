@@ -3,7 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { NavShell } from '../nav-shell/nav-shell';
 import { AuthService } from '../../../services/auth.service';
 
-export type AdminNavTab = 'users' | 'manager-applications' | 'lot-approvals' | 'all-lots';
+export type AdminNavTab = 'users' | 'manager-applications' | 'lot-approvals' | 'all-lots' | 'profile';
 
 interface AdminNavItem {
   tab: AdminNavTab;

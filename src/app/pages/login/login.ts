@@ -6,6 +6,7 @@ import { FormField, FormRoot, email, form, required } from '@angular/forms/signa
 import { AuthService } from '../../services/auth.service';
 import { ApiResponse } from '../../models/api-response.model';
 import { AuthResponse } from '../../models/auth/auth.model';
+import { LOGIN_NOTICES, LOGIN_NOTICE_STATE, isLoginNoticeKey } from '../../shared/login-notice';
 
 @Component({
   selector: 'app-login',
@@ -18,10 +19,14 @@ export class Login {
   private readonly router = inject(Router);
 
   protected readonly serverError = signal<string | null>(null);
-  /** Reveals the "not available yet" note under the Forgot password button. */
-  protected readonly forgotShown = signal(false);
+  /** One-time message after arriving from reset or change password. Null on a normal visit or a refresh. */
+  protected readonly notice = signal<string | null>(null);
 
   private readonly credentials = signal({ email: '', password: '' });
+
+  constructor() {
+    this.readNotice();
+  }
 
   protected readonly loginForm = form(
     this.credentials,
@@ -51,6 +56,24 @@ export class Login {
       },
     },
   );
+
+  /** Reads the notice key from the navigation state once, then wipes it from history so a refresh shows nothing. */
+  private readNotice(): void {
+    const state = this.router.currentNavigation()?.extras.state as Record<string, unknown> | undefined;
+    const key = state?.[LOGIN_NOTICE_STATE];
+    if (isLoginNoticeKey(key)) {
+      this.notice.set(LOGIN_NOTICES[key]);
+    }
+    try {
+      const current = history.state as Record<string, unknown> | null;
+      if (current && LOGIN_NOTICE_STATE in current) {
+        const { [LOGIN_NOTICE_STATE]: _removed, ...rest } = current;
+        history.replaceState(rest, '');
+      }
+    } catch {
+      // History may be unavailable; the notice was already read.
+    }
+  }
 
   private handleSuccess(auth: AuthResponse): void {
     this.authService.saveSession(auth);
