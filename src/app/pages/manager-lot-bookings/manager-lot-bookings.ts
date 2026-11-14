@@ -5,7 +5,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { LOT_BOOKINGS_PAGE_SIZE } from '../../constants/booking.constants';
-import { BookingStatus, ManagerLotBooking } from '../../models/booking.model';
+import { BookingStatus, CancelReason, ManagerLotBooking } from '../../models/booking.model';
 import { LotResponse } from '../../models/lot.model';
 import { AuthService } from '../../services/auth.service';
 import { BookingService } from '../../services/booking.service';
@@ -54,6 +54,15 @@ const DOT_CLASS: Record<string, string> = {
   NoShow: 'bg-muted',
 };
 
+/** Short reason text for a Cancelled booking; null for any other status or an unknown or missing reason. */
+const REASON_TEXT: Record<CancelReason, string | null> = {
+  DriverCancelled: 'Driver cancelled',
+  PaymentTimeout: 'Payment timed out',
+  PaymentFailed: 'Payment failed',
+  SpotUnavailable: 'Spot unavailable',
+  Other: null,
+};
+
 export interface LotBookingRowView {
   id: string;
   spot: string | null;
@@ -61,6 +70,8 @@ export interface LotBookingRowView {
   startTime: string;
   amount: string;
   statusLabel: string;
+  /** Why a Cancelled booking was cancelled; null for other statuses. */
+  reason: string | null;
   dotClass: string;
 }
 
@@ -75,6 +86,10 @@ export function lotBookingRowView(
     startTime: formatBookingTime(booking.startTime, now),
     amount: formatAmount(booking.totalAmount),
     statusLabel: bookingStatusLabel(booking.status as BookingStatus),
+    reason:
+      booking.status === 'Cancelled' && booking.cancelReason
+        ? (REASON_TEXT[booking.cancelReason] ?? null)
+        : null,
     dotClass: DOT_CLASS[booking.status] ?? 'bg-muted',
   };
 }

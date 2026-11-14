@@ -393,6 +393,26 @@ describe('DriverLots', () => {
       expect(text).toContain('4 available');
     });
 
+    it('labels closed lots as Closed, keeps them in the list and leaves open ones unlabelled', async () => {
+      const { fixture, c } = await startDenied();
+      c.cityInput.set('Bengaluru');
+
+      const done = c.search();
+      httpMock
+        .expectOne((r) => r.url === SEARCH_URL)
+        .flush(paged([CITY_LOT, { ...CITY_LOT, lotId: 'lot-3', name: 'Night Garage', isOpen: false }], 2));
+      await done;
+      fixture.detectChanges();
+
+      const el = fixture.nativeElement as HTMLElement;
+      const cards = Array.from(el.querySelectorAll('[data-city-lot]'));
+      expect(cards).toHaveLength(2);
+      expect(cards[0].querySelector('[data-closed]')).toBeNull();
+      expect(cards[0].textContent).toContain('4 available');
+      expect(cards[1].querySelector('[data-closed]')?.textContent?.trim()).toBe('Closed');
+      expect(cards[1].textContent).not.toContain('available');
+    });
+
     it('shows an empty state when no lots are found', async () => {
       const { fixture, c } = await startDenied();
       c.cityInput.set('Nowhere');

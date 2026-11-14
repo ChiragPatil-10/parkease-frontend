@@ -147,6 +147,19 @@ describe('DriverMyBookings', () => {
       expect(el.querySelector('h1')?.textContent?.trim()).toBe('My bookings');
     });
 
+    it('shows the formatted amount on every row', async () => {
+      respondWith(
+        booking('1', 'Confirmed'),
+        booking('2', 'Pending', { totalAmount: 62.5 }),
+        booking('3', 'Cancelled', { totalAmount: 0 }),
+      );
+      await setup();
+      const amount = (id: string) => row(id).querySelector('[data-amount]')?.textContent?.trim();
+      expect(amount('1')).toBe('₹120');
+      expect(amount('2')).toBe('₹62.50');
+      expect(amount('3')).toBe('₹0');
+    });
+
     it('keeps the order the server sent', async () => {
       respondWith(booking('b', 'Confirmed'), booking('a', 'Completed'), booking('c', 'Pending'));
       await setup();
@@ -283,14 +296,14 @@ describe('DriverMyBookings', () => {
       expect(rows().length).toBe(1);
       expect(text(row('1'))).toContain('Booking');
       expect(row('1').querySelector('.font-mono')?.textContent?.trim()).toBe('?');
-      expect(row('1').querySelectorAll('.font-mono').length).toBe(1);
+      expect(row('1').querySelectorAll('.font-mono:not([data-amount])').length).toBe(1);
       expect(labels(row('1'))).toEqual(['View receipt']);
     });
 
     it('has a plate-less row when the vehicle is not in /vehicles/my', async () => {
       respondWith(old('1', { vehicleId: 'unknown' }));
       await setup();
-      expect(row('1').querySelectorAll('.font-mono').length).toBe(1);
+      expect(row('1').querySelectorAll('.font-mono:not([data-amount])').length).toBe(1);
     });
 
     it('runs at most 4 lookups at once and starts the next as one finishes', async () => {

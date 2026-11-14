@@ -12,12 +12,13 @@ import {
   viewChild,
 } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Subscription, catchError, forkJoin, map, of } from 'rxjs';
+import { Subscription, catchError, firstValueFrom, forkJoin, map, of } from 'rxjs';
 import { BookingResponse } from '../../models/booking.model';
-import { PaymentResponse } from '../../models/payment.model';
+import { PaymentResponse, VerifyPaymentRequest } from '../../models/payment.model';
 import { AuthService } from '../../services/auth.service';
 import { BookingService } from '../../services/booking.service';
 import { ParkingLotService } from '../../services/parkinglot.service';
+import { PaymentCheckoutService } from '../../services/payment-checkout.service';
 import { PaymentService } from '../../services/payment.service';
 import { SpotService } from '../../services/spot.service';
 import { VehicleService } from '../../services/vehicle.service';
@@ -30,12 +31,15 @@ import {
   cancelledLabel,
   formatAmount,
   formatBookingTime,
+  formatCountdown,
   paymentCardView,
+  paymentDeadlineMs,
 } from './booking-detail-format';
 import { CancelBookingDialog } from './cancel-booking-dialog/cancel-booking-dialog';
 
 type LoadState = 'loading' | 'ready' | 'not-found' | 'load-error' | 'rate-limited';
 type Phase = 'idle' | 'checking-out' | 'cancelling';
+type PayPhase = 'idle' | 'preparing' | 'confirming';
 type PaymentState =
   | { kind: 'loading' }
   | { kind: 'none' }
@@ -67,6 +71,15 @@ const CANCEL_REASON = 'Cancelled by driver';
 const FALLBACK_TITLE = 'Your booking';
 const NOT_AVAILABLE = 'Not available';
 const GENERIC_ERROR = 'Something went wrong. Please try again.';
+const COUNTDOWN_TICK_MS = 1000;
+const PAY_NOT_READY = 'Payment is not ready yet. Please try again in a moment.';
+const PAY_CLOSED = 'This payment can no longer be completed. Cancel this booking and book again.';
+const PAY_FAILED = 'The payment did not go through. You can try again.';
+const PAY_UNCONFIRMED =
+  'We could not confirm your payment yet. If money was taken it will show on this booking shortly.';
+const PAY_REJECTED = 'We could not verify this payment. Please try again.';
+const PAY_CANCELLED = 'This booking was cancelled before the payment finished.';
+const CANCELLED_MESSAGE = /cancel/i;
 
 function isHttpStatus(err: unknown, ...statuses: number[]): boolean {
   return err instanceof HttpErrorResponse && statuses.includes(err.status);
@@ -95,6 +108,7 @@ export class DriverBookingDetail implements OnInit {
   private readonly spotService = inject(SpotService);
   private readonly vehicleService = inject(VehicleService);
   private readonly paymentService = inject(PaymentService);
+  private readonly checkout = inject(PaymentCheckoutService);
   private readonly injector = inject(Injector);
 
   private readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
@@ -116,6 +130,11 @@ export class DriverBookingDetail implements OnInit {
   protected readonly dialogError = signal<string | null>(null);
   protected readonly dialogOpener = signal<HTMLElement | null>(null);
   protected readonly announcement = signal('');
+  protected readonly payPhase = signal<PayPhase>('idle');
+  /** Ticks every second while the booking is Pending so the countdown stays current. */
+  private readonly nowMs = signal(Date.now());
+  private countdownTimer: ReturnType<typeof setInterval> | null = null;
+  private destroyed = false;
 
   protected bookingId = '';
 
@@ -130,9 +149,34 @@ export class DriverBookingDetail implements OnInit {
   protected readonly status = computed(() => this.booking()?.status ?? null);
 
   /** Which action buttons the current status allows; none while an action is being processed. */
+  /** Pending bookings get the waiting card once the payment lookup has finished. */
+  protected readonly awaitingPayment = computed(() => {
+    const payment = this.paymentState();
+    const paid = payment.kind === 'ready' && holdsMoney(payment.payment);
+    return this.status() === 'Pending' && this.lookupsDone() && !paid;
+  });
+
+  /** Milliseconds left to pay, or null when no deadline is known. Never negative. */
+  protected readonly timeLeftMs = computed(() => {
+    const booking = this.booking();
+    if (!booking || booking.status !== 'Pending') return null;
+    const deadline = paymentDeadlineMs(booking.paymentDueAt, booking.createdAt);
+    return deadline === null ? null : Math.max(0, deadline - this.nowMs());
+  });
+
+  protected readonly countdownText = computed(() => {
+    const left = this.timeLeftMs();
+    if (left === null) return null;
+    return left === 0 ? 'Payment time is up' : `Time left to pay: ${formatCountdown(left)}`;
+  });
+
+  protected readonly timeUp = computed(() => this.timeLeftMs() === 0);
+
   protected readonly actions = computed(() => {
     if (this.phase() !== 'idle') return 'none';
     switch (this.status()) {
+      case 'Pending':
+        return this.awaitingPayment() ? 'pending' : 'none';
       case 'Confirmed':
         return 'confirmed';
       case 'CheckedIn':
@@ -294,6 +338,7 @@ export class DriverBookingDetail implements OnInit {
 
   protected confirmCancel(): void {
     if (this.acting()) return;
+    const from = this.booking()?.status ?? 'Confirmed';
     this.acting.set(true);
     this.dialogError.set(null);
     this.track(
@@ -303,7 +348,7 @@ export class DriverBookingDetail implements OnInit {
           this.dialogOpen.set(false);
           this.phase.set('cancelling');
           this.announcement.set('Cancellation in progress.');
-          this.startPolling('Confirmed');
+          this.startPolling(from);
         },
         error: (err: unknown) => {
           this.acting.set(false);
@@ -314,13 +359,11 @@ export class DriverBookingDetail implements OnInit {
   }
 
   private onLoaded(booking: BookingResponse): void {
-    if (booking.status === 'Pending') {
-      // Page 16 owns the waiting screen and never redirects back here.
-      void this.router.navigate(['/bookings', this.bookingId, 'payment'], { replaceUrl: true });
-      return;
-    }
     this.booking.set(booking);
     this.loadState.set('ready');
+    if (booking.status === 'Pending') {
+      this.startCountdown();
+    }
     this.loadLookups(booking);
   }
 
@@ -380,8 +423,116 @@ export class DriverBookingDetail implements OnInit {
         this.paymentState.set(payment);
         this.lookupsDone.set(true);
         this.maybeCatchUpRefund();
+        this.redirectIfPaid(payment);
       }),
     );
+  }
+
+  /** Pay reopens the same Razorpay checkout the review page uses, on the order that already exists. */
+  protected async pay(): Promise<void> {
+    if (this.payPhase() !== 'idle' || this.acting() || this.status() !== 'Pending') return;
+    this.payPhase.set('preparing');
+    this.banner.set(null);
+    try {
+      const payment = (
+        await firstValueFrom(this.paymentService.getPaymentByBooking(this.bookingId))
+      ).data;
+      if (this.destroyed) return;
+      if (payment && holdsMoney(payment)) {
+        this.payPhase.set('idle');
+        this.goToPaymentPage();
+        return;
+      }
+      if (!payment || (payment.status === 'Created' && !payment.gatewayOrderId)) {
+        this.endPay(PAY_NOT_READY);
+        return;
+      }
+      if (payment.status !== 'Created') {
+        this.paymentState.set({ kind: 'ready', payment });
+        this.endPay(PAY_CLOSED);
+        return;
+      }
+      const keyId = this.checkout.resolveKey(payment.razorpayKeyId);
+      if (!keyId) {
+        this.endPay(PAY_NOT_READY);
+        return;
+      }
+      await this.checkout.openCheckout({
+        bookingId: this.bookingId,
+        orderId: payment.gatewayOrderId,
+        keyId,
+        isActive: () => !this.destroyed,
+        onPaid: (request) => void this.verifyPaid(request),
+        onDismissed: () => this.endPay(null),
+        onFailed: () => this.endPay(PAY_FAILED),
+      });
+    } catch (err) {
+      this.endPay(isHttpStatus(err, 404) ? PAY_NOT_READY : this.payError(err));
+    }
+  }
+
+  private async verifyPaid(request: VerifyPaymentRequest): Promise<void> {
+    this.payPhase.set('confirming');
+    try {
+      const verified = await this.checkout.verify(request, () => !this.destroyed);
+      if (!verified) return;
+      this.payPhase.set('idle');
+      this.goToPaymentPage();
+    } catch (err) {
+      if (isHttpStatus(err, 401)) {
+        this.endPay(this.payError(err));
+      } else if (isHttpStatus(err, 409)) {
+        const message = serverMessage(err);
+        this.endPay(CANCELLED_MESSAGE.test(message) ? PAY_CANCELLED : message || PAY_UNCONFIRMED);
+      } else if (isHttpStatus(err, 400, 403, 422)) {
+        this.endPay(PAY_REJECTED);
+      } else if (isHttpStatus(err, 429)) {
+        this.endPay(null);
+      } else {
+        this.endPay(PAY_UNCONFIRMED);
+      }
+    }
+  }
+
+  private endPay(message: string | null): void {
+    this.payPhase.set('idle');
+    if (message) {
+      this.banner.set(message);
+    }
+  }
+
+  private payError(err: unknown): string | null {
+    if (isHttpStatus(err, 429)) return null;
+    if (isHttpStatus(err, 401)) {
+      this.authService.clearSession();
+      void this.router.navigateByUrl('/login');
+      return null;
+    }
+    return isNetworkError(err) ? NETWORK_ERROR_MESSAGE : GENERIC_ERROR;
+  }
+
+  private goToPaymentPage(): void {
+    void this.router.navigate(['/bookings', this.bookingId, 'payment'], { replaceUrl: true });
+  }
+
+  /** A Pending booking whose payment was really taken belongs on the "confirming" screen. */
+  private redirectIfPaid(payment: PaymentState): void {
+    if (this.status() === 'Pending' && payment.kind === 'ready' && holdsMoney(payment.payment)) {
+      this.goToPaymentPage();
+    }
+  }
+
+  private startCountdown(): void {
+    this.stopCountdown();
+    this.nowMs.set(Date.now());
+    this.countdownTimer = setInterval(() => this.nowMs.set(Date.now()), COUNTDOWN_TICK_MS);
+  }
+
+  private stopCountdown(): void {
+    if (this.countdownTimer !== null) {
+      clearInterval(this.countdownTimer);
+      this.countdownTimer = null;
+    }
   }
 
   /**
@@ -451,6 +602,9 @@ export class DriverBookingDetail implements OnInit {
 
   private onPollSettled(booking: BookingResponse): void {
     this.booking.set(booking);
+    if (booking.status !== 'Pending') {
+      this.stopCountdown();
+    }
     this.phase.set('idle');
     if (booking.status === 'Completed') {
       this.announcement.set('Booking completed.');
@@ -507,6 +661,8 @@ export class DriverBookingDetail implements OnInit {
   }
 
   private stopAll(): void {
+    this.destroyed = true;
+    this.stopCountdown();
     this.clearPollTimer();
     if (this.refundTimer !== null) {
       clearTimeout(this.refundTimer);

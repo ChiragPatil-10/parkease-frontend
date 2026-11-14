@@ -6,6 +6,16 @@ import { vi } from 'vitest';
 import { DriverBookingDetail } from './driver-booking-detail';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
+import { RazorpayCheckoutOptions, RazorpayLoader } from '../../services/razorpay-loader.service';
+
+class FakeCheckout {
+  static instances: FakeCheckout[] = [];
+  constructor(readonly options: RazorpayCheckoutOptions) {
+    FakeCheckout.instances.push(this);
+  }
+  open = vi.fn();
+  on = vi.fn();
+}
 
 const NOW = new Date('2026-10-24T10:00:00Z');
 
@@ -58,6 +68,7 @@ describe('DriverBookingDetail', () => {
   let checkInResult: () => Observable<unknown>;
   let checkOutResult: () => Observable<unknown>;
   let cancelResult: () => Observable<unknown>;
+  let verifyResult: () => Observable<unknown>;
   let gets: string[];
   let posts: { path: string; body: unknown }[];
 
@@ -91,6 +102,7 @@ describe('DriverBookingDetail', () => {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: convertToParamMap({ bookingId }) } },
         },
+        { provide: RazorpayLoader, useValue: { keyId: 'rzp_env_key', load: () => Promise.resolve(FakeCheckout) } },
         {
           provide: ApiService,
           useValue: {
@@ -107,6 +119,7 @@ describe('DriverBookingDetail', () => {
               posts.push({ path, body });
               if (path.endsWith('/checkin')) return checkInResult();
               if (path.endsWith('/checkout')) return checkOutResult();
+              if (path === '/api/payments/verify') return verifyResult();
               return cancelResult();
             },
           },
@@ -137,6 +150,8 @@ describe('DriverBookingDetail', () => {
     checkInResult = () => of(envelope(booking('CheckedIn')));
     checkOutResult = () => of(envelope(booking('CheckedIn')));
     cancelResult = () => of(envelope(booking('Confirmed')));
+    verifyResult = () => of(envelope(payment('Captured')));
+    FakeCheckout.instances = [];
   });
 
   afterEach(() => {
@@ -254,14 +269,167 @@ describe('DriverBookingDetail', () => {
   });
 
   describe('Pending', () => {
-    it('redirects to the payment page with replaceUrl and renders nothing', async () => {
-      bookingResult = () => of(envelope(booking('Pending')));
+    const pendingBooking = (extra: Record<string, unknown> = {}) =>
+      booking('Pending', { paymentDueAt: '2026-10-24T10:10:00Z', createdAt: NOW.toISOString(), ...extra });
+    const dueRow = () => el.querySelector('[data-waiting-payment]');
+
+    beforeEach(() => {
+      bookingResult = () => of(envelope(pendingBooking()));
+      paymentResult = () => of(envelope(payment('Created', { failureReason: null })));
+    });
+
+    it('shows the waiting state with a countdown, Pay and Cancel, and never claims success', async () => {
+      await setup();
+      expect(router.navigate).not.toHaveBeenCalled();
+      expect(dueRow()?.textContent).toContain('Waiting for payment');
+      expect(el.querySelector('[data-countdown]')?.textContent?.trim()).toBe('Time left to pay: 10:00');
+      expect(buttonLabels()).toEqual(['Pay now', 'Cancel booking']);
+      expect(text()).not.toContain('Payment successful');
+    });
+
+    it('counts down every second and shows "Payment time is up" at the deadline', async () => {
+      await setup();
+      await flush(65_000);
+      expect(el.querySelector('[data-countdown]')?.textContent?.trim()).toBe('Time left to pay: 8:55');
+
+      await flush(9 * 60_000);
+      expect(el.querySelector('[data-countdown]')?.textContent?.trim()).toBe('Payment time is up');
+      expect((el.querySelector('[data-pay]') as HTMLButtonElement).disabled).toBe(true);
+      expect(find('button', 'Cancel booking')).toBeTruthy();
+    });
+
+    it('falls back to created time plus 15 minutes when paymentDueAt is missing', async () => {
+      bookingResult = () => of(envelope(pendingBooking({ paymentDueAt: null })));
+      await setup();
+      expect(el.querySelector('[data-countdown]')?.textContent?.trim()).toBe('Time left to pay: 15:00');
+    });
+
+    it('goes to the confirming page, with no waiting state, when the payment is really Captured', async () => {
+      paymentResult = () => of(envelope(payment('Captured')));
       await setup();
       expect(router.navigate).toHaveBeenCalledWith(['/bookings', 'bk-1', 'payment'], {
         replaceUrl: true,
       });
-      expect(el.querySelector('h2')).toBeNull();
-      expect(count('/api/v1/lots/lot-1')).toBe(0);
+      expect(buttonLabels()).not.toContain('Pay now');
+    });
+
+    it.each(['Confirmed', 'CheckedIn', 'Completed', 'Cancelled'])(
+      '%s bookings show no Pay button and no waiting card',
+      async (status) => {
+        bookingResult = () => of(envelope(booking(status)));
+        paymentResult = () => of(envelope(payment('Captured')));
+        await setup();
+        expect(el.querySelector('[data-pay]')).toBeNull();
+        expect(dueRow()).toBeNull();
+        expect(text()).not.toContain('Waiting for payment');
+      },
+    );
+
+    it('Pay re-reads the payment and opens Razorpay on the existing order, with the public key only', async () => {
+      await setup();
+      (el.querySelector('[data-pay]') as HTMLButtonElement).click();
+      await flush();
+
+      expect(FakeCheckout.instances).toHaveLength(1);
+      const options = FakeCheckout.instances[0].options;
+      expect(options.order_id).toBe('order_Nk3xR9Qp');
+      expect(options.key).toBe('rzp_test_secret');
+      expect(options.notes).toEqual({ bookingId: 'bk-1' });
+      expect(FakeCheckout.instances[0].open).toHaveBeenCalled();
+      expect(count('/api/payments/booking/bk-1')).toBe(2);
+    });
+
+    it('falls back to the environment key id when the payment has none', async () => {
+      paymentResult = () => of(envelope(payment('Created', { razorpayKeyId: null })));
+      await setup();
+      (el.querySelector('[data-pay]') as HTMLButtonElement).click();
+      await flush();
+      expect(FakeCheckout.instances[0].options.key).toBe('rzp_env_key');
+    });
+
+    it('verifies after Razorpay succeeds and then opens the confirming page', async () => {
+      await setup();
+      (el.querySelector('[data-pay]') as HTMLButtonElement).click();
+      await flush();
+      FakeCheckout.instances[0].options.handler({
+        razorpay_payment_id: 'pay_abc',
+        razorpay_order_id: 'order_Nk3xR9Qp',
+        razorpay_signature: 'sig',
+      });
+      await flush();
+
+      expect(posts).toEqual([
+        {
+          path: '/api/payments/verify',
+          body: {
+            bookingId: 'bk-1',
+            razorpayPaymentId: 'pay_abc',
+            razorpayOrderId: 'order_Nk3xR9Qp',
+            razorpaySignature: 'sig',
+          },
+        },
+      ]);
+      expect(router.navigate).toHaveBeenCalledWith(['/bookings', 'bk-1', 'payment'], {
+        replaceUrl: true,
+      });
+    });
+
+    it('closing the Razorpay window just re-enables Pay without an error', async () => {
+      await setup();
+      (el.querySelector('[data-pay]') as HTMLButtonElement).click();
+      await flush();
+      FakeCheckout.instances[0].options.modal.ondismiss();
+      await flush();
+      expect(el.querySelector('[role="alert"]')).toBeNull();
+      expect((el.querySelector('[data-pay]') as HTMLButtonElement).disabled).toBe(false);
+    });
+
+    it('shows a message and does not open Razorpay when the order is not ready (404)', async () => {
+      await setup();
+      paymentResult = () => httpError(404);
+      (el.querySelector('[data-pay]') as HTMLButtonElement).click();
+      await flush();
+      expect(FakeCheckout.instances).toHaveLength(0);
+      expect(el.querySelector('[role="alert"]')?.textContent).toContain('not ready yet');
+    });
+
+    it('shows a message when the payment can no longer be completed', async () => {
+      await setup();
+      paymentResult = () => of(envelope(payment('Failed', { gatewayOrderId: '' })));
+      (el.querySelector('[data-pay]') as HTMLButtonElement).click();
+      await flush();
+      expect(FakeCheckout.instances).toHaveLength(0);
+      expect(el.querySelector('[role="alert"]')?.textContent).toContain('can no longer be completed');
+    });
+
+    it('Cancel asks first, and keeping the booking sends nothing', async () => {
+      await setup();
+      (find('button', 'Cancel booking') as HTMLButtonElement).click();
+      await flush();
+      expect(dialog()?.textContent).toContain('This booking will be cancelled.');
+
+      (find('button', 'Keep booking') as HTMLButtonElement).click();
+      await flush();
+      expect(dialog()).toBeNull();
+      expect(posts).toEqual([]);
+    });
+
+    it('confirming Cancel posts the cancel request and waits for Cancelled', async () => {
+      cancelResult = () => of(envelope(pendingBooking()));
+      await setup();
+      (find('button', 'Cancel booking') as HTMLButtonElement).click();
+      await flush();
+      (find('button', 'Yes, cancel booking') as HTMLButtonElement).click();
+      await flush();
+      expect(posts).toEqual([
+        { path: '/api/bookings/bk-1/cancel', body: { reason: 'Cancelled by driver' } },
+      ]);
+      expect(text()).toContain('Cancelling...');
+
+      bookingResult = () => of(envelope(booking('Cancelled', { cancelReason: 'DriverCancelled' })));
+      await flush(2000);
+      expect(buttonLabels()).toEqual(['Book again']);
+      expect(el.querySelector('[data-pay]')).toBeNull();
     });
   });
 

@@ -18,9 +18,28 @@ export function formatPlate(plate: string): string {
   return match ? match.slice(1).join(' ') : plate;
 }
 
-/** The backend only trims and uppercases, so spaces and dashes are removed here. */
+/** Same text as the backend's PlateNumberFormat.InvalidMessage; it is used for every bad plate. */
+export const PLATE_INVALID_MESSAGE = 'Enter a valid vehicle number, for example KA05AB1234.';
+
+/** The backend rejects a raw plate longer than this (before spaces and dashes are removed). */
+export const PLATE_MAX_LENGTH = 20;
+
+/** Same patterns as the backend: standard (KA05PE3601, DL1CAB1234) and BH series (22BH1234AB). */
+const BACKEND_STANDARD_PLATE = /^[A-Z]{2}[0-9]{1,2}[A-Z]{0,3}[0-9]{4}$/;
+const BACKEND_BH_PLATE = /^[0-9]{2}BH[0-9]{4}[A-Z]{1,2}$/;
+
+/** Spaces and dashes are ignored and letters uppercased, matching the backend's normalisation. */
 export function normalizePlate(plate: string): string {
   return plate.replace(/[\s-]/g, '').toUpperCase();
+}
+
+/** True when the plate, once normalised, matches the standard or BH pattern the backend accepts. */
+export function isValidPlate(raw: string): boolean {
+  if (raw.length > PLATE_MAX_LENGTH) {
+    return false;
+  }
+  const plate = normalizePlate(raw);
+  return BACKEND_STANDARD_PLATE.test(plate) || BACKEND_BH_PLATE.test(plate);
 }
 
 export function vehicleName(vehicle: VehicleResponse): string {

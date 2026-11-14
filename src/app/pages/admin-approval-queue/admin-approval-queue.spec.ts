@@ -225,6 +225,88 @@ describe('AdminApprovalQueue', () => {
       await Promise.resolve();
     });
 
+    describe('rejecting an application', () => {
+      async function openApplications() {
+        const { fixture, component } = createFixture();
+        fixture.detectChanges();
+        flushInitialApplications();
+        await Promise.resolve();
+        fixture.detectChanges();
+        return { fixture, component, el: fixture.nativeElement as HTMLElement };
+      }
+      const rejectApp = (el: HTMLElement) =>
+        el.querySelector<HTMLButtonElement>('[data-reject-application]')!;
+      const dialogButton = (el: HTMLElement, label: string) =>
+        Array.from(el.querySelectorAll<HTMLButtonElement>('app-confirm-dialog button')).find(
+          (b) => b.textContent?.trim() === label,
+        )!;
+
+      it('asks for confirmation first and sends nothing when the dialog is cancelled', async () => {
+        const { fixture, el } = await openApplications();
+
+        rejectApp(el).click();
+        fixture.detectChanges();
+        const dialog = el.querySelector('app-confirm-dialog')!;
+        expect(dialog.querySelector('h2')?.textContent?.trim()).toBe('Reject this application?');
+        expect(dialog.textContent).toContain('The applicant will get an email.');
+        httpMock.expectNone(rejectManagerUrl('app-1'));
+
+        dialogButton(el, 'Cancel').click();
+        fixture.detectChanges();
+        expect(el.querySelector('app-confirm-dialog')).toBeNull();
+        httpMock.expectNone(rejectManagerUrl('app-1'));
+      });
+
+      it('sends the trimmed feedback as { feedback } after confirming', async () => {
+        const { fixture, component, el } = await openApplications();
+        component.updateApplicationFeedback('app-1', '  Documents missing.  ');
+        fixture.detectChanges();
+
+        rejectApp(el).click();
+        fixture.detectChanges();
+        dialogButton(el, 'Reject').click();
+
+        const req = httpMock.expectOne(rejectManagerUrl('app-1'));
+        expect(req.request.method).toBe('PUT');
+        expect(req.request.body).toEqual({ feedback: 'Documents missing.' });
+        req.flush(envelope({}));
+        await fixture.whenStable();
+
+        expect(component.successMessage()).toBe('Application rejected.');
+        flushInitialApplications([]);
+        await Promise.resolve();
+      });
+
+      it('sends {} when the feedback is empty or only spaces', async () => {
+        const { fixture, component, el } = await openApplications();
+        component.updateApplicationFeedback('app-1', '    ');
+
+        rejectApp(el).click();
+        fixture.detectChanges();
+        dialogButton(el, 'Reject').click();
+
+        const req = httpMock.expectOne(rejectManagerUrl('app-1'));
+        expect(req.request.body).toEqual({});
+        req.flush(envelope({}));
+        await fixture.whenStable();
+        flushInitialApplications([]);
+        await Promise.resolve();
+      });
+
+      it('limits the textarea to 500 characters and shows a live counter', async () => {
+        const { fixture, component, el } = await openApplications();
+        const textarea = el.querySelector<HTMLTextAreaElement>('textarea')!;
+        expect(textarea.getAttribute('maxlength')).toBe('500');
+        expect(textarea.id).toBe('app-feedback-app-1');
+        expect(el.querySelector('label[for="app-feedback-app-1"]')).toBeTruthy();
+        expect(el.querySelector('[data-application-counter]')?.textContent?.trim()).toBe('0/500');
+
+        component.updateApplicationFeedback('app-1', 'abc');
+        fixture.detectChanges();
+        expect(el.querySelector('[data-application-counter]')?.textContent?.trim()).toBe('3/500');
+      });
+    });
+
     it('clears the session and redirects to /login on a 401', async () => {
       const { fixture, component } = createFixture();
       fixture.detectChanges();

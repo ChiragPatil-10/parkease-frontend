@@ -46,6 +46,11 @@ export class ParkingLotService {
     return this.api.put<LotResponse>(PARKINGLOT_API.reject(lotId), body);
   }
 
+  /** Flips isOpen and returns the updated lot. No body is needed; 409 for a lot that is not approved. */
+  toggleOpen(lotId: string): Observable<ApiResponse<LotResponse>> {
+    return this.api.put<LotResponse>(PARKINGLOT_API.toggleOpen(lotId), {});
+  }
+
   getNearbyLots(
     latitude: number,
     longitude: number,

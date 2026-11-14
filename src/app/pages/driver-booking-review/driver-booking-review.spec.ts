@@ -11,6 +11,7 @@ import {
   parseHours,
   toBookingStartTime,
 } from './booking-review-format';
+import { formatStartTime } from '../driver-lot-detail/driver-lot-detail';
 import { ApiService } from '../../services/api.service';
 import {
   RazorpayCheckoutOptions,
@@ -372,6 +373,45 @@ describe('DriverBookingReview', () => {
         totalAmount: 120,
       });
       expect((body as { idempotencyKey: string }).idempotencyKey).toMatch(/^[0-9a-f-]{36}$/);
+    });
+
+    describe('start time label', () => {
+      const startValue = () => el.querySelectorAll('dd')[3].textContent?.trim();
+
+      it('recomputes after a quarter hour boundary passes', async () => {
+        await create();
+        expect(startValue()).toBe(formatStartTime(new Date('2026-10-24T10:07:00Z')));
+
+        await flush(10 * 60_000);
+
+        expect(startValue()).toBe(formatStartTime(new Date('2026-10-24T10:17:00Z')));
+        expect(startValue()).not.toBe(formatStartTime(new Date('2026-10-24T10:07:00Z')));
+      });
+
+      it('sends the same start time that the label shows at the moment of Pay', async () => {
+        await create();
+        vi.setSystemTime(new Date('2026-10-24T10:16:00Z'));
+        await clickPay();
+
+        const [body] = createBodies() as { startTime: string }[];
+        expect(body.startTime).toBe('2026-10-24T10:30:00Z');
+        expect(startValue()).toBe(formatStartTime(new Date('2026-10-24T10:16:00Z')));
+      });
+
+      it('keeps the first start for a retry shortly afterwards and stops refreshing the label', async () => {
+        createResponse = () => httpError(429);
+        await create();
+        await clickPay();
+        await clickPay();
+
+        const bodies = createBodies() as { startTime: string }[];
+        expect(bodies).toHaveLength(2);
+        expect(bodies[1].startTime).toBe(bodies[0].startTime);
+
+        const frozen = startValue();
+        await flush(10 * 60_000);
+        expect(startValue()).toBe(frozen);
+      });
     });
 
     it('creates one booking per visit across repeated clicks and retries, reusing the key', async () => {

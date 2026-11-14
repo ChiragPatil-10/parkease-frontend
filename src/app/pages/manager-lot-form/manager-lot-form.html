@@ -26,6 +26,9 @@
         <p class="text-center text-sm text-red-600">{{ loadError() }}</p>
       } @else {
         <h1 class="text-xl font-bold text-ink">{{ heading }}</h1>
+        @if (statusLine(); as line) {
+          <p class="mt-1 text-sm text-muted" data-lot-status>Status: {{ line }}</p>
+        }
         <p class="mt-1 text-sm text-muted">
           We'll geocode the address automatically &mdash; no need to enter coordinates.
         </p>

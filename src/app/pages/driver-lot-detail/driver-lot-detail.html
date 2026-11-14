@@ -187,8 +187,25 @@
                 </button>
               } @else if (vehiclesError(); as message) {
                 <span role="alert" class="text-sm text-red-700">{{ message }}</span>
+              } @else if (vehiclesOfType().length > 1) {
+                <label for="vehicleChoice" class="sr-only">Choose a vehicle</label>
+                <select
+                  id="vehicleChoice"
+                  data-vehicle-choice
+                  (change)="chooseVehicle($any($event.target).value)"
+                  class="min-h-11 max-w-full cursor-pointer rounded-lg border border-border bg-card px-3 py-2 text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                >
+                  @for (option of vehiclesOfType(); track option.vehicleId) {
+                    <option
+                      [value]="option.vehicleId"
+                      [selected]="option.vehicleId === selectedVehicle()?.vehicleId"
+                    >
+                      {{ formatPlate(option.plateNumber) }} - {{ vehicleName(option) }}
+                    </option>
+                  }
+                </select>
               } @else if (selectedVehicle(); as vehicle) {
-                {{ vehicle.plateNumber }}
+                <span data-single-vehicle>{{ vehicle.plateNumber }}</span>
               } @else {
                 <span class="text-sm text-muted">No vehicle for this type</span>
                 <a

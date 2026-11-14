@@ -19,6 +19,7 @@ import { ApiResponse } from '../../models/api-response.model';
 import { LotRequest, LotResponse } from '../../models/lot.model';
 import { AuthService } from '../../services/auth.service';
 import { NETWORK_ERROR_MESSAGE, isNetworkError } from '../../shared/network-error';
+import { LOT_STATE_LINE, lotState } from '../manager-lots/lot-state';
 
 function isHttpStatus(err: unknown, ...statuses: number[]): boolean {
   return err instanceof HttpErrorResponse && statuses.includes(err.status);
@@ -82,6 +83,8 @@ export class ManagerLotForm implements OnInit {
   protected readonly heading = this.isEditMode ? 'Edit lot' : 'Add a new lot';
 
   protected readonly loading = signal(this.isEditMode);
+  /** Read-only status line for edit mode, e.g. "Approved, Closed"; null until the lot is loaded. */
+  protected readonly statusLine = signal<string | null>(null);
   protected readonly loadError = signal<string | null>(null);
   /** A 429 loading the lot to edit: nothing to show yet, so the page offers a neutral Retry. */
   protected readonly loadRateLimited = signal(false);
@@ -171,6 +174,7 @@ export class ManagerLotForm implements OnInit {
       const response = await firstValueFrom(this.lotService.getLotById(this.lotId!));
       if (response.data) {
         this.lot.set(this.toFormModel(response.data));
+        this.statusLine.set(LOT_STATE_LINE[lotState(response.data)]);
       }
     } catch (err) {
       if (err instanceof HttpErrorResponse && (err.status === 401 || err.status === 404)) {
