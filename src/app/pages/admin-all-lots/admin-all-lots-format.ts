@@ -23,14 +23,6 @@ export function lotStatusPill(approvalStatus: string | undefined, isOpen: boolea
   }
 }
 
-/** "bengaluru" -> "Bengaluru", "navi mumbai" -> "Navi Mumbai". */
-export function capitalizeCity(city: string): string {
-  return city
-    .split(' ')
-    .map((word) => (word ? word[0].toUpperCase() + word.slice(1).toLowerCase() : word))
-    .join(' ');
-}
-
 export function managerLabel(managerName: string | null | undefined): string {
   return managerName?.trim() ? managerName : 'Unknown manager';
 }

@@ -145,7 +145,7 @@ describe('ManagerLotBookings', () => {
       expect(lotsCalls).toEqual(['mgr-1']);
       expect(el.querySelector('app-manager-nav')).toBeTruthy();
       expect(el.querySelector('nav a.font-semibold')?.textContent?.trim()).toBe('Lot Bookings');
-      expect(h1(el)).toBe('Bookings \u2014 Whitefield Central Lot');
+      expect(h1(el)).toBe('Bookings - Whitefield Central Lot');
       expect(el.querySelector('h1')?.className).toContain('font-display');
     });
 
@@ -159,6 +159,14 @@ describe('ManagerLotBookings', () => {
       expect(el.querySelector('[role="group"]')).toBeNull();
       expect(el.querySelector('table')).toBeNull();
       expect(h1(el)).toBe('Bookings');
+    });
+
+    it('requests the lots once and the bookings once on load', async () => {
+      const { settle } = await render();
+      await settle();
+
+      expect(lotsCalls.length).toBe(1);
+      expect(calls.length).toBe(1);
     });
 
     it('selects the first lot and sets the URL with replaceUrl when there is no lotId', async () => {
@@ -216,7 +224,7 @@ describe('ManagerLotBookings', () => {
         'Hebbal Annex Lot (not approved)',
         'Whitefield Central Lot',
       ]);
-      expect(h1(el)).toBe('Bookings \u2014 Hebbal Annex Lot');
+      expect(h1(el)).toBe('Bookings - Hebbal Annex Lot');
     });
 
     it('changing it updates the URL, reloads, resets the chip to All and drops the suffix from the h1', async () => {
@@ -238,10 +246,48 @@ describe('ManagerLotBookings', () => {
       expect(last().status).toBeNull();
       expect(last().page).toBe(1);
       expect(chip(el, 'All').getAttribute('aria-pressed')).toBe('true');
-      expect(h1(el)).toBe('Bookings \u2014 Indiranagar Metro Lot');
+      expect(h1(el)).toBe('Bookings - Indiranagar Metro Lot');
       respond(last(), []);
       await settle();
       expect(el.textContent).toContain('No bookings yet.');
+    });
+
+    it.each([
+      ['error', 500],
+      ['rate limited', 429],
+    ])(
+      'a URL update for the same lot refetches the first page when the page is in the %s state',
+      async (_name, status) => {
+        const { el, settle, router } = await render();
+        fail(last(), status);
+        await settle();
+        const before = calls.length;
+        expect(el.querySelector('table')).toBeNull();
+
+        // Same lot, extra query param: the query params emit again but the selected lot does not change.
+        await router.navigate([], { queryParams: { lotId: LOT_A, again: '1' } });
+        await settle();
+
+        expect(calls.length).toBe(before + 1);
+        expect(last().lotId).toBe(LOT_A);
+        expect(last().page).toBe(1);
+        respond(last(), rows(1, 2));
+        await settle();
+        expect(tableRows(el).length).toBe(2);
+      },
+    );
+
+    it('a URL update for the same lot does not refetch when the list loaded fine', async () => {
+      const { el, settle, router } = await render();
+      respond(last(), rows(1, 2));
+      await settle();
+      const before = calls.length;
+
+      await router.navigate([], { queryParams: { lotId: LOT_A, again: '1' } });
+      await settle();
+
+      expect(calls.length).toBe(before);
+      expect(tableRows(el).length).toBe(2);
     });
 
     it('a stale response after a lot change is ignored', async () => {

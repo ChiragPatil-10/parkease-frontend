@@ -44,11 +44,35 @@
         @if (applicationsError(); as error) {
           <div role="alert" class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
             {{ error }}
+            @if (applicationsLoadFailed()) {
+              <button
+                type="button"
+                data-retry-applications
+                (click)="loadApplications(applicationsPage())"
+                class="mt-1 block min-h-11 cursor-pointer font-semibold underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700"
+              >
+                Retry
+              </button>
+            }
           </div>
         }
 
         @if (applicationsLoading()) {
           <p class="mt-6 text-center text-sm text-muted">Loading applications…</p>
+        } @else if (applicationsLoadFailed() && !applicationsError()) {
+          <div class="mt-6" data-rate-limited>
+            <p class="text-sm text-muted">Couldn't load this right now.</p>
+            <button
+              type="button"
+              data-retry-applications
+              (click)="loadApplications(applicationsPage())"
+              class="mt-2 min-h-11 cursor-pointer rounded-lg border border-border bg-card px-5 py-2.5 text-sm text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+            >
+              Retry
+            </button>
+          </div>
+        } @else if (applicationsLoadFailed()) {
+          <!-- The error banner above has the Retry button; no empty state after a failure. -->
         } @else if (applications().length === 0) {
           <div class="flex flex-col items-center gap-4 py-16 text-center">
             <div class="flex h-16 w-16 items-center justify-center rounded-full border border-border">
@@ -69,7 +93,7 @@
                 <div class="flex items-start justify-between gap-4 max-md:flex-col md:gap-6">
                   <div class="min-w-0 flex-1 max-md:w-full">
                     <h2 class="break-words text-base font-semibold text-ink">
-                      {{ application.fullName }} &mdash; {{ application.businessName }}
+                      {{ application.fullName }} - {{ application.businessName }}
                     </h2>
                     <p class="mt-1 break-words text-sm text-muted">
                       {{ application.parkingAddress }} · {{ appliedTextFor(application) }} · {{ application.email }}
@@ -158,7 +182,7 @@
                 <div class="flex items-start justify-between gap-4 max-md:flex-col md:gap-6">
                   <div class="min-w-0 flex-1 max-md:w-full">
                     <h2 class="break-words text-base font-semibold text-ink">
-                      {{ lot.name }} &mdash; {{ managerNameFor(lot) }}
+                      {{ lot.name }} - {{ managerNameFor(lot) }}
                     </h2>
                     <p class="mt-1 break-words text-sm text-muted">
                       {{ lot.address }} · {{ lot.totalSpots }} spots · ₹{{ lot.minPricePerHour }}&ndash;₹{{ lot.maxPricePerHour }}/hr · {{ submittedTextFor(lot) }}

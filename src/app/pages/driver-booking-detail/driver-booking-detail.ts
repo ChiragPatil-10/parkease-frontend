@@ -79,6 +79,8 @@ const PAY_UNCONFIRMED =
   'We could not confirm your payment yet. If money was taken it will show on this booking shortly.';
 const PAY_REJECTED = 'We could not verify this payment. Please try again.';
 const PAY_CANCELLED = 'This booking was cancelled before the payment finished.';
+const PAY_RATE_LIMITED =
+  'We could not confirm your payment yet because of too many requests. Wait a moment, then press Confirm payment.';
 const CANCELLED_MESSAGE = /cancel/i;
 
 function isHttpStatus(err: unknown, ...statuses: number[]): boolean {
@@ -131,6 +133,10 @@ export class DriverBookingDetail implements OnInit {
   protected readonly dialogOpener = signal<HTMLElement | null>(null);
   protected readonly announcement = signal('');
   protected readonly payPhase = signal<PayPhase>('idle');
+  /** Set once Razorpay reports success; from then on Pay only retries the verify and never reopens checkout. */
+  protected readonly paidRequest = signal<VerifyPaymentRequest | null>(null);
+  /** Calm notice (for example after a 429) shown in a neutral box instead of the red banner. */
+  protected readonly payNotice = signal<string | null>(null);
   /** Ticks every second while the booking is Pending so the countdown stays current. */
   private readonly nowMs = signal(Date.now());
   private countdownTimer: ReturnType<typeof setInterval> | null = null;
@@ -229,7 +235,6 @@ export class DriverBookingDetail implements OnInit {
     const view = this.paymentView();
     if (!view) return [];
     const rows: Row[] = [{ label: 'Amount', value: view.amount, mono: true }];
-    if (view.orderId) rows.push({ label: 'Razorpay order', value: view.orderId, mono: true });
     if (view.paidAt) rows.push({ label: 'Paid at', value: view.paidAt });
     if (view.reason) rows.push({ label: 'Reason', value: view.reason, tone: 'red' });
     return rows;
@@ -431,8 +436,15 @@ export class DriverBookingDetail implements OnInit {
   /** Pay reopens the same Razorpay checkout the review page uses, on the order that already exists. */
   protected async pay(): Promise<void> {
     if (this.payPhase() !== 'idle' || this.acting() || this.status() !== 'Pending') return;
-    this.payPhase.set('preparing');
     this.banner.set(null);
+    this.payNotice.set(null);
+    const paid = this.paidRequest();
+    if (paid) {
+      // The payment already went through at Razorpay: only confirm it again, never reopen checkout.
+      await this.verifyPaid(paid);
+      return;
+    }
+    this.payPhase.set('preparing');
     try {
       const payment = (
         await firstValueFrom(this.paymentService.getPaymentByBooking(this.bookingId))
@@ -462,7 +474,10 @@ export class DriverBookingDetail implements OnInit {
         orderId: payment.gatewayOrderId,
         keyId,
         isActive: () => !this.destroyed,
-        onPaid: (request) => void this.verifyPaid(request),
+        onPaid: (request) => {
+          this.paidRequest.set(request);
+          void this.verifyPaid(request);
+        },
         onDismissed: () => this.endPay(null),
         onFailed: () => this.endPay(PAY_FAILED),
       });
@@ -487,7 +502,8 @@ export class DriverBookingDetail implements OnInit {
       } else if (isHttpStatus(err, 400, 403, 422)) {
         this.endPay(PAY_REJECTED);
       } else if (isHttpStatus(err, 429)) {
-        this.endPay(null);
+        this.payPhase.set('idle');
+        this.payNotice.set(PAY_RATE_LIMITED);
       } else {
         this.endPay(PAY_UNCONFIRMED);
       }
@@ -546,6 +562,14 @@ export class DriverBookingDetail implements OnInit {
     if (isHttpStatus(err, 401)) {
       this.authService.clearSession();
       void this.router.navigateByUrl('/login');
+      return null;
+    }
+    if (isHttpStatus(err, 404)) {
+      // The booking is gone: show the not found view instead of a vague banner.
+      this.dialogOpen.set(false);
+      this.stopCountdown();
+      this.clearPollTimer();
+      this.loadState.set('not-found');
       return null;
     }
     if (isHttpStatus(err, 409)) {

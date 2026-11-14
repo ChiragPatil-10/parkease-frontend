@@ -16,7 +16,6 @@ import { ManagerLotForm } from './pages/manager-lot-form/manager-lot-form';
 import { ManagerSpots } from './pages/manager-spots/manager-spots';
 import { ManagerBulkCreateSpots } from './pages/manager-bulk-create-spots/manager-bulk-create-spots';
 import { ManagerLotBookings } from './pages/manager-lot-bookings/manager-lot-bookings';
-import { ManagerApplications } from './pages/manager-applications/manager-applications';
 import { Forbidden } from './pages/forbidden/forbidden';
 import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
@@ -93,11 +92,6 @@ export const routes: Routes = [
   {
     path: 'manager/lot-bookings',
     component: ManagerLotBookings,
-    canActivate: [authGuard, roleGuard(UserRole.Manager)],
-  },
-  {
-    path: 'manager/applications',
-    component: ManagerApplications,
     canActivate: [authGuard, roleGuard(UserRole.Manager)],
   },
   {

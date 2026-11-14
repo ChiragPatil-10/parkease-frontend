@@ -18,6 +18,8 @@ export class Login {
   private readonly router = inject(Router);
 
   protected readonly serverError = signal<string | null>(null);
+  /** Reveals the "not available yet" note under the Forgot password button. */
+  protected readonly forgotShown = signal(false);
 
   private readonly credentials = signal({ email: '', password: '' });
 

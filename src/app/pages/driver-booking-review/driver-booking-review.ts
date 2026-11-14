@@ -42,6 +42,7 @@ type Notice =
   | 'error'
   | 'timeout'
   | 'verify-unconfirmed'
+  | 'verify-rate-limited'
   | 'verify-rejected'
   | 'verify-cancelled'
   | 'verify-conflict';
@@ -478,6 +479,9 @@ export class DriverBookingReview implements OnInit, OnDestroy {
         this.noticeMessage.set(message);
         this.finish('verify-conflict');
       }
+    } else if (isHttpStatus(err, 429)) {
+      // The global toast explains; the box is calm and Try again repeats only the verify.
+      this.finish('verify-rate-limited');
     } else if (isHttpStatus(err, 400, 403, 422)) {
       this.finish('verify-rejected');
     } else {

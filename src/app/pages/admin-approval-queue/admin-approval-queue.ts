@@ -27,8 +27,8 @@ export const ALREADY_HANDLED_NOTICE = 'This lot was already handled. The list ha
 export const LOT_GONE_NOTICE = 'This lot no longer exists.';
 
 export const APPROVAL_TABS: { id: ApprovalSubTab; label: string }[] = [
-  { id: 'manager-applications', label: 'Manager applications' },
-  { id: 'lot-approvals', label: 'Lot approvals' },
+  { id: 'manager-applications', label: 'Manager Applications' },
+  { id: 'lot-approvals', label: 'Lot Approvals' },
 ];
 
 const FEEDBACK_MAX = 500;
@@ -68,6 +68,8 @@ export class AdminApprovalQueue implements OnInit {
   protected readonly applicationsTotalPages = signal(1);
   protected readonly applicationsLoading = signal(false);
   protected readonly applicationsError = signal<string | null>(null);
+  /** True when the last list load failed, so the tab shows an error with Retry instead of the empty state. */
+  protected readonly applicationsLoadFailed = signal(false);
   protected readonly actingApplicationId = signal<string | null>(null);
 
   /** The pending list is not paged: the server returns every pending lot, oldest first. */
@@ -148,6 +150,7 @@ export class AdminApprovalQueue implements OnInit {
   /** `keepError` reloads after a failed action without wiping the message that action just set. */
   protected async loadApplications(page: number, keepError = false): Promise<void> {
     this.applicationsLoading.set(true);
+    this.applicationsLoadFailed.set(false);
     if (!keepError) {
       this.applicationsError.set(null);
     }
@@ -162,6 +165,7 @@ export class AdminApprovalQueue implements OnInit {
         this.applicationsTotalPages.set(response.data.totalPages);
       }
     } catch (err) {
+      this.applicationsLoadFailed.set(true);
       this.applicationsError.set(this.resolveErrorMessage(err));
     } finally {
       this.applicationsLoading.set(false);

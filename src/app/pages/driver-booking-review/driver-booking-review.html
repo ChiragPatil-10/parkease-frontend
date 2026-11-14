@@ -141,6 +141,24 @@
                 </button>
               </p>
             }
+            @case ('verify-rate-limited') {
+              <p
+                role="status"
+                data-verify-rate-limited
+                class="mt-4 rounded-lg border border-border bg-surface px-4 py-3 text-sm text-muted"
+              >
+                We could not confirm your payment yet because of too many requests. Wait a moment,
+                then press Try again.
+                <button
+                  type="button"
+                  (click)="verify()"
+                  [disabled]="running()"
+                  class="mt-1 block font-semibold text-ink underline underline-offset-2"
+                >
+                  Try again
+                </button>
+              </p>
+            }
             @case ('verify-unconfirmed') {
               <p
                 role="alert"
@@ -223,7 +241,7 @@
               <span class="text-base font-semibold">Retry payment</span>
             } @else {
               <span class="font-display text-base font-semibold">Razorpay</span>
-              <span class="text-sm font-medium">&mdash; Pay ₹{{ amount() }}</span>
+              <span class="text-sm font-medium">- Pay ₹{{ amount() }}</span>
             }
           </button>
 

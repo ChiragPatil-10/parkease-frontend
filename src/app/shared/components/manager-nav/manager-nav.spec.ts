@@ -27,7 +27,6 @@ describe('ManagerNav', () => {
       '/manager/lots',
       '/manager/spots',
       '/manager/lot-bookings',
-      '/manager/applications',
     ]);
   });
 

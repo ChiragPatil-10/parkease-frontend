@@ -12,6 +12,7 @@ import { LotResponse } from '../../models/lot.model';
 import { SpotResponse, SpotStatus, VehicleType } from '../../models/spot.model';
 import { VehicleResponse } from '../../models/vehicle/vehicle.model';
 import { formatPlate, vehicleName } from '../driver-my-vehicles/vehicle-format';
+import { formatCity } from '../../shared/city-format';
 
 interface VehicleTypeOption {
   label: string;
@@ -76,10 +77,6 @@ export function formatStartTime(now: Date): string {
   return `${day}, ${formatTime12h(`${hh}:${mm}`)}`;
 }
 
-function capitalizeWords(text: string): string {
-  return text.replace(/\b\p{L}/gu, (c) => c.toUpperCase());
-}
-
 @Component({
   selector: 'app-driver-lot-detail',
   imports: [DriverNav, RouterLink],
@@ -125,7 +122,7 @@ export class DriverLotDetail implements OnInit {
   private readonly selectedFloorChoice = signal<number | null>(null);
   private readonly selectedSpotId = signal<string | null>(null);
 
-  protected readonly cityLabel = computed(() => capitalizeWords(this.lot()?.city ?? ''));
+  protected readonly cityLabel = computed(() => formatCity(this.lot()?.city));
   protected readonly hoursLabel = computed(() => {
     const lot = this.lot();
     return lot ? `Open ${formatTime12h(lot.openTime)} – ${formatTime12h(lot.closeTime)}` : '';
@@ -148,9 +145,16 @@ export class DriverLotDetail implements OnInit {
   protected readonly formatPlate = formatPlate;
   protected readonly vehicleName = vehicleName;
 
-  protected readonly floors = computed(() =>
-    Array.from(new Set(this.spots().map((spot) => spot.floor))).sort((a, b) => a - b),
-  );
+  /**
+   * Floors that have spots for the chosen vehicle type, so a type is never opened on an empty
+   * floor. When the lot has no spots for the type at all, every floor is listed instead.
+   */
+  protected readonly floors = computed(() => {
+    const all = this.spots();
+    const ofType = all.filter((spot) => spot.vehicleType === this.selectedType());
+    const source = ofType.length > 0 ? ofType : all;
+    return Array.from(new Set(source.map((spot) => spot.floor))).sort((a, b) => a - b);
+  });
   protected readonly selectedFloor = computed(() => {
     const floors = this.floors();
     const choice = this.selectedFloorChoice();

@@ -29,6 +29,10 @@ describe('vehicle-format', () => {
       ['KA05MJ4471', 'KA 05 MJ 4471'],
       ['KA01A1234', 'KA 01 A 1234'],
       ['KA01ABC1234', 'KA 01 ABC 1234'],
+      ['DL1CAB1234', 'DL 1 CAB 1234'],
+      ['KA051234', 'KA 05 1234'],
+      ['22BH1234AB', '22 BH 1234 AB'],
+      ['22BH1234A', '22 BH 1234 A'],
     ])('groups the standard plate %s', (plate, expected) => {
       expect(formatPlate(plate)).toBe(expected);
     });

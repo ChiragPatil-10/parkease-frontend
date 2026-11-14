@@ -20,6 +20,7 @@ import { LotRequest, LotResponse } from '../../models/lot.model';
 import { AuthService } from '../../services/auth.service';
 import { NETWORK_ERROR_MESSAGE, isNetworkError } from '../../shared/network-error';
 import { LOT_STATE_LINE, lotState } from '../manager-lots/lot-state';
+import { formatCity } from '../../shared/city-format';
 
 function isHttpStatus(err: unknown, ...statuses: number[]): boolean {
   return err instanceof HttpErrorResponse && statuses.includes(err.status);
@@ -199,7 +200,7 @@ export class ManagerLotForm implements OnInit {
     return {
       name: lot.name,
       address: lot.address,
-      city: lot.city,
+      city: formatCity(lot.city),
       totalSpots: lot.totalSpots,
       minPricePerHour: lot.minPricePerHour,
       maxPricePerHour: lot.maxPricePerHour,

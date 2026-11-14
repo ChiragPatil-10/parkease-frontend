@@ -21,7 +21,7 @@ function plural(count: number, unit: string): string {
   return `${count} ${unit}${count === 1 ? '' : 's'}`;
 }
 
-/** The toast text for a 429, using the Retry-After seconds when they are usable. */
+/** The toast text for a 429. Both kinds count whole seconds from Retry-After when it is usable. */
 export function formatRateLimitMessage(
   kind: RateLimitKind,
   retryAfter: string | number | null | undefined,
@@ -29,12 +29,12 @@ export function formatRateLimitMessage(
   const seconds = parseRetryAfter(retryAfter);
 
   if (kind === 'login') {
-    if (seconds === null || (seconds >= 60 && seconds <= 119)) return LOGIN_RATE_LIMIT_MESSAGE;
-    const wait = seconds < 60 ? plural(seconds, 'second') : plural(Math.ceil(seconds / 60), 'minute');
-    return `Too many login attempts \u2014 try again in ${wait}.`;
+    return seconds === null
+      ? LOGIN_RATE_LIMIT_MESSAGE
+      : `Too many login attempts. Try again in ${plural(seconds, 'second')}.`;
   }
 
-  if (seconds === null) return GENERAL_RATE_LIMIT_MESSAGE;
-  const wait = seconds < 60 ? plural(seconds, 'second') : plural(Math.ceil(seconds / 60), 'minute');
-  return `Too many requests. Please wait ${wait} and try again.`;
+  return seconds === null
+    ? GENERAL_RATE_LIMIT_MESSAGE
+    : `Too many requests. Please wait ${plural(seconds, 'second')} and try again.`;
 }

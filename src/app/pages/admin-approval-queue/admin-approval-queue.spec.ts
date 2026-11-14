@@ -225,6 +225,59 @@ describe('AdminApprovalQueue', () => {
       await Promise.resolve();
     });
 
+    describe('load failures', () => {
+      it('requests the applications once on init', async () => {
+        const { fixture } = createFixture();
+        fixture.detectChanges();
+        flushInitialApplications();
+        await Promise.resolve();
+        fixture.detectChanges();
+
+        httpMock.expectNone((r) => r.url === APPLICATIONS_URL);
+      });
+
+      it('shows only the error with Retry after a failed load, never the all caught up state', async () => {
+        const { fixture, component } = createFixture();
+        fixture.detectChanges();
+        httpMock
+          .expectOne((r) => r.url === APPLICATIONS_URL)
+          .flush(failure('Boom'), { status: 500, statusText: 'Server Error' });
+        await Promise.resolve();
+        fixture.detectChanges();
+        const el = fixture.nativeElement as HTMLElement;
+
+        expect(component.applicationsError()).toBeTruthy();
+        expect(el.querySelector('[role="alert"]')).toBeTruthy();
+        expect(el.querySelector('[data-retry-applications]')).toBeTruthy();
+        expect(el.textContent).not.toContain("You're all caught up");
+
+        el.querySelector<HTMLButtonElement>('[data-retry-applications]')!.click();
+        flushInitialApplications();
+        await Promise.resolve();
+        fixture.detectChanges();
+        expect(el.querySelector('[data-retry-applications]')).toBeNull();
+        expect(el.textContent).toContain('Priya Shah');
+      });
+
+      it('a first-load 429 shows the neutral message with Retry and no empty state', async () => {
+        const { fixture } = createFixture();
+        fixture.detectChanges();
+        httpMock
+          .expectOne((r) => r.url === APPLICATIONS_URL)
+          .flush(failure('Slow down'), { status: 429, statusText: 'Too Many Requests' });
+        await Promise.resolve();
+        fixture.detectChanges();
+        const el = fixture.nativeElement as HTMLElement;
+
+        expect(el.querySelector('[role="alert"]')).toBeNull();
+        expect(el.querySelector('[data-rate-limited]')?.textContent).toContain(
+          "Couldn't load this right now.",
+        );
+        expect(el.querySelector('[data-retry-applications]')).toBeTruthy();
+        expect(el.textContent).not.toContain("You're all caught up");
+      });
+    });
+
     describe('rejecting an application', () => {
       async function openApplications() {
         const { fixture, component } = createFixture();
@@ -372,7 +425,7 @@ describe('AdminApprovalQueue', () => {
       const el = fixture.nativeElement as HTMLElement;
 
       expect(el.querySelector('article h2')?.textContent?.replace(/\s+/g, ' ').trim()).toBe(
-        'Priya Shah \u2014 Shah Parking Services',
+        'Priya Shah - Shah Parking Services',
       );
 
       component.applicationsError.set('Boom');
@@ -424,7 +477,7 @@ describe('AdminApprovalQueue', () => {
 
       expect(el.querySelector('[role="tablist"]')).not.toBeNull();
       const tabs = Array.from(el.querySelectorAll<HTMLElement>('[role="tab"]'));
-      expect(tabs.map((t) => t.textContent?.trim())).toEqual(['Manager applications', 'Lot approvals']);
+      expect(tabs.map((t) => t.textContent?.trim())).toEqual(['Manager Applications', 'Lot Approvals']);
       expect(tabs.map((t) => t.getAttribute('aria-selected'))).toEqual(['true', 'false']);
       expect(tabs.map((t) => t.getAttribute('tabindex'))).toEqual(['0', '-1']);
 
@@ -516,8 +569,8 @@ describe('AdminApprovalQueue', () => {
       const titles = cards(el).map((c) => c.querySelector('h2')?.textContent?.replace(/\s+/g, ' ').trim());
 
       expect(titles).toEqual([
-        'Shah Rooftop Deck \u2014 Priya Shah',
-        'Kumar Auto Deck 2 \u2014 Unknown manager',
+        'Shah Rooftop Deck - Priya Shah',
+        'Kumar Auto Deck 2 - Unknown manager',
       ]);
     });
 

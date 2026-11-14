@@ -170,9 +170,10 @@ describe('DriverBookingDetail', () => {
       expect(mono('A-02 · Standard')).toBe(true);
       expect(mono('KA 05 MJ 4471')).toBe(true);
       expect(mono('₹120')).toBe(true);
-      expect(mono('order_Nk3xR9Qp')).toBe(true);
+      expect(text()).not.toContain('order_Nk3xR9Qp');
+      expect(text()).not.toContain('Razorpay order');
       expect(el.querySelector('h2')?.textContent?.trim()).toBe('Payment');
-      expect(text()).toContain('Captured \u2014 paid');
+      expect(text()).toContain('Captured - paid');
       expect(text()).toContain('Paid at');
     });
 
@@ -239,7 +240,7 @@ describe('DriverBookingDetail', () => {
       await setup();
       expect(text()).toContain('Spot Not available');
       expect(text()).toContain('Vehicle Not available');
-      expect(text()).toContain('Captured \u2014 paid');
+      expect(text()).toContain('Captured - paid');
     });
 
     it('treats a payment 404 as "no payment"', async () => {
@@ -374,6 +375,51 @@ describe('DriverBookingDetail', () => {
       });
     });
 
+    async function payUntilRazorpaySucceeds(): Promise<void> {
+      (el.querySelector('[data-pay]') as HTMLButtonElement).click();
+      await flush();
+      FakeCheckout.instances[0].options.handler({
+        razorpay_payment_id: 'pay_abc',
+        razorpay_order_id: 'order_Nk3xR9Qp',
+        razorpay_signature: 'sig',
+      });
+      await flush();
+    }
+
+    it('after Razorpay succeeds but verify fails, Pay retries the verify and never reopens checkout', async () => {
+      verifyResult = () => httpError(500);
+      await setup();
+      await payUntilRazorpaySucceeds();
+
+      expect(el.querySelector('[role="alert"]')?.textContent).toContain('could not confirm');
+      const button = el.querySelector('[data-pay]') as HTMLButtonElement;
+      expect(button.textContent).toContain('Confirm payment');
+      expect(router.navigate).not.toHaveBeenCalled();
+
+      verifyResult = () => of(envelope(payment('Captured')));
+      button.click();
+      await flush();
+
+      expect(FakeCheckout.instances).toHaveLength(1);
+      expect(posts.filter((p) => p.path === '/api/payments/verify')).toHaveLength(2);
+      expect(router.navigate).toHaveBeenCalledWith(['/bookings', 'bk-1', 'payment'], {
+        replaceUrl: true,
+      });
+    });
+
+    it('a 429 while verifying shows a calm notice and keeps Confirm payment available', async () => {
+      verifyResult = () => httpError(429);
+      await setup();
+      await payUntilRazorpaySucceeds();
+
+      expect(el.querySelector('[role="alert"]')).toBeNull();
+      expect(el.querySelector('[data-pay-notice]')?.textContent).toContain('too many requests');
+      const button = el.querySelector('[data-pay]') as HTMLButtonElement;
+      expect(button.disabled).toBe(false);
+      expect(button.textContent).toContain('Confirm payment');
+      expect(FakeCheckout.instances).toHaveLength(1);
+    });
+
     it('closing the Razorpay window just re-enables Pay without an error', async () => {
       await setup();
       (el.querySelector('[data-pay]') as HTMLButtonElement).click();
@@ -464,9 +510,9 @@ describe('DriverBookingDetail', () => {
   describe('cancelled status text', () => {
     it.each([
       ['DriverCancelled', 'Cancelled'],
-      ['PaymentTimeout', 'Cancelled \u2014 payment timed out'],
-      ['PaymentFailed', 'Cancelled \u2014 payment failed'],
-      ['SpotUnavailable', 'Cancelled \u2014 spot unavailable'],
+      ['PaymentTimeout', 'Cancelled - payment timed out'],
+      ['PaymentFailed', 'Cancelled - payment failed'],
+      ['SpotUnavailable', 'Cancelled - spot unavailable'],
       ['Other', 'Cancelled'],
       [null, 'Cancelled'],
     ])('cancelReason %s shows "%s" in the Status row', async (cancelReason, label) => {
@@ -482,8 +528,8 @@ describe('DriverBookingDetail', () => {
 
   describe('payment card', () => {
     const cases: [string, string, boolean][] = [
-      ['Captured', 'Captured \u2014 paid', true],
-      ['Held', 'Captured \u2014 paid', true],
+      ['Captured', 'Captured - paid', true],
+      ['Held', 'Captured - paid', true],
       ['Created', 'Awaiting payment', false],
       ['Refunded', 'Refunded', true],
       ['RefundFailed', 'Refund pending', true],
@@ -496,7 +542,8 @@ describe('DriverBookingDetail', () => {
       await setup();
       const card = el.querySelector('h2')!.parentElement as HTMLElement;
       expect(card.textContent).toContain(pill);
-      expect(card.textContent?.includes('order_Nk3xR9Qp')).toBe(hasOrder);
+      expect(card.textContent?.includes('order_Nk3xR9Qp')).toBe(false);
+      expect(card.textContent?.includes('Razorpay order')).toBe(false);
       expect(card.textContent?.includes('Paid at')).toBe(hasOrder);
       expect(el.textContent).not.toContain('RAW_GATEWAY_ERROR');
       expect(el.textContent).not.toContain('rzp_test_secret');
@@ -726,6 +773,42 @@ describe('DriverBookingDetail', () => {
       await flush();
       expect(auth.clearSession).toHaveBeenCalled();
       expect(router.navigateByUrl).toHaveBeenCalledWith('/login');
+    });
+  });
+
+  describe('404 on an action', () => {
+    const notFoundView = () => h1().textContent?.trim() === 'Booking not found or not accessible';
+
+    it('check in 404 shows the not found view with the back link, not a vague banner', async () => {
+      checkInResult = () => httpError(404);
+      await setup();
+      (find('button', 'Check in') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      expect(notFoundView()).toBe(true);
+      expect(el.querySelector('[role="alert"]')).toBeNull();
+      expect(find('a', 'Back to My Bookings')?.getAttribute('href')).toBe('/bookings');
+    });
+
+    it('check out 404 shows the not found view', async () => {
+      bookingResult = () => of(envelope(booking('CheckedIn')));
+      checkOutResult = () => httpError(404);
+      await setup();
+      (find('button', 'Check out') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      expect(notFoundView()).toBe(true);
+    });
+
+    it('cancel 404 closes the dialog and shows the not found view', async () => {
+      cancelResult = () => httpError(404);
+      await setup();
+      (find('button', 'Cancel booking') as HTMLButtonElement).click();
+      await flush();
+      (find('button', 'Yes, cancel booking') as HTMLButtonElement).click();
+      await flush();
+
+      expect(dialog()).toBeNull();
+      expect(notFoundView()).toBe(true);
     });
   });
 

@@ -86,8 +86,8 @@ describe('paymentCardView', () => {
   }
 
   it.each<[PaymentStatus, string, string]>([
-    ['Captured', 'Captured \u2014 paid', 'blue'],
-    ['Held', 'Captured \u2014 paid', 'blue'],
+    ['Captured', 'Captured - paid', 'blue'],
+    ['Held', 'Captured - paid', 'blue'],
     ['Refunded', 'Refunded', 'blue'],
     ['RefundFailed', 'Refund pending', 'red'],
   ])('%s shows the order and paid-at rows', (status, pill, tone) => {
@@ -95,7 +95,7 @@ describe('paymentCardView', () => {
     expect(view.pill).toBe(pill);
     expect(view.tone).toBe(tone);
     expect(view.amount).toBe('₹120');
-    expect(view.orderId).toBe('order_Nk3xR9Qp');
+    expect(view).not.toHaveProperty('orderId');
     expect(view.paidAt).toBe('Today, 4:32 PM');
   });
 
@@ -117,7 +117,6 @@ describe('paymentCardView', () => {
     const view = paymentCardView(payment(status, { gatewayOrderId: 'order_x', paidAt: null }), 0, NOW);
     expect(view.pill).toBe(pill);
     expect(view.tone).toBe('neutral');
-    expect(view.orderId).toBeNull();
     expect(view.paidAt).toBeNull();
     expect(view.note).toBeNull();
   });
@@ -133,7 +132,6 @@ describe('paymentCardView', () => {
 
   it('omits rows without a value', () => {
     const view = paymentCardView(payment('Captured', { gatewayOrderId: '', paidAt: null }), 0, NOW);
-    expect(view.orderId).toBeNull();
     expect(view.paidAt).toBeNull();
   });
 
@@ -147,9 +145,9 @@ describe('paymentCardView', () => {
 describe('cancelledLabel', () => {
   it.each([
     ['DriverCancelled', 'Cancelled'],
-    ['PaymentTimeout', 'Cancelled \u2014 payment timed out'],
-    ['PaymentFailed', 'Cancelled \u2014 payment failed'],
-    ['SpotUnavailable', 'Cancelled \u2014 spot unavailable'],
+    ['PaymentTimeout', 'Cancelled - payment timed out'],
+    ['PaymentFailed', 'Cancelled - payment failed'],
+    ['SpotUnavailable', 'Cancelled - spot unavailable'],
     ['Other', 'Cancelled'],
     [null, 'Cancelled'],
     [undefined, 'Cancelled'],

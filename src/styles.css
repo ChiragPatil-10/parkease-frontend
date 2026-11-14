@@ -11,7 +11,7 @@
 
 @import 'tailwindcss';
 
-/* ParkEase design tokens — established on the Login page (first page built). */
+/* ParkEase design tokens - established on the Login page (first page built). */
 @theme {
   --color-surface: #eae6df;
   --color-card: #ffffff;

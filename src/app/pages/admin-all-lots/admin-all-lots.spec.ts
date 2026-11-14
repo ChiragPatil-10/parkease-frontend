@@ -105,10 +105,10 @@ describe('AdminAllLots', () => {
     expect(tableRows().length).toBe(ALL.length);
   });
 
-  it('shows "All lots \u2014 <totalCount> total" in the display font with All Lots active', async () => {
+  it('shows "All lots - <totalCount> total" in the display font with All Lots active', async () => {
     await setup();
     const h1 = el.querySelector('h1')!;
-    expect(h1.textContent?.replace(/\s+/g, ' ').trim()).toBe('All lots \u2014 47 total');
+    expect(h1.textContent?.replace(/\s+/g, ' ').trim()).toBe('All lots - 47 total');
     expect(h1.classList.contains('font-display')).toBe(true);
     expect(el.querySelector('app-admin-nav a.font-semibold')?.textContent?.trim()).toBe('All Lots');
     expect(Array.from(el.querySelectorAll('thead th')).map((th) => th.textContent?.trim())).toEqual([

@@ -11,7 +11,8 @@ import { AdminNav } from '../../shared/components/admin-nav/admin-nav';
 import { PaginationControls } from '../../shared/components/pagination-controls/pagination-controls';
 import { NETWORK_ERROR_MESSAGE, isNetworkError } from '../../shared/network-error';
 import { parsePageParam } from '../admin-users/admin-users';
-import { capitalizeCity, lotStatusPill, managerLabel } from './admin-all-lots-format';
+import { lotStatusPill, managerLabel } from './admin-all-lots-format';
+import { formatCity } from '../../shared/city-format';
 
 export type AllLotsState = 'loading' | 'loaded' | 'empty' | 'error';
 
@@ -48,7 +49,7 @@ export class AdminAllLots implements OnInit {
     this.lots().map((lot) => ({
       id: lot.lotId,
       name: lot.name,
-      city: capitalizeCity(lot.city),
+      city: formatCity(lot.city),
       manager: managerLabel(lot.managerName),
       spots: lot.totalSpots,
       pill: lotStatusPill(lot.approvalStatus, lot.isOpen),
