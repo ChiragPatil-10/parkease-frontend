@@ -6,25 +6,15 @@
       @if (lotLoading()) {
         <p class="text-center text-sm text-muted">Loading lot details…</p>
       } @else if (lotRateLimited()) {
-        <div data-rate-limited>
-          <p class="text-center text-sm text-muted">Couldn't load this right now.</p>
-          <div class="mt-2 flex justify-center gap-3">
-            <button
-              type="button"
-              (click)="retryLoadLot()"
-              class="min-h-11 cursor-pointer rounded-lg border border-border bg-card px-5 py-2.5 text-sm text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-            >
-              Retry
-            </button>
-            <button
+        <app-load-retry class="block text-center" (retry)="retryLoadLot()">
+          <button
               type="button"
               (click)="onCancel()"
               class="min-h-11 cursor-pointer rounded-lg border border-border bg-card px-5 py-2.5 text-sm text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
             >
               Back to Spots
             </button>
-          </div>
-        </div>
+        </app-load-retry>
       } @else if (lotLoadError()) {
         <p class="text-center text-sm text-red-600">{{ lotLoadError() }}</p>
         <div class="mt-6 flex justify-center">
@@ -59,15 +49,15 @@
                   (input)="updateRow($index, 'spotNumber', $any($event.target).value)"
                   [class]="
                     hasAttemptedSubmit() && rowErrorMessage($index)
-                      ? 'w-28 max-md:w-full rounded-lg border border-red-300 bg-red-50 px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:outline-none'
-                      : 'w-28 max-md:w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none'
+                      ? 'w-28 max-md:w-full rounded-lg border border-red-600 bg-red-50 px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:outline-none'
+                      : 'w-28 max-md:w-full rounded-lg border border-control px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none'
                   "
                 />
 
                 <select
                   [value]="row.floor"
                   (change)="updateRow($index, 'floor', $any($event.target).value)"
-                  class="w-28 max-md:w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none"
+                  class="w-28 max-md:w-full rounded-lg border border-control px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none"
                 >
                   @for (floor of floorOptions; track floor) {
                     <option [value]="floor">{{ floor }}</option>
@@ -79,8 +69,8 @@
                   (change)="updateRow($index, 'spotType', $any($event.target).value)"
                   [class]="
                     hasAttemptedSubmit() && rowErrorMessage($index)
-                      ? 'w-32 max-md:w-full rounded-lg border border-red-300 bg-red-50 px-3 py-2.5 text-sm text-ink focus:outline-none'
-                      : 'w-32 max-md:w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none'
+                      ? 'w-32 max-md:w-full rounded-lg border border-red-600 bg-red-50 px-3 py-2.5 text-sm text-ink focus:outline-none'
+                      : 'w-32 max-md:w-full rounded-lg border border-control px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none'
                   "
                 >
                   @for (spotType of spotTypeOptions; track spotType) {
@@ -93,8 +83,8 @@
                   (change)="updateRow($index, 'vehicleType', $any($event.target).value)"
                   [class]="
                     hasAttemptedSubmit() && rowErrorMessage($index)
-                      ? 'w-32 max-md:w-full rounded-lg border border-red-300 bg-red-50 px-3 py-2.5 text-sm text-ink focus:outline-none'
-                      : 'w-32 max-md:w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none'
+                      ? 'w-32 max-md:w-full rounded-lg border border-red-600 bg-red-50 px-3 py-2.5 text-sm text-ink focus:outline-none'
+                      : 'w-32 max-md:w-full rounded-lg border border-control px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none'
                   "
                 >
                   @for (vehicleType of vehicleTypeOptions; track vehicleType) {
@@ -114,8 +104,8 @@
                     (input)="updateRow($index, 'price', $any($event.target).value)"
                     [class]="
                       hasAttemptedSubmit() && rowErrorMessage($index)
-                        ? 'w-full rounded-lg border border-red-300 bg-red-50 py-2.5 pl-7 pr-8 text-sm text-ink placeholder:text-muted/70 focus:outline-none'
-                        : 'w-full rounded-lg border border-border py-2.5 pl-7 pr-8 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none'
+                        ? 'w-full rounded-lg border border-red-600 bg-red-50 py-2.5 pl-7 pr-8 text-sm text-ink placeholder:text-muted focus:outline-none'
+                        : 'w-full rounded-lg border border-control py-2.5 pl-7 pr-8 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none'
                     "
                   />
                   <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted"

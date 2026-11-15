@@ -533,4 +533,48 @@ describe('DriverLots', () => {
       httpMock.expectNone((r) => r.url === SEARCH_URL);
     });
   });
+
+  describe('small screen layout', () => {
+    async function granted(): Promise<HTMLElement> {
+      stubPermission('granted');
+      stubGeolocation('success');
+      const { fixture } = createFixture();
+      fixture.detectChanges();
+      const req = await nearbyRequest();
+      req.flush(envelope([NEARBY_LOT]));
+      await settle();
+      fixture.detectChanges();
+      return fixture.nativeElement as HTMLElement;
+    }
+
+    it('stacks the map above the results below lg and splits them at lg', async () => {
+      const el = await granted();
+      const wrapper = el.querySelector('[data-map]')!.parentElement!;
+      expect(wrapper.classList).toContain('flex-col');
+      expect(wrapper.classList).toContain('lg:flex-row');
+    });
+
+    it('gives the map a fixed height on small screens and lets it flex at lg', async () => {
+      const map = (await granted()).querySelector('[data-map]')!;
+      expect(map.classList).toContain('h-72');
+      expect(map.classList).toContain('shrink-0');
+      expect(map.classList).toContain('lg:h-auto');
+      expect(map.classList).toContain('lg:flex-1');
+      expect(map.classList).not.toContain('flex-1');
+    });
+
+    it('makes the results full width on small screens and 420px wide only at lg', async () => {
+      const aside = (await granted()).querySelector('[data-results]')!;
+      expect(aside.classList).toContain('w-full');
+      expect(aside.classList).toContain('lg:w-[420px]');
+      expect(aside.classList).not.toContain('w-[420px]');
+      expect(aside.classList).not.toContain('shrink-0');
+      expect(aside.classList).toContain('lg:shrink-0');
+    });
+
+    it('keeps the mock map colour', async () => {
+      const map = (await granted()).querySelector('[data-map]')!;
+      expect(map.classList).toContain('bg-[#ddd8cd]');
+    });
+  });
 });

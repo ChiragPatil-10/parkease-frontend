@@ -8,6 +8,7 @@ import { ParkingLotService } from '../../services/parkinglot.service';
 import { SpotService } from '../../services/spot.service';
 import { ApiResponse } from '../../models/api-response.model';
 import { SpotCreateItem, SpotType, VehicleType } from '../../models/spot.model';
+import { LoadRetry } from '../../shared/components/load-retry/load-retry';
 
 function isHttpStatus(err: unknown, ...statuses: number[]): boolean {
   return err instanceof HttpErrorResponse && statuses.includes(err.status);
@@ -59,7 +60,7 @@ function blankRow(): BulkSpotRow {
 
 @Component({
   selector: 'app-manager-bulk-create-spots',
-  imports: [ManagerNav],
+  imports: [ManagerNav, LoadRetry],
   templateUrl: './manager-bulk-create-spots.html',
   styleUrl: './manager-bulk-create-spots.css',
 })

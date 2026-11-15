@@ -17,33 +17,9 @@
     @if (loading()) {
       <p class="mt-6 text-sm text-muted" role="status">Loading your profile…</p>
     } @else if (loadRateLimited()) {
-      <div class="mt-6" data-rate-limited>
-        <p class="text-sm text-muted" role="status">Couldn't load this right now.</p>
-        <button
-          type="button"
-          data-retry
-          (click)="retryLoad()"
-          class="mt-2 min-h-11 cursor-pointer rounded-lg border border-border bg-card px-5 py-2.5 text-sm text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-        >
-          Retry
-        </button>
-      </div>
+      <app-load-retry class="mt-6" (retry)="retryLoad()" />
     } @else if (loadError(); as error) {
-      <div
-        role="alert"
-        data-load-error
-        class="mt-6 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-600"
-      >
-        <p>{{ error }}</p>
-        <button
-          type="button"
-          data-retry
-          (click)="retryLoad()"
-          class="mt-2 min-h-11 cursor-pointer rounded-lg border border-border bg-card px-5 py-2.5 text-sm text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-        >
-          Retry
-        </button>
-      </div>
+      <app-load-retry class="mt-6" [message]="error" (retry)="retryLoad()" />
     } @else if (profile(); as user) {
       <section
         aria-labelledby="profile-heading"
@@ -105,7 +81,7 @@
                   : null
               "
               aria-describedby="full-name-error"
-              class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none"
+              class="mt-2 w-full rounded-lg border border-control px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none"
             />
             <p id="full-name-error" class="mt-1 text-xs text-red-600" data-full-name-error>
               @if (profileForm.fullName().touched() && profileForm.fullName().invalid()) {
@@ -133,7 +109,7 @@
                   : null
               "
               aria-describedby="phone-error"
-              class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+              class="mt-2 w-full rounded-lg border border-control px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
             />
             <p id="phone-error" class="mt-1 text-xs text-red-600" data-phone-error>
               @if (profileForm.phone().touched() && profileForm.phone().invalid()) {
@@ -210,7 +186,7 @@
                     : null
                 "
                 aria-describedby="old-password-error"
-                class="w-full rounded-lg border border-border py-2.5 pl-3 pr-16 text-sm text-ink focus:border-accent focus:outline-none"
+                class="w-full rounded-lg border border-control py-2.5 pl-3 pr-16 text-sm text-ink focus:border-accent focus:outline-none"
               />
               <button
                 type="button"
@@ -250,7 +226,7 @@
                     : null
                 "
                 aria-describedby="new-password-hint new-password-error"
-                class="w-full rounded-lg border border-border py-2.5 pl-3 pr-16 text-sm text-ink focus:border-accent focus:outline-none"
+                class="w-full rounded-lg border border-control py-2.5 pl-3 pr-16 text-sm text-ink focus:border-accent focus:outline-none"
               />
               <button
                 type="button"
@@ -293,7 +269,7 @@
                     : null
                 "
                 aria-describedby="confirm-password-error"
-                class="w-full rounded-lg border border-border py-2.5 pl-3 pr-16 text-sm text-ink focus:border-accent focus:outline-none"
+                class="w-full rounded-lg border border-control py-2.5 pl-3 pr-16 text-sm text-ink focus:border-accent focus:outline-none"
               />
               <button
                 type="button"

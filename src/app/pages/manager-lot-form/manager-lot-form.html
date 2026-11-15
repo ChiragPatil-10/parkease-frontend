@@ -10,18 +10,7 @@
       @if (loading()) {
         <p class="text-center text-sm text-muted">Loading lot details…</p>
       } @else if (loadRateLimited()) {
-        <div data-rate-limited>
-          <p class="text-center text-sm text-muted">Couldn't load this right now.</p>
-          <div class="mt-2 flex justify-center">
-            <button
-              type="button"
-              (click)="retryLoad()"
-              class="min-h-11 cursor-pointer rounded-lg border border-border bg-card px-5 py-2.5 text-sm text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-            >
-              Retry
-            </button>
-          </div>
-        </div>
+        <app-load-retry class="block text-center" (retry)="retryLoad()" />
       } @else if (loadError()) {
         <p class="text-center text-sm text-red-600">{{ loadError() }}</p>
       } @else {
@@ -43,7 +32,7 @@
               type="text"
               placeholder="e.g. Whitefield Central Lot"
               [formField]="lotForm.name"
-              class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+              class="mt-2 w-full rounded-lg border border-control px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
             />
             @if (lotForm.name().touched() && lotForm.name().invalid()) {
               <p class="mt-1 text-xs text-red-600">
@@ -61,7 +50,7 @@
               type="text"
               placeholder="e.g. 2nd Cross, ITPL Main Rd"
               [formField]="lotForm.address"
-              class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+              class="mt-2 w-full rounded-lg border border-control px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
             />
             @if (lotForm.address().touched() && lotForm.address().invalid()) {
               <p class="mt-1 text-xs text-red-600">
@@ -80,7 +69,7 @@
                 type="text"
                 placeholder="e.g. Bengaluru"
                 [formField]="lotForm.city"
-                class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+                class="mt-2 w-full rounded-lg border border-control px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
               />
               @if (lotForm.city().touched() && lotForm.city().invalid()) {
                 <p class="mt-1 text-xs text-red-600">
@@ -98,7 +87,7 @@
                 step="1"
                 placeholder="e.g. 40"
                 [formField]="lotForm.totalSpots"
-                class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+                class="mt-2 w-full rounded-lg border border-control px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
               />
               @if (lotForm.totalSpots().touched() && lotForm.totalSpots().invalid()) {
                 <p class="mt-1 text-xs text-red-600">
@@ -123,7 +112,7 @@
                   step="0.01"
                   placeholder="30"
                   [formField]="lotForm.minPricePerHour"
-                  class="w-full rounded-lg border border-border py-2.5 pl-7 pr-3 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+                  class="w-full rounded-lg border border-control py-2.5 pl-7 pr-3 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
                 />
               </div>
               @if (lotForm.minPricePerHour().touched() && lotForm.minPricePerHour().invalid()) {
@@ -148,8 +137,8 @@
                   [formField]="lotForm.maxPricePerHour"
                   [class]="
                     lotForm.maxPricePerHour().touched() && lotForm.maxPricePerHour().invalid()
-                      ? 'w-full rounded-lg border border-red-300 bg-red-50 py-2.5 pl-7 pr-3 text-sm text-ink placeholder:text-muted/70 focus:outline-none'
-                      : 'w-full rounded-lg border border-border py-2.5 pl-7 pr-3 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none'
+                      ? 'w-full rounded-lg border border-red-600 bg-red-50 py-2.5 pl-7 pr-3 text-sm text-ink placeholder:text-muted focus:outline-none'
+                      : 'w-full rounded-lg border border-control py-2.5 pl-7 pr-3 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none'
                   "
                 />
               </div>
@@ -170,7 +159,7 @@
                 id="openTime"
                 type="time"
                 [formField]="lotForm.openTime"
-                class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none"
+                class="mt-2 w-full rounded-lg border border-control px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none"
               />
               @if (lotForm.openTime().touched() && lotForm.openTime().invalid()) {
                 <p class="mt-1 text-xs text-red-600">
@@ -186,7 +175,7 @@
                 id="closeTime"
                 type="time"
                 [formField]="lotForm.closeTime"
-                class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none"
+                class="mt-2 w-full rounded-lg border border-control px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none"
               />
               @if (lotForm.closeTime().touched() && lotForm.closeTime().invalid()) {
                 <p class="mt-1 text-xs text-red-600">
@@ -205,7 +194,7 @@
               rows="3"
               placeholder="Any details drivers should know before booking…"
               [formField]="lotForm.description"
-              class="mt-2 w-full resize-none rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+              class="mt-2 w-full resize-none rounded-lg border border-control px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
             ></textarea>
             <p class="mt-1 text-right text-xs text-muted" data-description-counter>
               {{ lotForm.description().value().length }}/1000

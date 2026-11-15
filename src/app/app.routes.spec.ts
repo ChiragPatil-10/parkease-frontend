@@ -87,4 +87,92 @@ describe('app routes', () => {
       expect(router.serializeUrl(runAll('profile') as UrlTree)).toBe('/login');
     });
   });
+
+  describe('every route is lazy with the same guards as before', () => {
+    type Access = 'none' | 'guest' | 'auth' | 'driver' | 'manager' | 'admin';
+    const expected: Record<string, Access> = {
+      '': 'guest',
+      login: 'guest',
+      register: 'guest',
+      'register-manager': 'guest',
+      'register-manager/submitted': 'none',
+      lots: 'driver',
+      'lots/:lotId': 'driver',
+      'lots/:lotId/book': 'driver',
+      'bookings/:bookingId/payment': 'driver',
+      bookings: 'driver',
+      'bookings/:bookingId': 'driver',
+      notifications: 'driver',
+      vehicles: 'driver',
+      'manager/lots': 'manager',
+      'manager/lots/new': 'manager',
+      'manager/lots/:id/edit': 'manager',
+      'manager/spots': 'manager',
+      'manager/spots/:lotId/bulk-create': 'manager',
+      'manager/lot-bookings': 'manager',
+      'admin/approvals': 'admin',
+      'admin/users': 'admin',
+      'admin/lots': 'admin',
+      'forgot-password': 'none',
+      'reset-password': 'none',
+      profile: 'auth',
+      '403': 'none',
+      '**': 'none',
+    };
+
+    it('lists exactly these paths, in any order, with no duplicates', () => {
+      const paths = routes.map((r) => r.path);
+      expect(new Set(paths).size).toBe(paths.length);
+      expect([...paths].sort()).toEqual(Object.keys(expected).sort());
+    });
+
+    it('keeps the catch all route last', () => {
+      expect(routes[routes.length - 1].path).toBe('**');
+    });
+
+    for (const [path, access] of Object.entries(expected)) {
+      describe(`/${path}`, () => {
+        const route = () => routes.find((r) => r.path === path)!;
+
+        it('uses loadComponent and no component', () => {
+          expect(route().loadComponent).toBeTypeOf('function');
+          expect(route().component).toBeUndefined();
+        });
+
+        it('has the same guards as before', () => {
+          const guards = guardsFor(path);
+          switch (access) {
+            case 'none':
+              expect(guards).toEqual([]);
+              break;
+            case 'guest':
+              expect(guards).toEqual([guestGuard]);
+              break;
+            case 'auth':
+              expect(guards).toEqual([authGuard]);
+              break;
+            default:
+              expect(guards.length).toBe(2);
+              expect(guards[0]).toBe(authGuard);
+          }
+        });
+
+        if (access === 'driver' || access === 'manager' || access === 'admin') {
+          it('lets only the right role through', () => {
+            const roles = { driver: UserRole.Driver, manager: UserRole.Manager, admin: UserRole.Admin };
+            const own = roles[access];
+            storeSession(own);
+            expect(runAll(path)).toBe(true);
+            for (const other of Object.values(roles).filter((r) => r !== own)) {
+              localStorage.clear();
+              storeSession(other);
+              expect(router.serializeUrl(runAll(path) as UrlTree)).toBe('/403');
+            }
+            localStorage.clear();
+            expect(router.serializeUrl(runAll(path) as UrlTree)).toBe('/login');
+          });
+        }
+      });
+    }
+  });
 });

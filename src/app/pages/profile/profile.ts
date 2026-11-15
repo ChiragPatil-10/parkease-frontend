@@ -41,6 +41,7 @@ import {
   serverMessage,
 } from '../../shared/auth-form';
 import { LOGIN_NOTICE_STATE } from '../../shared/login-notice';
+import { LoadRetry } from '../../shared/components/load-retry/load-retry';
 
 export const PROFILE_SAVED_MESSAGE = 'Profile updated.';
 export const PROFILE_SAVE_FAILED_MESSAGE = "Couldn't save your profile. Please try again.";
@@ -49,7 +50,7 @@ export const PASSWORD_FAILED_MESSAGE = "Couldn't change your password. Please tr
 
 @Component({
   selector: 'app-profile',
-  imports: [FormField, FormRoot, DriverNav, ManagerNav, AdminNav],
+  imports: [FormField, FormRoot, DriverNav, ManagerNav, AdminNav, LoadRetry],
   templateUrl: './profile.html',
   styleUrl: './profile.css',
 })

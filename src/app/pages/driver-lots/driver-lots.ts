@@ -6,6 +6,7 @@ import { DriverNav } from '../../shared/components/driver-nav/driver-nav';
 import { AuthService } from '../../services/auth.service';
 import { ParkingLotService } from '../../services/parkinglot.service';
 import { LotResponse, NearbyLot } from '../../models/lot.model';
+import { LoadRetry } from '../../shared/components/load-retry/load-retry';
 
 type RadiusKm = 1 | 2 | 5 | 10;
 
@@ -40,7 +41,7 @@ const MAP_MARKERS: MapMarkerPosition[] = [
 
 @Component({
   selector: 'app-driver-lots',
-  imports: [DriverNav, RouterLink],
+  imports: [DriverNav, RouterLink, LoadRetry],
   templateUrl: './driver-lots.html',
   styleUrl: './driver-lots.css',
 })

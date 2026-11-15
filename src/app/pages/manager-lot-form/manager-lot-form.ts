@@ -21,6 +21,7 @@ import { AuthService } from '../../services/auth.service';
 import { NETWORK_ERROR_MESSAGE, isNetworkError } from '../../shared/network-error';
 import { LOT_STATE_LINE, lotState } from '../manager-lots/lot-state';
 import { formatCity } from '../../shared/city-format';
+import { LoadRetry } from '../../shared/components/load-retry/load-retry';
 
 function isHttpStatus(err: unknown, ...statuses: number[]): boolean {
   return err instanceof HttpErrorResponse && statuses.includes(err.status);
@@ -69,7 +70,7 @@ const SERVER_FIELD_KEYS: Record<string, keyof LotFormModel> = {
 
 @Component({
   selector: 'app-manager-lot-form',
-  imports: [ManagerNav, FormField, FormRoot],
+  imports: [ManagerNav, FormField, FormRoot, LoadRetry],
   templateUrl: './manager-lot-form.html',
   styleUrl: './manager-lot-form.css',
 })

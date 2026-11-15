@@ -43,16 +43,7 @@
     @case ('rate-limited') {
       <main class="px-4 py-8 md:px-8">
         <h1 class="sr-only">My bookings</h1>
-        <div data-rate-limited>
-          <p class="text-sm text-muted">Couldn't load this right now.</p>
-          <button
-            type="button"
-            (click)="load()"
-            class="mt-2 min-h-11 cursor-pointer rounded-lg border border-border bg-card px-5 py-2.5 text-sm text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-          >
-            Retry
-          </button>
-        </div>
+        <app-load-retry (retry)="load()" />
       </main>
     }
 
@@ -100,7 +91,7 @@
             <li
               [attr.data-booking]="row.booking.bookingId"
               tabindex="-1"
-              class="relative flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-2xl border border-border bg-card p-5 focus:outline-none md:min-h-22"
+              class="relative flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-2xl border border-border bg-card p-5 focus:outline-none has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-2 has-[a:focus-visible]:outline-ink md:min-h-22"
             >
               <div class="flex min-w-0 items-center gap-4 max-sm:basis-full">
                 <span
@@ -113,7 +104,7 @@
                     <a
                       data-title
                       [routerLink]="['/bookings', row.booking.bookingId]"
-                      class="text-base font-medium text-ink after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-ink"
+                      class="text-base font-medium text-ink after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-none"
                     >
                       {{ row.title }}
                     </a>

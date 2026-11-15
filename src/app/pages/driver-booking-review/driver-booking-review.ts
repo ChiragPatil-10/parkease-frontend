@@ -34,6 +34,7 @@ import {
   parseHours,
   toBookingStartTime,
 } from './booking-review-format';
+import { LoadRetry } from '../../shared/components/load-retry/load-retry';
 
 type View = 'loading' | 'bad-link' | 'spot-taken' | 'load-error' | 'rate-limited' | 'ready';
 type Notice =
@@ -84,7 +85,7 @@ function isStillProcessing(err: unknown): boolean {
 
 @Component({
   selector: 'app-driver-booking-review',
-  imports: [RouterLink],
+  imports: [RouterLink, LoadRetry],
   templateUrl: './driver-booking-review.html',
   styleUrl: './driver-booking-review.css',
 })
