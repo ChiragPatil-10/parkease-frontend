@@ -19,6 +19,7 @@ import { AddVehicleModal } from './add-vehicle-modal/add-vehicle-modal';
 import { DeleteVehicleDialog } from './delete-vehicle-dialog/delete-vehicle-dialog';
 import { backendMessage, genericErrorMessage, isRateLimited } from './vehicle-errors';
 import { formatPlate, parseReturnTo, vehicleDetail, vehicleName } from './vehicle-format';
+import { LoadRetry } from '../../shared/components/load-retry/load-retry';
 
 const SESSION_EXPIRED_MESSAGE = 'Your session has expired. Please log in again.';
 const DEFAULT_BOOKING_WARNING =
@@ -26,7 +27,7 @@ const DEFAULT_BOOKING_WARNING =
 
 @Component({
   selector: 'app-driver-my-vehicles',
-  imports: [DriverNav, RouterLink, AddVehicleModal, DeleteVehicleDialog],
+  imports: [DriverNav, RouterLink, AddVehicleModal, DeleteVehicleDialog, LoadRetry],
   templateUrl: './driver-my-vehicles.html',
   styleUrl: './driver-my-vehicles.css',
 })

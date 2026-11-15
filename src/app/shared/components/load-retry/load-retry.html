@@ -1,0 +1,21 @@
+<div
+  [attr.role]="message() ? 'alert' : null"
+  [attr.data-load-error]="message() ? '' : null"
+  [attr.data-rate-limited]="message() ? null : ''"
+  [class]="message() ? 'rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700' : ''"
+>
+  <p [class]="message() ? '' : 'text-sm text-muted'" [attr.role]="message() ? null : 'status'">
+    {{ message() ?? "Couldn't load this right now." }}
+  </p>
+  <div class="mt-2 inline-flex flex-wrap gap-3">
+    <button
+      type="button"
+      data-retry
+      (click)="retry.emit()"
+      class="min-h-11 cursor-pointer rounded-lg border border-border bg-card px-5 py-2.5 text-sm text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+    >
+      Retry
+    </button>
+    <ng-content />
+  </div>
+</div>

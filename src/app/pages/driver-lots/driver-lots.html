@@ -2,13 +2,13 @@
   <app-driver-nav activeTab="search-lots" />
 
   @if (resolvingPermission()) {
-    <p class="px-8 py-6 text-sm text-muted">Checking location access…</p>
+    <p class="px-4 py-6 text-sm text-muted sm:px-8">Checking location access…</p>
   } @else if (locationGranted()) {
     <!-- STATE A - location granted: map + results split pane -->
-    <div class="flex flex-1">
-      <div class="relative flex-1 overflow-hidden bg-[#ddd8cd]">
+    <div class="flex flex-1 flex-col lg:flex-row">
+      <div class="relative h-72 shrink-0 overflow-hidden bg-[#ddd8cd] lg:h-auto lg:flex-1" data-map>
         <div
-          class="absolute h-[380px] w-[380px] -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-dashed border-accent"
+          class="absolute h-[240px] w-[240px] -translate-x-1/2 sm:h-[380px] sm:w-[380px] -translate-y-1/2 rounded-full border-2 border-dashed border-accent"
           style="top: 52%; left: 49%"
         ></div>
 
@@ -28,7 +28,10 @@
         }
       </div>
 
-      <aside class="w-[420px] shrink-0 overflow-y-auto border-l border-border bg-card px-8 py-6">
+      <aside
+        data-results
+        class="w-full border-t border-border bg-card px-4 py-6 sm:px-8 lg:w-[420px] lg:shrink-0 lg:overflow-y-auto lg:border-t-0 lg:border-l"
+      >
         <p class="text-xs font-semibold tracking-wide text-muted">
           NEAR YOU · WITHIN {{ selectedRadius() }}KM
         </p>
@@ -61,16 +64,7 @@
         }
 
         @if (nearbyRateLimited() && !nearbyLoading()) {
-          <div class="mt-4" data-rate-limited>
-            <p class="text-sm text-muted">Couldn't load this right now.</p>
-            <button
-              type="button"
-              (click)="retryNearby()"
-              class="mt-2 min-h-11 cursor-pointer rounded-lg border border-border bg-card px-5 py-2.5 text-sm text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-            >
-              Retry
-            </button>
-          </div>
+          <app-load-retry class="mt-4" (retry)="retryNearby()" />
         }
 
         <div class="mt-4 flex flex-col gap-4">
@@ -115,7 +109,7 @@
     </div>
   } @else {
     <!-- STATE B - location denied: banner + city search + full-width grid -->
-    <main class="mx-auto w-full max-w-6xl px-8 py-6">
+    <main class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-8">
       @if (!bannerDismissed()) {
         <div
           class="flex items-start justify-between gap-6 rounded-xl border border-accent bg-card px-6 py-5"
@@ -157,7 +151,7 @@
           [value]="cityInput()"
           (input)="onCityInput($event)"
           (keydown.enter)="search()"
-          class="flex-1 rounded-lg border border-border bg-card px-4 py-2.5 text-sm text-ink placeholder:text-muted focus:outline-none"
+          class="flex-1 rounded-lg border border-control bg-card px-4 py-2.5 text-sm text-ink placeholder:text-muted focus:outline-none"
         />
         <button
           type="button"

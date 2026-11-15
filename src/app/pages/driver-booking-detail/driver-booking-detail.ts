@@ -36,6 +36,7 @@ import {
   paymentDeadlineMs,
 } from './booking-detail-format';
 import { CancelBookingDialog } from './cancel-booking-dialog/cancel-booking-dialog';
+import { LoadRetry } from '../../shared/components/load-retry/load-retry';
 
 type LoadState = 'loading' | 'ready' | 'not-found' | 'load-error' | 'rate-limited';
 type Phase = 'idle' | 'checking-out' | 'cancelling';
@@ -97,7 +98,7 @@ function holdsMoney(payment: PaymentResponse): boolean {
 
 @Component({
   selector: 'app-driver-booking-detail',
-  imports: [DriverNav, RouterLink, CancelBookingDialog],
+  imports: [DriverNav, RouterLink, CancelBookingDialog, LoadRetry],
   templateUrl: './driver-booking-detail.html',
   styleUrl: './driver-booking-detail.css',
 })

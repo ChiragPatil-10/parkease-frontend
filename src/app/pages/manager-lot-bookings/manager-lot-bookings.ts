@@ -18,6 +18,7 @@ import {
 } from '../driver-booking-detail/booking-detail-format';
 import { formatPlate } from '../driver-my-vehicles/vehicle-format';
 import { lotApprovalSuffix } from './lot-approval-suffix';
+import { LoadRetry } from '../../shared/components/load-retry/load-retry';
 
 export type LotBookingsState =
   | 'loaded'
@@ -96,7 +97,7 @@ export function lotBookingRowView(
 
 @Component({
   selector: 'app-manager-lot-bookings',
-  imports: [ManagerNav, RouterLink, NgTemplateOutlet],
+  imports: [ManagerNav, RouterLink, NgTemplateOutlet, LoadRetry],
   templateUrl: './manager-lot-bookings.html',
   styleUrl: './manager-lot-bookings.css',
 })

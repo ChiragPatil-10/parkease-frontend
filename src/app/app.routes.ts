@@ -1,97 +1,79 @@
 import { Routes } from '@angular/router';
-import { Login } from './pages/login/login';
-import { RegisterDriver } from './pages/register-driver/register-driver';
-import { RegisterManager } from './pages/register-manager/register-manager';
-import { ManagerApplicationSubmitted } from './pages/manager-application-submitted/manager-application-submitted';
-import { DriverLots } from './pages/driver-lots/driver-lots';
-import { DriverLotDetail } from './pages/driver-lot-detail/driver-lot-detail';
-import { DriverBookingReview } from './pages/driver-booking-review/driver-booking-review';
-import { DriverPaymentPending } from './pages/driver-payment-pending/driver-payment-pending';
-import { DriverMyBookings } from './pages/driver-my-bookings/driver-my-bookings';
-import { DriverNotifications } from './pages/driver-notifications/driver-notifications';
-import { DriverBookingDetail } from './pages/driver-booking-detail/driver-booking-detail';
-import { DriverMyVehicles } from './pages/driver-my-vehicles/driver-my-vehicles';
-import { ManagerLots } from './pages/manager-lots/manager-lots';
-import { ManagerLotForm } from './pages/manager-lot-form/manager-lot-form';
-import { ManagerSpots } from './pages/manager-spots/manager-spots';
-import { ManagerBulkCreateSpots } from './pages/manager-bulk-create-spots/manager-bulk-create-spots';
-import { ManagerLotBookings } from './pages/manager-lot-bookings/manager-lot-bookings';
-import { Forbidden } from './pages/forbidden/forbidden';
 import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
 import { roleGuard } from './core/guards/role.guard';
 import { UserRole } from './models/auth/user-role.enum';
 
 export const routes: Routes = [
-  { path: '', component: Login, canActivate: [guestGuard] },
-  { path: 'login', component: Login, canActivate: [guestGuard] },
-  { path: 'register', component: RegisterDriver, canActivate: [guestGuard] },
-  { path: 'register-manager', component: RegisterManager, canActivate: [guestGuard] },
-  { path: 'register-manager/submitted', component: ManagerApplicationSubmitted },
-  { path: 'lots', component: DriverLots, canActivate: [authGuard, roleGuard(UserRole.Driver)] },
+  { path: '', loadComponent: () => import('./pages/login/login').then((m) => m.Login), canActivate: [guestGuard] },
+  { path: 'login', loadComponent: () => import('./pages/login/login').then((m) => m.Login), canActivate: [guestGuard] },
+  { path: 'register', loadComponent: () => import('./pages/register-driver/register-driver').then((m) => m.RegisterDriver), canActivate: [guestGuard] },
+  { path: 'register-manager', loadComponent: () => import('./pages/register-manager/register-manager').then((m) => m.RegisterManager), canActivate: [guestGuard] },
+  { path: 'register-manager/submitted', loadComponent: () => import('./pages/manager-application-submitted/manager-application-submitted').then((m) => m.ManagerApplicationSubmitted) },
+  { path: 'lots', loadComponent: () => import('./pages/driver-lots/driver-lots').then((m) => m.DriverLots), canActivate: [authGuard, roleGuard(UserRole.Driver)] },
   {
     path: 'lots/:lotId',
-    component: DriverLotDetail,
+    loadComponent: () => import('./pages/driver-lot-detail/driver-lot-detail').then((m) => m.DriverLotDetail),
     canActivate: [authGuard, roleGuard(UserRole.Driver)],
   },
   {
     path: 'lots/:lotId/book',
-    component: DriverBookingReview,
+    loadComponent: () => import('./pages/driver-booking-review/driver-booking-review').then((m) => m.DriverBookingReview),
     canActivate: [authGuard, roleGuard(UserRole.Driver)],
   },
   {
     path: 'bookings/:bookingId/payment',
-    component: DriverPaymentPending,
+    loadComponent: () => import('./pages/driver-payment-pending/driver-payment-pending').then((m) => m.DriverPaymentPending),
     canActivate: [authGuard, roleGuard(UserRole.Driver)],
   },
   {
     path: 'bookings',
-    component: DriverMyBookings,
+    loadComponent: () => import('./pages/driver-my-bookings/driver-my-bookings').then((m) => m.DriverMyBookings),
     canActivate: [authGuard, roleGuard(UserRole.Driver)],
   },
   {
     path: 'bookings/:bookingId',
-    component: DriverBookingDetail,
+    loadComponent: () => import('./pages/driver-booking-detail/driver-booking-detail').then((m) => m.DriverBookingDetail),
     canActivate: [authGuard, roleGuard(UserRole.Driver)],
   },
   {
     path: 'notifications',
-    component: DriverNotifications,
+    loadComponent: () => import('./pages/driver-notifications/driver-notifications').then((m) => m.DriverNotifications),
     canActivate: [authGuard, roleGuard(UserRole.Driver)],
   },
   {
     path: 'vehicles',
-    component: DriverMyVehicles,
+    loadComponent: () => import('./pages/driver-my-vehicles/driver-my-vehicles').then((m) => m.DriverMyVehicles),
     canActivate: [authGuard, roleGuard(UserRole.Driver)],
   },
   {
     path: 'manager/lots',
-    component: ManagerLots,
+    loadComponent: () => import('./pages/manager-lots/manager-lots').then((m) => m.ManagerLots),
     canActivate: [authGuard, roleGuard(UserRole.Manager)],
   },
   {
     path: 'manager/lots/new',
-    component: ManagerLotForm,
+    loadComponent: () => import('./pages/manager-lot-form/manager-lot-form').then((m) => m.ManagerLotForm),
     canActivate: [authGuard, roleGuard(UserRole.Manager)],
   },
   {
     path: 'manager/lots/:id/edit',
-    component: ManagerLotForm,
+    loadComponent: () => import('./pages/manager-lot-form/manager-lot-form').then((m) => m.ManagerLotForm),
     canActivate: [authGuard, roleGuard(UserRole.Manager)],
   },
   {
     path: 'manager/spots',
-    component: ManagerSpots,
+    loadComponent: () => import('./pages/manager-spots/manager-spots').then((m) => m.ManagerSpots),
     canActivate: [authGuard, roleGuard(UserRole.Manager)],
   },
   {
     path: 'manager/spots/:lotId/bulk-create',
-    component: ManagerBulkCreateSpots,
+    loadComponent: () => import('./pages/manager-bulk-create-spots/manager-bulk-create-spots').then((m) => m.ManagerBulkCreateSpots),
     canActivate: [authGuard, roleGuard(UserRole.Manager)],
   },
   {
     path: 'manager/lot-bookings',
-    component: ManagerLotBookings,
+    loadComponent: () => import('./pages/manager-lot-bookings/manager-lot-bookings').then((m) => m.ManagerLotBookings),
     canActivate: [authGuard, roleGuard(UserRole.Manager)],
   },
   {
@@ -109,7 +91,22 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/admin-all-lots/admin-all-lots').then((m) => m.AdminAllLots),
     canActivate: [authGuard, roleGuard(UserRole.Admin)],
   },
-  { path: '403', component: Forbidden },
+  {
+    path: 'forgot-password',
+    loadComponent: () =>
+      import('./pages/forgot-password/forgot-password').then((m) => m.ForgotPassword),
+  },
+  {
+    path: 'reset-password',
+    loadComponent: () =>
+      import('./pages/reset-password/reset-password').then((m) => m.ResetPassword),
+  },
+  {
+    path: 'profile',
+    loadComponent: () => import('./pages/profile/profile').then((m) => m.Profile),
+    canActivate: [authGuard],
+  },
+  { path: '403', loadComponent: () => import('./pages/forbidden/forbidden').then((m) => m.Forbidden) },
   // Must stay the last route: anything not matched above is a 404.
   {
     path: '**',

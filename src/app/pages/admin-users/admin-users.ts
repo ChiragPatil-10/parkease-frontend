@@ -12,6 +12,7 @@ import { ConfirmDialog } from '../../shared/components/confirm-dialog/confirm-di
 import { PaginationControls } from '../../shared/components/pagination-controls/pagination-controls';
 import { NETWORK_ERROR_MESSAGE, isNetworkError } from '../../shared/network-error';
 import { UserActionKind, formatJoinedDate, userActionFor, userStatusPill } from './admin-users-format';
+import { LoadRetry } from '../../shared/components/load-retry/load-retry';
 
 export type UsersState = 'loading' | 'loaded' | 'empty' | 'error';
 
@@ -34,7 +35,7 @@ export function parsePageParam(value: string | null): number {
 
 @Component({
   selector: 'app-admin-users',
-  imports: [AdminNav, PaginationControls, NgTemplateOutlet, ConfirmDialog],
+  imports: [AdminNav, PaginationControls, NgTemplateOutlet, ConfirmDialog, LoadRetry],
   templateUrl: './admin-users.html',
   styleUrl: './admin-users.css',
 })

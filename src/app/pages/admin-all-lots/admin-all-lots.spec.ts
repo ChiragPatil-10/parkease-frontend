@@ -246,6 +246,9 @@ describe('AdminAllLots', () => {
       await settle();
       expect(el.querySelector('[role="alert"]')).toBeNull();
       expect(el.textContent).toContain('Retry');
+      expect(el.querySelector('[data-rate-limited]')?.textContent).toContain(
+        "Couldn't load this right now.",
+      );
     });
 
     it('429 on a later load keeps the current data', async () => {

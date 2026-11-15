@@ -22,7 +22,7 @@
           <label for="lot-select" class="text-sm font-medium text-ink">Lot</label>
           <select
             id="lot-select"
-            class="min-h-11 cursor-pointer rounded-lg border border-border bg-card px-3 text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+            class="min-h-11 cursor-pointer rounded-lg border border-control bg-card px-3 text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
             (change)="selectLot($any($event.target).value)"
           >
             @if (!selectedLot()) {
@@ -73,16 +73,7 @@
 
         @switch (view()) {
           @case ('rateLimited') {
-            <div class="mt-4" data-rate-limited>
-              <p class="text-sm text-muted">Couldn't load this right now.</p>
-              <button
-                type="button"
-                (click)="retry()"
-                class="mt-2 min-h-11 cursor-pointer rounded-lg border border-border bg-card px-5 py-2.5 text-sm text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-              >
-                Retry
-              </button>
-            </div>
+            <app-load-retry class="mt-4" (retry)="retry()" />
           }
           @case ('error') {
             <p

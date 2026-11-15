@@ -2,6 +2,7 @@
 
 /* Self-hosted fonts (Latin subset, swap): Space Grotesk, IBM Plex Mono, Inter. */
 @import '@fontsource/space-grotesk/latin-500.css';
+@import '@fontsource/space-grotesk/latin-600.css';
 @import '@fontsource/space-grotesk/latin-700.css';
 @import '@fontsource/ibm-plex-mono/latin-400.css';
 @import '@fontsource/ibm-plex-mono/latin-500.css';
@@ -21,6 +22,8 @@
   --color-muted: #5b6270;
   --color-border: #e2e0dc;
   --color-link: #1d4ed8;
+  /* NEW: border of form controls only (input, select, textarea, radio pills). 3.87:1 on card, 3.11:1 on surface. */
+  --color-control: #7c828c;
 
   --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -37,4 +40,15 @@
 
 body {
   background-color: var(--color-surface);
+}
+
+/*
+ * Keyboard focus ring for text controls. Deliberately unlayered, so it beats the
+ * focus:outline-none utilities that are still on the inputs. Ink on card is 17.40:1.
+ */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
 }

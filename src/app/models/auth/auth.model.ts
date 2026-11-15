@@ -47,3 +47,24 @@ export interface ManagerApplicationDto {
 export interface RejectManagerRequest {
   feedback?: string;
 }
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+}
+
+/** Omitted or null keeps the stored value; an empty string clears it. */
+export interface UpdateProfileRequest {
+  fullName: string;
+  phone?: string;
+  profilePicUrl?: string;
+}
+
+export interface ChangePasswordRequest {
+  oldPassword: string;
+  newPassword: string;
+}

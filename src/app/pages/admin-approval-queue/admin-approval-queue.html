@@ -60,17 +60,7 @@
         @if (applicationsLoading()) {
           <p class="mt-6 text-center text-sm text-muted">Loading applications…</p>
         } @else if (applicationsLoadFailed() && !applicationsError()) {
-          <div class="mt-6" data-rate-limited>
-            <p class="text-sm text-muted">Couldn't load this right now.</p>
-            <button
-              type="button"
-              data-retry-applications
-              (click)="loadApplications(applicationsPage())"
-              class="mt-2 min-h-11 cursor-pointer rounded-lg border border-border bg-card px-5 py-2.5 text-sm text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-            >
-              Retry
-            </button>
-          </div>
+          <app-load-retry class="mt-6" (retry)="loadApplications(applicationsPage())" />
         } @else if (applicationsLoadFailed()) {
           <!-- The error banner above has the Retry button; no empty state after a failure. -->
         } @else if (applications().length === 0) {
@@ -109,7 +99,7 @@
                       placeholder="Optional feedback for the applicant (shown if rejected)…"
                       [value]="applicationFeedbackDrafts()[application.applicationId] ?? ''"
                       (input)="updateApplicationFeedback(application.applicationId, $any($event.target).value)"
-                      class="mt-4 w-full resize-none rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                      class="mt-4 w-full resize-none rounded-lg border border-control bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
                     ></textarea>
                     <p class="mt-1 text-right text-xs text-muted" data-application-counter>
                       {{ (applicationFeedbackDrafts()[application.applicationId] ?? '').length }}/{{ feedbackMax }}
@@ -196,7 +186,7 @@
                       placeholder="Optional feedback for the manager (shown if rejected)"
                       [value]="lotFeedbackDrafts()[lot.lotId] ?? ''"
                       (input)="updateLotFeedback(lot.lotId, $any($event.target).value)"
-                      class="mt-4 w-full resize-none rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                      class="mt-4 w-full resize-none rounded-lg border border-control bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
                     ></textarea>
                     @if (lotFieldErrors()[lot.lotId]; as fieldError) {
                       <p role="alert" class="mt-1 text-sm text-red-700" data-feedback-error>{{ fieldError }}</p>

@@ -14,6 +14,7 @@ import { ManagerApplicationDto } from '../../models/auth/auth.model';
 import { ApplicationStatus } from '../../models/auth/application-status.enum';
 import { LotResponse } from '../../models/lot.model';
 import { NETWORK_ERROR_MESSAGE, isNetworkError } from '../../shared/network-error';
+import { LoadRetry } from '../../shared/components/load-retry/load-retry';
 
 type ApprovalSubTab = 'manager-applications' | 'lot-approvals';
 type LotActionKind = 'approve' | 'reject';
@@ -45,7 +46,7 @@ interface PendingReject {
 
 @Component({
   selector: 'app-admin-approval-queue',
-  imports: [AdminNav, PaginationControls, ConfirmDialog],
+  imports: [AdminNav, PaginationControls, ConfirmDialog, LoadRetry],
   templateUrl: './admin-approval-queue.html',
   styleUrl: './admin-approval-queue.css',
 })

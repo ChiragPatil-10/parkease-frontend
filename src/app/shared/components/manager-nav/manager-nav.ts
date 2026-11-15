@@ -3,7 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { NavShell } from '../nav-shell/nav-shell';
 import { AuthService } from '../../../services/auth.service';
 
-export type ManagerNavTab = 'my-lots' | 'spots' | 'lot-bookings';
+export type ManagerNavTab = 'my-lots' | 'spots' | 'lot-bookings' | 'profile';
 
 interface ManagerNavItem {
   tab: ManagerNavTab;

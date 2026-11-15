@@ -3,7 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { NavShell } from '../nav-shell/nav-shell';
 import { AuthService } from '../../../services/auth.service';
 
-export type DriverNavTab = 'search-lots' | 'my-vehicles' | 'my-bookings' | 'notifications';
+export type DriverNavTab = 'search-lots' | 'my-vehicles' | 'my-bookings' | 'notifications' | 'profile';
 
 interface DriverNavItem {
   tab: DriverNavTab;

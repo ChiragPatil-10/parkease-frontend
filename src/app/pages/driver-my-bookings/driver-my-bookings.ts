@@ -24,6 +24,7 @@ import { formatAmount, formatBookingTime } from '../driver-booking-detail/bookin
 import { CancelBookingDialog } from '../driver-booking-detail/cancel-booking-dialog/cancel-booking-dialog';
 import { formatPlate } from '../driver-my-vehicles/vehicle-format';
 import { ActionKind, PillTone, bookingRowView } from './booking-row';
+import { LoadRetry } from '../../shared/components/load-retry/load-retry';
 
 type View = 'loading' | 'list' | 'empty' | 'error' | 'rate-limited';
 type Phase = 'idle' | 'checking-in' | 'checking-out' | 'cancelling';
@@ -76,7 +77,7 @@ function serverMessage(err: unknown): string {
 
 @Component({
   selector: 'app-driver-my-bookings',
-  imports: [DriverNav, RouterLink, CancelBookingDialog],
+  imports: [DriverNav, RouterLink, CancelBookingDialog, LoadRetry],
   templateUrl: './driver-my-bookings.html',
   styleUrl: './driver-my-bookings.css',
 })

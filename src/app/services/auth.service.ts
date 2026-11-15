@@ -6,11 +6,15 @@ import { ApiResponse } from '../models/api-response.model';
 import { PagedResponse } from '../models/paged-response.model';
 import {
   AuthResponse,
+  ChangePasswordRequest,
+  ForgotPasswordRequest,
   LoginRequest,
   ManagerApplicationDto,
   RegisterDriverRequest,
   RegisterManagerRequest,
   RejectManagerRequest,
+  ResetPasswordRequest,
+  UpdateProfileRequest,
 } from '../models/auth/auth.model';
 import { ApplicationStatus } from '../models/auth/application-status.enum';
 import { AuthUser } from '../models/auth/user.model';
@@ -33,6 +37,26 @@ export class AuthService {
 
   registerManager(request: RegisterManagerRequest): Observable<ApiResponse<ManagerApplicationDto>> {
     return this.api.post<ManagerApplicationDto>(AUTH_API.registerManager, request);
+  }
+
+  forgotPassword(request: ForgotPasswordRequest): Observable<ApiResponse<unknown>> {
+    return this.api.post(AUTH_API.forgotPassword, request);
+  }
+
+  resetPassword(request: ResetPasswordRequest): Observable<ApiResponse<unknown>> {
+    return this.api.post(AUTH_API.resetPassword, request);
+  }
+
+  getProfile(): Observable<ApiResponse<AuthUser>> {
+    return this.api.get<AuthUser>(AUTH_API.profile);
+  }
+
+  updateProfile(request: UpdateProfileRequest): Observable<ApiResponse<AuthUser>> {
+    return this.api.put<AuthUser>(AUTH_API.profile, request);
+  }
+
+  changePassword(request: ChangePasswordRequest): Observable<ApiResponse<unknown>> {
+    return this.api.put(AUTH_API.password, request);
   }
 
   getUsers(page: number, pageSize: number): Observable<ApiResponse<PagedResponse<UserSummaryDto>>> {
@@ -124,6 +148,15 @@ export class AuthService {
 
   getCurrentUser(): AuthUser | null {
     return this.getSession()?.user ?? null;
+  }
+
+  /** Merges changed profile fields into the stored session. Tokens are left untouched. */
+  updateSessionUser(user: Partial<AuthUser>): void {
+    const session = this.getSession();
+    if (!session) {
+      return;
+    }
+    this.saveSession({ ...session, user: { ...session.user, ...user } });
   }
 
   clearSession(): void {

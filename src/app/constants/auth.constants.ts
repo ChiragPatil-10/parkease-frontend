@@ -1,6 +1,10 @@
 export const AUTH_API = {
   login: '/api/v1/auth/login',
   logout: '/api/v1/auth/logout',
+  forgotPassword: '/api/v1/auth/forgot-password',
+  resetPassword: '/api/v1/auth/reset-password',
+  profile: '/api/v1/auth/profile',
+  password: '/api/v1/auth/password',
   registerDriver: '/api/v1/auth/register/driver',
   registerManager: '/api/v1/auth/register/manager',
   /** Path prefix shared by both register routes (the 429 interceptor matches on it). */

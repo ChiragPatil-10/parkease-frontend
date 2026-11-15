@@ -46,8 +46,8 @@
           [formField]="vehicleForm.plate"
           [attr.aria-invalid]="plateError() ? 'true' : null"
           aria-describedby="plate-help"
-          class="mt-2 w-full rounded-lg border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:outline-none"
-          [class.border-border]="!plateError()"
+          class="mt-2 w-full rounded-lg border px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:outline-none"
+          [class.border-control]="!plateError()"
           [class.focus:border-accent]="!plateError()"
           [class.border-red-600]="!!plateError()"
           [class.bg-red-50]="!!plateError()"
@@ -89,7 +89,7 @@
               [class.border-accent]="option.value === selectedType()"
               [class.bg-accent]="option.value === selectedType()"
               [class.text-ink]="option.value === selectedType()"
-              [class.border-border]="option.value !== selectedType()"
+              [class.border-control]="option.value !== selectedType()"
               [class.bg-card]="option.value !== selectedType()"
               [class.text-muted]="option.value !== selectedType()"
             >
@@ -114,7 +114,7 @@
             [formField]="vehicleForm.make"
             [attr.aria-invalid]="makeError() ? 'true' : null"
             [attr.aria-describedby]="makeError() ? 'make-error' : null"
-            class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+            class="mt-2 w-full rounded-lg border border-control px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
           />
           @if (makeError(); as error) {
             <p id="make-error" class="mt-1.5 text-xs text-red-600">{{ error }}</p>
@@ -131,7 +131,7 @@
             [formField]="vehicleForm.model"
             [attr.aria-invalid]="modelError() ? 'true' : null"
             [attr.aria-describedby]="modelError() ? 'model-error' : null"
-            class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+            class="mt-2 w-full rounded-lg border border-control px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
           />
           @if (modelError(); as error) {
             <p id="model-error" class="mt-1.5 text-xs text-red-600">{{ error }}</p>

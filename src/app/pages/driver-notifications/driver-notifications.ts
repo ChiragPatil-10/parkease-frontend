@@ -8,6 +8,7 @@ import { AuthService } from '../../services/auth.service';
 import { NotificationService } from '../../services/notification.service';
 import { DriverNav } from '../../shared/components/driver-nav/driver-nav';
 import { formatNotificationFullTime, formatNotificationTime } from './notification-time';
+import { LoadRetry } from '../../shared/components/load-retry/load-retry';
 
 export type NotificationsState = 'loaded' | 'loading' | 'empty' | 'error' | 'rate-limited';
 
@@ -57,7 +58,7 @@ function isValidDate(iso: string): boolean {
 
 @Component({
   selector: 'app-driver-notifications',
-  imports: [DriverNav, RouterLink],
+  imports: [DriverNav, RouterLink, LoadRetry],
   templateUrl: './driver-notifications.html',
   styleUrl: './driver-notifications.css',
 })

@@ -10,6 +10,7 @@ import { ParkingLotService } from '../../services/parkinglot.service';
 import { LotResponse } from '../../models/lot.model';
 import { NETWORK_ERROR_MESSAGE, isNetworkError } from '../../shared/network-error';
 import { LOT_STATE_LABEL, LotState, lotState } from './lot-state';
+import { LoadRetry } from '../../shared/components/load-retry/load-retry';
 
 interface StatusMeta {
   label: string;
@@ -45,7 +46,7 @@ interface PendingClose {
 
 @Component({
   selector: 'app-manager-lots',
-  imports: [ManagerNav, RouterLink, ConfirmDialog],
+  imports: [ManagerNav, RouterLink, ConfirmDialog, LoadRetry],
   templateUrl: './manager-lots.html',
   styleUrl: './manager-lots.css',
 })

@@ -16,7 +16,7 @@
           type="text"
           placeholder="Priya Shah"
           [formField]="registerForm.fullName"
-          class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+          class="mt-2 w-full rounded-lg border border-control px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
         />
         @if (registerForm.fullName().touched() && registerForm.fullName().invalid()) {
           <p class="mt-1 text-xs text-red-600">
@@ -34,7 +34,7 @@
           type="email"
           placeholder="you@business.com"
           [formField]="registerForm.email"
-          class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+          class="mt-2 w-full rounded-lg border border-control px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
         />
         @if (registerForm.email().touched() && registerForm.email().invalid()) {
           <p class="mt-1 text-xs text-red-600">
@@ -51,7 +51,7 @@
           id="password"
           type="password"
           [formField]="registerForm.password"
-          class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+          class="mt-2 w-full rounded-lg border border-control px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
         />
         @if (registerForm.password().touched() && registerForm.password().invalid()) {
           <p class="mt-1 text-xs text-red-600">
@@ -73,7 +73,7 @@
           type="tel"
           placeholder="+91 98765 43210"
           [formField]="registerForm.phone"
-          class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+          class="mt-2 w-full rounded-lg border border-control px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
         />
         @if (registerForm.phone().touched() && registerForm.phone().invalid()) {
           <p class="mt-1 text-xs text-red-600">
@@ -91,7 +91,7 @@
           type="text"
           placeholder="Shah Parking Services"
           [formField]="registerForm.businessName"
-          class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+          class="mt-2 w-full rounded-lg border border-control px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
         />
         @if (registerForm.businessName().touched() && registerForm.businessName().invalid()) {
           <p class="mt-1 text-xs text-red-600">
@@ -109,7 +109,7 @@
           type="text"
           placeholder="4th Block, Koramangala"
           [formField]="registerForm.parkingAddress"
-          class="mt-2 w-full rounded-lg border border-border px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none"
+          class="mt-2 w-full rounded-lg border border-control px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
         />
         @if (registerForm.parkingAddress().touched() && registerForm.parkingAddress().invalid()) {
           <p class="mt-1 text-xs text-red-600">

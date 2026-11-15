@@ -273,7 +273,7 @@ describe('AdminApprovalQueue', () => {
         expect(el.querySelector('[data-rate-limited]')?.textContent).toContain(
           "Couldn't load this right now.",
         );
-        expect(el.querySelector('[data-retry-applications]')).toBeTruthy();
+        expect(el.querySelector('[data-rate-limited] button')).toBeTruthy();
         expect(el.textContent).not.toContain("You're all caught up");
       });
     });

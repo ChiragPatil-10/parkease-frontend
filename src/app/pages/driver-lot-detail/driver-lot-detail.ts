@@ -13,6 +13,7 @@ import { SpotResponse, SpotStatus, VehicleType } from '../../models/spot.model';
 import { VehicleResponse } from '../../models/vehicle/vehicle.model';
 import { formatPlate, vehicleName } from '../driver-my-vehicles/vehicle-format';
 import { formatCity } from '../../shared/city-format';
+import { LoadRetry } from '../../shared/components/load-retry/load-retry';
 
 interface VehicleTypeOption {
   label: string;
@@ -79,7 +80,7 @@ export function formatStartTime(now: Date): string {
 
 @Component({
   selector: 'app-driver-lot-detail',
-  imports: [DriverNav, RouterLink],
+  imports: [DriverNav, RouterLink, LoadRetry],
   templateUrl: './driver-lot-detail.html',
   styleUrl: './driver-lot-detail.css',
 })

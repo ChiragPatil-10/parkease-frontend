@@ -13,6 +13,7 @@ import { NETWORK_ERROR_MESSAGE, isNetworkError } from '../../shared/network-erro
 import { parsePageParam } from '../admin-users/admin-users';
 import { lotStatusPill, managerLabel } from './admin-all-lots-format';
 import { formatCity } from '../../shared/city-format';
+import { LoadRetry } from '../../shared/components/load-retry/load-retry';
 
 export type AllLotsState = 'loading' | 'loaded' | 'empty' | 'error';
 
@@ -21,7 +22,7 @@ export const GENERIC_ERROR_MESSAGE = 'Something went wrong. Please try again.';
 
 @Component({
   selector: 'app-admin-all-lots',
-  imports: [AdminNav, PaginationControls, NgTemplateOutlet],
+  imports: [AdminNav, PaginationControls, NgTemplateOutlet, LoadRetry],
   templateUrl: './admin-all-lots.html',
   styleUrl: './admin-all-lots.css',
 })

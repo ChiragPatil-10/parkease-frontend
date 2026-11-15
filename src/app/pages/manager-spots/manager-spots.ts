@@ -10,6 +10,7 @@ import { SpotService } from '../../services/spot.service';
 import { LotResponse } from '../../models/lot.model';
 import { SpotResponse, SpotStatus } from '../../models/spot.model';
 import { NETWORK_ERROR_MESSAGE, isNetworkError } from '../../shared/network-error';
+import { LoadRetry } from '../../shared/components/load-retry/load-retry';
 
 function isHttpStatus(err: unknown, ...statuses: number[]): boolean {
   return err instanceof HttpErrorResponse && statuses.includes(err.status);
@@ -29,7 +30,7 @@ const SPOT_STATUS_META: Record<SpotStatus, SpotStatusMeta> = {
 
 @Component({
   selector: 'app-manager-spots',
-  imports: [ManagerNav, NgTemplateOutlet],
+  imports: [ManagerNav, NgTemplateOutlet, LoadRetry],
   templateUrl: './manager-spots.html',
   styleUrl: './manager-spots.css',
   host: { '(document:keydown.escape)': 'onEscape()' },

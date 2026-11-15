@@ -143,6 +143,13 @@ describe('DriverMyBookings', () => {
       expect(text(row('1'))).toContain('KA 05 MJ 4471');
       expect(row('1').querySelector('.font-mono')?.textContent?.trim()).toBe('S-1');
       expect(gets).toEqual(['/api/bookings/my']);
+      expect(row('1').className).toContain('has-[a:focus-visible]:outline-2');
+      expect(row('1').className).toContain('has-[a:focus-visible]:outline-ink');
+      const title = row('1').querySelector('[data-title]');
+      if (title) {
+        expect(title.className).toContain('focus-visible:outline-none');
+        expect(title.className).not.toContain('after:outline');
+      }
       expect(el.querySelectorAll('h1').length).toBe(1);
       expect(el.querySelector('h1')?.textContent?.trim()).toBe('My bookings');
     });
